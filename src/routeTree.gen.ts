@@ -9,8 +9,62 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TemoignagesRouteImport } from './routes/temoignages'
+import { Route as ReservationRouteImport } from './routes/reservation'
+import { Route as LogementsRouteImport } from './routes/logements'
+import { Route as LocalisationRouteImport } from './routes/localisation'
+import { Route as GalerieRouteImport } from './routes/galerie'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AProposRouteImport } from './routes/a-propos'
 import { Route as IndexRouteImport } from './routes/index'
 
+const TemoignagesRoute = TemoignagesRouteImport.update({
+  id: '/temoignages',
+  path: '/temoignages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReservationRoute = ReservationRouteImport.update({
+  id: '/reservation',
+  path: '/reservation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LogementsRoute = LogementsRouteImport.update({
+  id: '/logements',
+  path: '/logements',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocalisationRoute = LocalisationRouteImport.update({
+  id: '/localisation',
+  path: '/localisation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GalerieRoute = GalerieRouteImport.update({
+  id: '/galerie',
+  path: '/galerie',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AProposRoute = AProposRouteImport.update({
+  id: '/a-propos',
+  path: '/a-propos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +73,158 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/a-propos': typeof AProposRoute
+  '/admin': typeof AdminRoute
+  '/auth': typeof AuthRoute
+  '/contact': typeof ContactRoute
+  '/galerie': typeof GalerieRoute
+  '/localisation': typeof LocalisationRoute
+  '/logements': typeof LogementsRoute
+  '/reservation': typeof ReservationRoute
+  '/temoignages': typeof TemoignagesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/a-propos': typeof AProposRoute
+  '/admin': typeof AdminRoute
+  '/auth': typeof AuthRoute
+  '/contact': typeof ContactRoute
+  '/galerie': typeof GalerieRoute
+  '/localisation': typeof LocalisationRoute
+  '/logements': typeof LogementsRoute
+  '/reservation': typeof ReservationRoute
+  '/temoignages': typeof TemoignagesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/a-propos': typeof AProposRoute
+  '/admin': typeof AdminRoute
+  '/auth': typeof AuthRoute
+  '/contact': typeof ContactRoute
+  '/galerie': typeof GalerieRoute
+  '/localisation': typeof LocalisationRoute
+  '/logements': typeof LogementsRoute
+  '/reservation': typeof ReservationRoute
+  '/temoignages': typeof TemoignagesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/a-propos'
+    | '/admin'
+    | '/auth'
+    | '/contact'
+    | '/galerie'
+    | '/localisation'
+    | '/logements'
+    | '/reservation'
+    | '/temoignages'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/a-propos'
+    | '/admin'
+    | '/auth'
+    | '/contact'
+    | '/galerie'
+    | '/localisation'
+    | '/logements'
+    | '/reservation'
+    | '/temoignages'
+  id:
+    | '__root__'
+    | '/'
+    | '/a-propos'
+    | '/admin'
+    | '/auth'
+    | '/contact'
+    | '/galerie'
+    | '/localisation'
+    | '/logements'
+    | '/reservation'
+    | '/temoignages'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AProposRoute: typeof AProposRoute
+  AdminRoute: typeof AdminRoute
+  AuthRoute: typeof AuthRoute
+  ContactRoute: typeof ContactRoute
+  GalerieRoute: typeof GalerieRoute
+  LocalisationRoute: typeof LocalisationRoute
+  LogementsRoute: typeof LogementsRoute
+  ReservationRoute: typeof ReservationRoute
+  TemoignagesRoute: typeof TemoignagesRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/temoignages': {
+      id: '/temoignages'
+      path: '/temoignages'
+      fullPath: '/temoignages'
+      preLoaderRoute: typeof TemoignagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reservation': {
+      id: '/reservation'
+      path: '/reservation'
+      fullPath: '/reservation'
+      preLoaderRoute: typeof ReservationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/logements': {
+      id: '/logements'
+      path: '/logements'
+      fullPath: '/logements'
+      preLoaderRoute: typeof LogementsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/localisation': {
+      id: '/localisation'
+      path: '/localisation'
+      fullPath: '/localisation'
+      preLoaderRoute: typeof LocalisationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/galerie': {
+      id: '/galerie'
+      path: '/galerie'
+      fullPath: '/galerie'
+      preLoaderRoute: typeof GalerieRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/a-propos': {
+      id: '/a-propos'
+      path: '/a-propos'
+      fullPath: '/a-propos'
+      preLoaderRoute: typeof AProposRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,6 +237,15 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AProposRoute: AProposRoute,
+  AdminRoute: AdminRoute,
+  AuthRoute: AuthRoute,
+  ContactRoute: ContactRoute,
+  GalerieRoute: GalerieRoute,
+  LocalisationRoute: LocalisationRoute,
+  LogementsRoute: LogementsRoute,
+  ReservationRoute: ReservationRoute,
+  TemoignagesRoute: TemoignagesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
