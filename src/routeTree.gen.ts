@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TemoignagesRouteImport } from './routes/temoignages'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ReservationRouteImport } from './routes/reservation'
 import { Route as LogementsRouteImport } from './routes/logements'
 import { Route as LocalisationRouteImport } from './routes/localisation'
@@ -23,6 +24,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const TemoignagesRoute = TemoignagesRouteImport.update({
   id: '/temoignages',
   path: '/temoignages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReservationRoute = ReservationRouteImport.update({
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/localisation': typeof LocalisationRoute
   '/logements': typeof LogementsRoute
   '/reservation': typeof ReservationRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/temoignages': typeof TemoignagesRoute
 }
 export interface FileRoutesByTo {
@@ -93,6 +100,7 @@ export interface FileRoutesByTo {
   '/localisation': typeof LocalisationRoute
   '/logements': typeof LogementsRoute
   '/reservation': typeof ReservationRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/temoignages': typeof TemoignagesRoute
 }
 export interface FileRoutesById {
@@ -106,6 +114,7 @@ export interface FileRoutesById {
   '/localisation': typeof LocalisationRoute
   '/logements': typeof LogementsRoute
   '/reservation': typeof ReservationRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/temoignages': typeof TemoignagesRoute
 }
 export interface FileRouteTypes {
@@ -120,6 +129,7 @@ export interface FileRouteTypes {
     | '/localisation'
     | '/logements'
     | '/reservation'
+    | '/sitemap.xml'
     | '/temoignages'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -132,6 +142,7 @@ export interface FileRouteTypes {
     | '/localisation'
     | '/logements'
     | '/reservation'
+    | '/sitemap.xml'
     | '/temoignages'
   id:
     | '__root__'
@@ -144,6 +155,7 @@ export interface FileRouteTypes {
     | '/localisation'
     | '/logements'
     | '/reservation'
+    | '/sitemap.xml'
     | '/temoignages'
   fileRoutesById: FileRoutesById
 }
@@ -157,6 +169,7 @@ export interface RootRouteChildren {
   LocalisationRoute: typeof LocalisationRoute
   LogementsRoute: typeof LogementsRoute
   ReservationRoute: typeof ReservationRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TemoignagesRoute: typeof TemoignagesRoute
 }
 
@@ -167,6 +180,13 @@ declare module '@tanstack/react-router' {
       path: '/temoignages'
       fullPath: '/temoignages'
       preLoaderRoute: typeof TemoignagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reservation': {
@@ -245,6 +265,7 @@ const rootRouteChildren: RootRouteChildren = {
   LocalisationRoute: LocalisationRoute,
   LogementsRoute: LogementsRoute,
   ReservationRoute: ReservationRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   TemoignagesRoute: TemoignagesRoute,
 }
 export const routeTree = rootRouteImport
