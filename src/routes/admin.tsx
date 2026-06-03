@@ -26,6 +26,7 @@ import { MessagesAdmin } from "@/components/admin/messages-admin";
 import { ReviewsAdmin } from "@/components/admin/reviews-admin";
 import { UsersAdmin } from "@/components/admin/users-admin";
 import { LogementsAdmin } from "@/components/admin/logements-admin";
+import { ManagerActivity } from "@/components/admin/manager-activity";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { claimAdmin, getAdminStatus } from "@/lib/admin.functions";
 
