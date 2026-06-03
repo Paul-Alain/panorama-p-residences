@@ -29,7 +29,7 @@ export function Hero() {
         <img
           src={logoMark.url}
           alt="Panorama P Residence"
-          className="absolute top-6 left-4 h-16 w-16 rounded-full object-cover shadow-gold sm:left-6 sm:h-20 sm:w-20 lg:left-8"
+          className="absolute top-4 left-3 h-20 w-20 rounded-full border-4 border-gold object-cover shadow-[0_0_20px_rgba(201,168,76,0.5)] sm:top-5 sm:left-5 sm:h-28 sm:w-28 lg:top-6 lg:left-8 lg:h-32 lg:w-32"
         />
         <div className="max-w-3xl animate-fade-up">
           <span className="inline-flex items-center gap-2 rounded-full border border-primary-foreground/25 bg-primary-foreground/10 px-4 py-1.5 text-xs font-medium uppercase tracking-[0.18em] text-primary-foreground backdrop-blur">
