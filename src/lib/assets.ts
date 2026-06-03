@@ -51,6 +51,8 @@ const assetMap: Record<string, string> = {
   // New cover photos
   "studio-confort": studioConfort.url,
   "appartement-confort": appartementConfort.url,
+  "studio-vue-salon": studioVueSalon.url,
+  "appartement-vue-salon": appartementVueSalon.url,
 };
 
 const fallback = residenceFacade.url;
