@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TemoignagesRouteImport } from './routes/temoignages'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ReservationRouteImport } from './routes/reservation'
+import { Route as MonEspaceRouteImport } from './routes/mon-espace'
 import { Route as LogementsRouteImport } from './routes/logements'
 import { Route as LocalisationRouteImport } from './routes/localisation'
 import { Route as GalerieRouteImport } from './routes/galerie'
@@ -34,6 +35,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const ReservationRoute = ReservationRouteImport.update({
   id: '/reservation',
   path: '/reservation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MonEspaceRoute = MonEspaceRouteImport.update({
+  id: '/mon-espace',
+  path: '/mon-espace',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LogementsRoute = LogementsRouteImport.update({
@@ -86,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/galerie': typeof GalerieRoute
   '/localisation': typeof LocalisationRoute
   '/logements': typeof LogementsRoute
+  '/mon-espace': typeof MonEspaceRoute
   '/reservation': typeof ReservationRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/temoignages': typeof TemoignagesRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByTo {
   '/galerie': typeof GalerieRoute
   '/localisation': typeof LocalisationRoute
   '/logements': typeof LogementsRoute
+  '/mon-espace': typeof MonEspaceRoute
   '/reservation': typeof ReservationRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/temoignages': typeof TemoignagesRoute
@@ -113,6 +121,7 @@ export interface FileRoutesById {
   '/galerie': typeof GalerieRoute
   '/localisation': typeof LocalisationRoute
   '/logements': typeof LogementsRoute
+  '/mon-espace': typeof MonEspaceRoute
   '/reservation': typeof ReservationRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/temoignages': typeof TemoignagesRoute
@@ -128,6 +137,7 @@ export interface FileRouteTypes {
     | '/galerie'
     | '/localisation'
     | '/logements'
+    | '/mon-espace'
     | '/reservation'
     | '/sitemap.xml'
     | '/temoignages'
@@ -141,6 +151,7 @@ export interface FileRouteTypes {
     | '/galerie'
     | '/localisation'
     | '/logements'
+    | '/mon-espace'
     | '/reservation'
     | '/sitemap.xml'
     | '/temoignages'
@@ -154,6 +165,7 @@ export interface FileRouteTypes {
     | '/galerie'
     | '/localisation'
     | '/logements'
+    | '/mon-espace'
     | '/reservation'
     | '/sitemap.xml'
     | '/temoignages'
@@ -168,6 +180,7 @@ export interface RootRouteChildren {
   GalerieRoute: typeof GalerieRoute
   LocalisationRoute: typeof LocalisationRoute
   LogementsRoute: typeof LogementsRoute
+  MonEspaceRoute: typeof MonEspaceRoute
   ReservationRoute: typeof ReservationRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TemoignagesRoute: typeof TemoignagesRoute
@@ -194,6 +207,13 @@ declare module '@tanstack/react-router' {
       path: '/reservation'
       fullPath: '/reservation'
       preLoaderRoute: typeof ReservationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mon-espace': {
+      id: '/mon-espace'
+      path: '/mon-espace'
+      fullPath: '/mon-espace'
+      preLoaderRoute: typeof MonEspaceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/logements': {
@@ -264,6 +284,7 @@ const rootRouteChildren: RootRouteChildren = {
   GalerieRoute: GalerieRoute,
   LocalisationRoute: LocalisationRoute,
   LogementsRoute: LogementsRoute,
+  MonEspaceRoute: MonEspaceRoute,
   ReservationRoute: ReservationRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TemoignagesRoute: TemoignagesRoute,
@@ -271,3 +292,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
