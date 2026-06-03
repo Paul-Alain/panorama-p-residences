@@ -72,14 +72,16 @@ function Index() {
       <section className="bg-secondary/40 py-20 sm:py-28">
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
           <Reveal>
-            <img
-              src={resolveImage("int-salon-rotin")}
-              alt={t.about.title}
-              loading="lazy"
-              width={1280}
-              height={960}
+            <video
+              src={presentationVideo.url}
+              controls
+              playsInline
+              preload="metadata"
+              poster={resolveImage("int-salon-rotin")}
               className="aspect-[5/4] w-full rounded-3xl object-cover shadow-elegant"
-            />
+            >
+              {t.about.title}
+            </video>
           </Reveal>
           <Reveal delay={120}>
             <SectionHeading
