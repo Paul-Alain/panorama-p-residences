@@ -22,7 +22,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { LogementEditor } from "@/components/admin/logement-editor";
 import { supabase } from "@/integrations/supabase/client";
-import { claimAdmin } from "@/lib/admin.functions";
+import {
+  claimAdmin,
+  getAdminStatus,
+  adminDeleteLogement,
+  adminListReservations,
+  adminListMessages,
+} from "@/lib/admin.functions";
 import { logementsQuery, formatPrice, type Logement } from "@/lib/data";
 
 export const Route = createFileRoute("/admin")({
