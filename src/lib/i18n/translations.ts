@@ -470,6 +470,7 @@ const de: Dict = {
     testimonials: "Bewertungen",
     contact: "Kontakt",
     book: "Buchen",
+    admin: "Verwaltung",
   },
   hero: {
     title: "Panorama P – Möblierte Residenz in Bafoussam",
