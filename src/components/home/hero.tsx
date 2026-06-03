@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/lib/i18n/language-context";
-import residenceFacade from "@/assets/residence-facade.jpg.asset.json";
+import accueilResidence from "@/assets/accueil-residence.jpg.asset.json";
 
 export function Hero() {
   const { t } = useLanguage();
@@ -10,7 +10,7 @@ export function Hero() {
   return (
     <section className="relative isolate overflow-hidden">
       <img
-        src={residenceFacade.url}
+        src={accueilResidence.url}
         alt="Panorama P – résidence meublée à Bafoussam"
         width={1920}
         height={1080}
