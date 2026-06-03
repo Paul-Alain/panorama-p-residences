@@ -20,6 +20,17 @@ export interface Logement {
   sort_order: number;
 }
 
+export interface LogementUnit {
+  id: string;
+  logement_id: string;
+  label: string;
+  unit_number: number;
+  available: boolean;
+  sort_order: number;
+  /** Category type pulled from the parent logement (studio/chambre/appartement). */
+  type: string;
+}
+
 export interface Testimonial {
   id: string;
   name: string;
