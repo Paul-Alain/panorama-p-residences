@@ -27,6 +27,7 @@ import appartementConfort from "@/assets/appartement-confort.jpg.asset.json";
 import studioVueSalon from "@/assets/studio-vue-salon.jpg.asset.json";
 import appartementVueSalon from "@/assets/appartement-vue-salon.jpg.asset.json";
 import studioSalonLed from "@/assets/studio-salon-led.jpg.asset.json";
+import installationSolaire from "@/assets/installation-solaire.jpg.asset.json";
 
 const assetMap: Record<string, string> = {
   // Exterior
@@ -55,6 +56,7 @@ const assetMap: Record<string, string> = {
   "studio-vue-salon": studioVueSalon.url,
   "appartement-vue-salon": appartementVueSalon.url,
   "studio-salon-led": studioSalonLed.url,
+  "installation-solaire": installationSolaire.url,
 };
 
 const fallback = residenceFacade.url;
@@ -80,4 +82,5 @@ export const galleryImages: { id: string; key: string }[] = [
   { id: "int-salon-couloir", key: "salonCuisine" },
   { id: "int-douche-bleue", key: "douche" },
   { id: "residence-cote", key: "cote" },
+  { id: "installation-solaire", key: "solaire" },
 ];
