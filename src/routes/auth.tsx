@@ -73,6 +73,23 @@ function AuthPage() {
     navigate({ to: "/mon-espace" });
   };
 
+  const forgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setResetSent(true);
+    toast.success(
+      "Un email de réinitialisation a été envoyé. Veuillez vérifier votre boîte mail.",
+    );
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-secondary/40 px-4">
       <div className="w-full max-w-md">
