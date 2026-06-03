@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { CalendarCheck, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -16,6 +20,10 @@ import { PhoneInput } from "@/components/forms/phone-input";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { whatsappLink } from "@/lib/site-config";
+import { logementUnitsQuery, type LogementUnit } from "@/lib/data";
+import { getUnitAvailability } from "@/lib/units.functions";
+
+const CATEGORY_ORDER = ["chambre", "studio", "appartement"];
 
 export function ReservationForm({ defaultType = "" }: { defaultType?: string }) {
   const { t } = useLanguage();
@@ -27,12 +35,50 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
     arrival: "",
     departure: "",
     guests: "1",
-    type: defaultType,
+    unitId: "",
     message: "",
   });
 
   const set = (key: string, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
+
+  const { data: units = [] } = useQuery(logementUnitsQuery);
+  const runAvailability = useServerFn(getUnitAvailability);
+
+  const datesValid =
+    !!form.arrival && !!form.departure && form.departure > form.arrival;
+
+  /* Availability for the selected date range (booked unit ids) */
+  const { data: availability, isFetching: checkingAvailability } = useQuery({
+    queryKey: ["unit-availability", form.arrival, form.departure],
+    queryFn: () =>
+      runAvailability({ data: { arrival: form.arrival, departure: form.departure } }),
+    enabled: datesValid,
+  });
+  const bookedIds = useMemo(
+    () => new Set(availability?.bookedUnitIds ?? []),
+    [availability],
+  );
+
+  const isUnitBookable = (u: LogementUnit) => u.available && !bookedIds.has(u.id);
+
+  /* Group units by category in a stable order */
+  const grouped = useMemo(() => {
+    const map = new Map<string, LogementUnit[]>();
+    for (const u of units) {
+      if (!map.has(u.type)) map.set(u.type, []);
+      map.get(u.type)!.push(u);
+    }
+    return Array.from(map.entries()).sort(
+      (a, b) => CATEGORY_ORDER.indexOf(a[0]) - CATEGORY_ORDER.indexOf(b[0]),
+    );
+  }, [units]);
+
+  const typeLabel: Record<string, string> = {
+    studio: t.logements.types.studio,
+    chambre: t.logements.types.chambre,
+    appartement: t.logements.types.appartement,
+  };
 
   /* Pre-fill from profile when user is logged in */
   useEffect(() => {
@@ -56,11 +102,21 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
     return () => { mounted = false; };
   }, []);
 
-  const typeLabel: Record<string, string> = {
-    studio: t.logements.types.studio,
-    chambre: t.logements.types.chambre,
-    appartement: t.logements.types.appartement,
-  };
+  /* Preselect the first available unit matching defaultType (from a logement card) */
+  useEffect(() => {
+    if (!defaultType || form.unitId || units.length === 0) return;
+    const match = units.find((u) => u.type === defaultType && u.available);
+    if (match) setForm((f) => ({ ...f, unitId: match.id }));
+  }, [defaultType, units, form.unitId]);
+
+  /* Clear a selection that became unavailable for the chosen dates */
+  useEffect(() => {
+    if (form.unitId && bookedIds.has(form.unitId)) {
+      setForm((f) => ({ ...f, unitId: "" }));
+    }
+  }, [bookedIds, form.unitId]);
+
+  const selectedUnit = units.find((u) => u.id === form.unitId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,7 +135,8 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
       arrival_date: form.arrival,
       departure_date: form.departure,
       guests: Number(form.guests) || 1,
-      logement_type: form.type || null,
+      logement_unit_id: form.unitId || null,
+      logement_type: selectedUnit?.type ?? null,
       message: form.message.trim().slice(0, 1000) || null,
       user_id: user?.id ?? null,
     });
@@ -96,12 +153,12 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
       arrival: "",
       departure: "",
       guests: "1",
-      type: defaultType,
+      unitId: "",
       message: "",
     });
   };
 
-  const waMessage = `Bonjour Panorama P,%0A${t.reservation.title}:%0A- ${form.name}%0A- ${form.arrival} → ${form.departure}%0A- ${form.guests} pers.%0A- ${form.type}`;
+  const waMessage = `Bonjour Panorama P,%0A${t.reservation.title}:%0A- ${form.name}%0A- ${form.arrival} → ${form.departure}%0A- ${form.guests} pers.%0A- ${selectedUnit?.label ?? ""}`;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
@@ -175,17 +232,35 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
           />
         </div>
         <div className="space-y-1.5">
-          <Label>{t.reservation.type}</Label>
-          <Select value={form.type} onValueChange={(v) => set("type", v)}>
+          <Label>{t.reservation.unit}</Label>
+          <Select value={form.unitId} onValueChange={(v) => set("unitId", v)}>
             <SelectTrigger>
-              <SelectValue placeholder={t.reservation.typePlaceholder} />
+              <SelectValue placeholder={t.reservation.unitPlaceholder} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="studio">{typeLabel.studio}</SelectItem>
-              <SelectItem value="chambre">{typeLabel.chambre}</SelectItem>
-              <SelectItem value="appartement">{typeLabel.appartement}</SelectItem>
+              {grouped.map(([type, list]) => (
+                <SelectGroup key={type}>
+                  <SelectLabel>{typeLabel[type] ?? type}</SelectLabel>
+                  {list.map((u) => {
+                    const bookable = isUnitBookable(u);
+                    return (
+                      <SelectItem key={u.id} value={u.id} disabled={!bookable}>
+                        {u.label}
+                        {!bookable && datesValid ? ` (${t.reservation.unitBooked})` : ""}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectGroup>
+              ))}
             </SelectContent>
           </Select>
+          <p className="text-xs text-muted-foreground">
+            {checkingAvailability
+              ? t.reservation.checkingAvailability
+              : datesValid
+                ? ""
+                : t.reservation.selectDatesFirst}
+          </p>
         </div>
       </div>
 
