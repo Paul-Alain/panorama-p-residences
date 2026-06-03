@@ -22,6 +22,8 @@ import intChambreBleue from "@/assets/int-chambre-bleue.jpg.asset.json";
 import intDoucheBeige from "@/assets/int-douche-beige.jpg.asset.json";
 import intSalonCouloir from "@/assets/int-salon-couloir.jpg.asset.json";
 import intDoucheBleue from "@/assets/int-douche-bleue.jpg.asset.json";
+import studioConfort from "@/assets/studio-confort.jpg.asset.json";
+import appartementConfort from "@/assets/appartement-confort.jpg.asset.json";
 
 const assetMap: Record<string, string> = {
   // Exterior
