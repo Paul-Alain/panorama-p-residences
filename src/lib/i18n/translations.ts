@@ -814,6 +814,8 @@ const de: Dict = {
     subtitle: "Verwalten Sie Ihr Profil und verfolgen Sie Ihre Anfragen.",
     signOut: "Abmelden",
     loading: "Laden…",
+    adminAccess: "Sie haben Administratorzugriff.",
+    adminCta: "Dashboard öffnen",
     tabs: {
       profile: "Profil",
       reservations: "Meine Buchungen",
