@@ -23,6 +23,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AProposRouteImport } from './routes/a-propos'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthResetRouteImport } from './routes/auth.reset'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicHooksReservationStatusSyncRouteImport } from './routes/api/public/hooks/reservation-status-sync'
 
 const TemoignagesRoute = TemoignagesRouteImport.update({
@@ -95,6 +96,12 @@ const AuthResetRoute = AuthResetRouteImport.update({
   path: '/reset',
   getParentRoute: () => AuthRoute,
 } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksReservationStatusSyncRoute =
   ApiPublicHooksReservationStatusSyncRouteImport.update({
     id: '/api/public/hooks/reservation-status-sync',
@@ -118,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/temoignages': typeof TemoignagesRoute
   '/auth/reset': typeof AuthResetRoute
   '/api/public/hooks/reservation-status-sync': typeof ApiPublicHooksReservationStatusSyncRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -135,6 +143,7 @@ export interface FileRoutesByTo {
   '/temoignages': typeof TemoignagesRoute
   '/auth/reset': typeof AuthResetRoute
   '/api/public/hooks/reservation-status-sync': typeof ApiPublicHooksReservationStatusSyncRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -153,6 +162,7 @@ export interface FileRoutesById {
   '/temoignages': typeof TemoignagesRoute
   '/auth/reset': typeof AuthResetRoute
   '/api/public/hooks/reservation-status-sync': typeof ApiPublicHooksReservationStatusSyncRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/temoignages'
     | '/auth/reset'
     | '/api/public/hooks/reservation-status-sync'
+    | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -189,6 +200,7 @@ export interface FileRouteTypes {
     | '/temoignages'
     | '/auth/reset'
     | '/api/public/hooks/reservation-status-sync'
+    | '/lovable/email/queue/process'
   id:
     | '__root__'
     | '/'
@@ -206,6 +218,7 @@ export interface FileRouteTypes {
     | '/temoignages'
     | '/auth/reset'
     | '/api/public/hooks/reservation-status-sync'
+    | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -223,6 +236,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TemoignagesRoute: typeof TemoignagesRoute
   ApiPublicHooksReservationStatusSyncRoute: typeof ApiPublicHooksReservationStatusSyncRoute
+  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -325,6 +339,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthResetRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/reservation-status-sync': {
       id: '/api/public/hooks/reservation-status-sync'
       path: '/api/public/hooks/reservation-status-sync'
@@ -361,6 +382,7 @@ const rootRouteChildren: RootRouteChildren = {
   TemoignagesRoute: TemoignagesRoute,
   ApiPublicHooksReservationStatusSyncRoute:
     ApiPublicHooksReservationStatusSyncRoute,
+  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
