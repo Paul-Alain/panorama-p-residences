@@ -602,3 +602,200 @@ export const adminGetOccupancy = createServerFn({ method: "GET" })
     });
     return { units, reservations: resRes.data ?? [] };
   });
+
+// ── Hotel KPIs ────────────────────────────────────────────────────────────
+// Admin-only: aggregate operational KPIs for the intelligent dashboard. All
+// values are DERIVED from existing reservations + units + logement prices.
+// Maintenance blocks (BLOCK_STATUS) and cancelled rows are excluded from every
+// metric so they never distort revenue or occupancy.
+export const adminGetHotelKpis = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const sb = context.supabase;
+
+    const [unitsRes, resRes] = await Promise.all([
+      sb
+        .from("logement_units")
+        .select("id, available, logements(type, price)"),
+      sb
+        .from("reservations")
+        .select("status, arrival_date, departure_date, logement_unit_id, logement_type")
+        .not("status", "in", `("annulée","${BLOCK_STATUS}")`),
+    ]);
+    if (unitsRes.error) throw new Error(unitsRes.error.message);
+    if (resRes.error) throw new Error(resRes.error.message);
+
+    type UnitRow = { id: string; available: boolean; logements: { type: string; price: number } | null };
+    const units = (unitsRes.data ?? []) as unknown as UnitRow[];
+    const reservations = (resRes.data ?? []) as {
+      status: string;
+      arrival_date: string;
+      departure_date: string;
+      logement_unit_id: string | null;
+      logement_type: string | null;
+    }[];
+
+    const totalUnits = units.length;
+    const availableUnits = units.filter((u) => u.available).length;
+    const priceByUnit = new Map<string, number>();
+    const priceByType = new Map<string, number>();
+    for (const u of units) {
+      const price = Number(u.logements?.price ?? 0);
+      priceByUnit.set(u.id, price);
+      if (u.logements?.type && !priceByType.has(u.logements.type)) {
+        priceByType.set(u.logements.type, price);
+      }
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const daysInMonth = Math.round(
+      (monthEnd.getTime() - monthStart.getTime()) / 86_400_000,
+    );
+    const msIso = monthStart.toISOString().slice(0, 10);
+    const meIso = monthEnd.toISOString().slice(0, 10);
+
+    const nights = (a: string, d: string) =>
+      Math.max(0, Math.round((Date.parse(d) - Date.parse(a)) / 86_400_000));
+    const overlapNights = (a: string, d: string, from: string, to: string) => {
+      const s = a > from ? a : from;
+      const e = d < to ? d : to;
+      return e > s ? nights(s, e) : 0;
+    };
+    const priceOf = (r: { logement_unit_id: string | null; logement_type: string | null }) =>
+      (r.logement_unit_id ? priceByUnit.get(r.logement_unit_id) : undefined) ??
+      (r.logement_type ? priceByType.get(r.logement_type) : undefined) ??
+      0;
+
+    let confirmedReservations = 0;
+    let pendingReservations = 0;
+    let estimatedRevenue = 0;
+    let totalStayNights = 0;
+    let stayCount = 0;
+    let todayArrivals = 0;
+    let todayDepartures = 0;
+    let occupiedUnitNightsThisMonth = 0;
+    const occupiedUnitsToday = new Set<string>();
+
+    for (const r of reservations) {
+      if (r.status === "confirmée") confirmedReservations++;
+      if (r.status === "nouvelle") pendingReservations++;
+
+      const n = nights(r.arrival_date, r.departure_date);
+      if (n > 0) {
+        totalStayNights += n;
+        stayCount++;
+      }
+      if (r.status === "confirmée" || r.status === "terminée") {
+        estimatedRevenue += n * priceOf(r);
+      }
+      if (r.arrival_date === today) todayArrivals++;
+      if (r.departure_date === today) todayDepartures++;
+      if (r.logement_unit_id && r.arrival_date <= today && r.departure_date > today) {
+        occupiedUnitsToday.add(r.logement_unit_id);
+      }
+      if (r.logement_unit_id) {
+        occupiedUnitNightsThisMonth += overlapNights(
+          r.arrival_date,
+          r.departure_date,
+          msIso,
+          meIso,
+        );
+      }
+    }
+
+    const capacity = totalUnits * daysInMonth;
+    const occupancyRate = capacity > 0
+      ? Math.round((occupiedUnitNightsThisMonth / capacity) * 100)
+      : 0;
+    const avgStay = stayCount > 0
+      ? Math.round((totalStayNights / stayCount) * 10) / 10
+      : 0;
+
+    return {
+      occupancyRate,
+      confirmedReservations,
+      pendingReservations,
+      estimatedRevenue: Math.round(estimatedRevenue),
+      avgStay,
+      todayArrivals,
+      todayDepartures,
+      occupiedUnits: occupiedUnitsToday.size,
+      availableUnits: Math.max(0, availableUnits - occupiedUnitsToday.size),
+      totalUnits,
+    };
+  });
+
+// Admin-only: create a maintenance block on a unit for a date range. Stored as
+// a reservation row with the BLOCK_STATUS sentinel (no schema change).
+export const adminBlockDates = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        unitId: z.string().uuid(),
+        arrival: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        departure: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        reason: z.string().max(200).optional(),
+      })
+      .refine((v) => v.departure > v.arrival, { message: "Invalid range" })
+      .parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await context.supabase.from("reservations").insert({
+      name: data.reason?.trim() || "Maintenance",
+      phone: "—",
+      arrival_date: data.arrival,
+      departure_date: data.departure,
+      guests: 1,
+      status: BLOCK_STATUS,
+      logement_unit_id: data.unitId,
+      message: "MAINTENANCE",
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Admin-only: remove a maintenance block (only deletes rows flagged as blocks).
+export const adminUnblockDates = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ id: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await context.supabase
+      .from("reservations")
+      .delete()
+      .eq("id", data.id)
+      .eq("status", BLOCK_STATUS);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Admin-only: edit a reservation's arrival / departure dates (quick action).
+export const adminUpdateReservationDates = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        arrival: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        departure: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      })
+      .refine((v) => v.departure > v.arrival, { message: "Invalid range" })
+      .parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await context.supabase
+      .from("reservations")
+      .update({ arrival_date: data.arrival, departure_date: data.departure })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
