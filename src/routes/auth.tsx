@@ -20,6 +20,8 @@ function AuthPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [signupSent, setSignupSent] = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
@@ -51,11 +53,25 @@ function AuthPage() {
 
   const signUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmedName = fullName.trim();
+    const trimmedPhone = phone.trim();
+    if (trimmedName.length < 2) {
+      toast.error(t.auth.nameError);
+      return;
+    }
+    // International format: leading + then 8 to 15 digits (E.164).
+    if (!/^\+[1-9]\d{7,14}$/.test(trimmedPhone)) {
+      toast.error(t.auth.phoneError);
+      return;
+    }
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/auth` },
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth`,
+        data: { full_name: trimmedName, phone_number: trimmedPhone },
+      },
     });
     setLoading(false);
     if (error) {
@@ -186,8 +202,17 @@ function AuthPage() {
                 </div>
               ) : (
                 <form onSubmit={signUp} className="mt-5 space-y-4">
+                  <Field label={t.auth.fullName} type="text" value={fullName} onChange={setFullName} />
+                  <Field
+                    label={t.auth.phone}
+                    type="tel"
+                    value={phone}
+                    onChange={setPhone}
+                    placeholder={t.auth.phonePlaceholder}
+                  />
                   <Field label={t.admin.email} type="email" value={email} onChange={setEmail} />
                   <Field label={t.admin.password} type="password" value={password} onChange={setPassword} />
+
                   <Button type="submit" variant="gold" className="w-full" disabled={loading}>
                     {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                     Créer un compte
@@ -214,11 +239,13 @@ function Field({
   type,
   value,
   onChange,
+  placeholder,
 }: {
   label: string;
   type: string;
   value: string;
   onChange: (v: string) => void;
+  placeholder?: string;
 }) {
   return (
     <div className="space-y-1.5">
@@ -227,6 +254,7 @@ function Field({
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
         required
         minLength={type === "password" ? 6 : undefined}
       />
