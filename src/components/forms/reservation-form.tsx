@@ -90,6 +90,70 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
   const typeLabel = (type: string) =>
     t.reservation.typeOptions[type as LogementType] ?? type;
 
+  /** WhatsApp pre-filled message in the user's current language */
+  const waMessage = (() => {
+    const arrival = form.arrival
+      ? new Date(form.arrival).toLocaleDateString(lang, {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        })
+      : "";
+    const departure = form.departure
+      ? new Date(form.departure).toLocaleDateString(lang, {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        })
+      : "";
+    const type = form.type ? typeLabel(form.type) : "";
+    const guests = form.guests;
+
+    if (lang === "fr") {
+      return `Bonjour Panorama P Residence,
+
+Je souhaite effectuer une réservation.
+
+Détails du séjour :
+- Date d'arrivée : ${arrival}
+- Date de départ : ${departure}
+- Type de logement : ${type}
+- Nombre de personnes : ${guests}
+
+Merci de confirmer la disponibilité et les tarifs.
+
+Cordialement,`;
+    }
+    if (lang === "de") {
+      return `Hallo Panorama P Residence,
+
+Ich möchte eine Reservierung vornehmen.
+
+Aufenthaltsdetails:
+- Anreisedatum: ${arrival}
+- Abreisedatum: ${departure}
+- Art der Unterkunft: ${type}
+- Anzahl der Personen: ${guests}
+
+Bitte bestätigen Sie die Verfügbarkeit und die Preise.
+
+Mit freundlichen Grüßen,`;
+    }
+    return `Hello Panorama P Residence,
+
+I would like to make a reservation.
+
+Stay details:
+- Check-in date: ${arrival}
+- Check-out date: ${departure}
+- Accommodation type: ${type}
+- Number of guests: ${guests}
+
+Please confirm availability and price.
+
+Best regards,`;
+  })();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
