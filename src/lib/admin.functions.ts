@@ -190,7 +190,7 @@ export const adminGetStats = createServerFn({ method: "GET" })
       newMessages,
       pendingReviews,
     ] = await Promise.all([
-      count(sb.from("reservations").select("*", { count: "exact", head: true })),
+      count(sb.from("reservations").select("*", { count: "exact", head: true }).neq("status", BLOCK_STATUS)),
       count(sb.from("reservations").select("*", { count: "exact", head: true }).eq("status", "nouvelle")),
       count(sb.from("reservations").select("*", { count: "exact", head: true }).eq("status", "confirmée")),
       count(sb.from("reservations").select("*", { count: "exact", head: true }).eq("status", "terminée")),
@@ -584,7 +584,7 @@ export const adminGetOccupancy = createServerFn({ method: "GET" })
         .order("sort_order", { ascending: true }),
       sb
         .from("reservations")
-        .select("id, name, arrival_date, departure_date, status, logement_unit_id, logement_type")
+        .select("id, name, phone, email, guests, arrival_date, departure_date, status, logement_unit_id, logement_type, message")
         .neq("status", "annulée")
         .order("arrival_date", { ascending: true }),
     ]);
