@@ -192,6 +192,13 @@ const fr = {
       approved: "Publié",
     },
   },
+  auth: {
+    fullName: "Nom complet",
+    phone: "Téléphone (format international)",
+    phonePlaceholder: "+33 6 12 34 56 78",
+    nameError: "Veuillez saisir votre nom complet.",
+    phoneError: "Veuillez saisir un numéro de téléphone valide au format international (ex. +33 6 12 34 56 78).",
+  },
 };
 
 export type Dict = typeof fr;
