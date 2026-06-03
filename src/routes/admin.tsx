@@ -14,6 +14,8 @@ import {
   Users,
   BedDouble,
   Activity,
+  DoorOpen,
+  CalendarRange,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { Logo } from "@/components/brand/logo";
@@ -28,6 +30,8 @@ import { ReviewsAdmin } from "@/components/admin/reviews-admin";
 import { UsersAdmin } from "@/components/admin/users-admin";
 import { LogementsAdmin } from "@/components/admin/logements-admin";
 import { ManagerActivity } from "@/components/admin/manager-activity";
+import { UnitsAdmin } from "@/components/admin/units-admin";
+import { OccupancyCalendar } from "@/components/admin/occupancy-calendar";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { claimAdmin, getAdminStatus } from "@/lib/admin.functions";
 
