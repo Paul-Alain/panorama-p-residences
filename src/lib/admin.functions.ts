@@ -621,7 +621,8 @@ export const adminGetHotelKpis = createServerFn({ method: "GET" })
       sb
         .from("reservations")
         .select("status, arrival_date, departure_date, logement_unit_id, logement_type")
-        .not("status", "in", `("annulée","${BLOCK_STATUS}")`),
+        .neq("status", "annulée")
+        .neq("status", BLOCK_STATUS),
     ]);
     if (unitsRes.error) throw new Error(unitsRes.error.message);
     if (resRes.error) throw new Error(resRes.error.message);
