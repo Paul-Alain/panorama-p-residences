@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, MailCheck } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,10 +21,11 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [signupSent, setSignupSent] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/admin" });
+      if (data.session) navigate({ to: "/mon-espace" });
     });
   }, [navigate]);
 
@@ -34,27 +35,40 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
+      if (error.message.toLowerCase().includes("email not confirmed")) {
+        toast.error(
+          "Votre adresse email n'est pas encore confirmée. Veuillez vérifier votre boîte mail.",
+        );
+        return;
+      }
       toast.error(error.message);
       return;
     }
-    navigate({ to: "/admin" });
+    navigate({ to: "/mon-espace" });
   };
 
   const signUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/admin` },
+      options: { emailRedirectTo: `${window.location.origin}/mon-espace` },
     });
     setLoading(false);
     if (error) {
       toast.error(error.message);
       return;
     }
-    toast.success("Compte créé. Vous pouvez vous connecter.");
-    navigate({ to: "/admin" });
+    // When email confirmation is required, Supabase returns a user with no active session.
+    if (data.user && !data.session) {
+      setSignupSent(true);
+      toast.success(
+        "Un email de validation a été envoyé à votre adresse. Veuillez vérifier votre boîte mail.",
+      );
+      return;
+    }
+    navigate({ to: "/mon-espace" });
   };
 
   return (
@@ -84,15 +98,35 @@ function AuthPage() {
             </TabsContent>
 
             <TabsContent value="signup">
-              <form onSubmit={signUp} className="mt-5 space-y-4">
-                <Field label={t.admin.email} type="email" value={email} onChange={setEmail} />
-                <Field label={t.admin.password} type="password" value={password} onChange={setPassword} />
-                <Button type="submit" variant="gold" className="w-full" disabled={loading}>
-                  {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Créer un compte
-                </Button>
-              </form>
+              {signupSent ? (
+                <div className="mt-5 space-y-4 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gold/15">
+                    <MailCheck className="h-6 w-6 text-gold" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Un email de validation a été envoyé à votre adresse. Veuillez vérifier votre boîte mail.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setSignupSent(false)}
+                  >
+                    Retour
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={signUp} className="mt-5 space-y-4">
+                  <Field label={t.admin.email} type="email" value={email} onChange={setEmail} />
+                  <Field label={t.admin.password} type="password" value={password} onChange={setPassword} />
+                  <Button type="submit" variant="gold" className="w-full" disabled={loading}>
+                    {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                    Créer un compte
+                  </Button>
+                </form>
+              )}
             </TabsContent>
+
           </Tabs>
         </div>
 
