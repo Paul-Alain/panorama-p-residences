@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_config: {
+        Row: {
+          admin_bootstrapped: boolean
+          id: boolean
+          updated_at: string
+        }
+        Insert: {
+          admin_bootstrapped?: boolean
+          id?: boolean
+          updated_at?: string
+        }
+        Update: {
+          admin_bootstrapped?: boolean
+          id?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       logements: {
         Row: {
           available: boolean
@@ -208,6 +226,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bootstrap_admin: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
