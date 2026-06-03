@@ -239,11 +239,13 @@ function Field({
   type,
   value,
   onChange,
+  placeholder,
 }: {
   label: string;
   type: string;
   value: string;
   onChange: (v: string) => void;
+  placeholder?: string;
 }) {
   return (
     <div className="space-y-1.5">
@@ -252,6 +254,7 @@ function Field({
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
         required
         minLength={type === "password" ? 6 : undefined}
       />
