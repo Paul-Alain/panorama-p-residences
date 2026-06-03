@@ -1,77 +1,56 @@
 import * as React from 'react'
-
+import { Button, Hr, Section, Text } from '@react-email/components'
 import {
-  Body,
-  Button,
-  Container,
-  Head,
-  Heading,
-  Html,
-  Link,
-  Preview,
-  Text,
-} from '@react-email/components'
+  EmailShell,
+  button,
+  ctaWrap,
+  enLabel,
+  h1,
+  langRule,
+  lead,
+  linkFallback,
+  paragraph,
+} from './brand'
 
 interface InviteEmailProps {
-  siteName: string
-  siteUrl: string
-  confirmationUrl: string
+  siteName?: string
+  siteUrl?: string
+  confirmationUrl?: string
 }
 
-export const InviteEmail = ({
-  siteName,
-  siteUrl,
-  confirmationUrl,
-}: InviteEmailProps) => (
-  <Html lang="en" dir="ltr">
-    <Head />
-    <Preview>You've been invited to join {siteName}</Preview>
-    <Body style={main}>
-      <Container style={container}>
-        <Heading style={h1}>You've been invited</Heading>
-        <Text style={text}>
-          You've been invited to join{' '}
-          <Link href={siteUrl} style={link}>
-            <strong>{siteName}</strong>
-          </Link>
-          . Click the button below to accept the invitation and create your
-          account.
-        </Text>
-        <Button style={button} href={confirmationUrl}>
-          Accept Invitation
-        </Button>
-        <Text style={footer}>
-          If you weren't expecting this invitation, you can safely ignore this
-          email.
-        </Text>
-      </Container>
-    </Body>
-  </Html>
+export const InviteEmail = ({ confirmationUrl = '#' }: InviteEmailProps) => (
+  <EmailShell preview="Vous êtes invité · You've been invited — Panorama P Residence">
+    {/* Français */}
+    <Text style={h1}>Vous êtes invité</Text>
+    <Text style={lead}>
+      Vous avez été invité à rejoindre l'espace Panorama P Residence. Acceptez
+      l'invitation pour créer votre compte.
+    </Text>
+    <Section style={ctaWrap}>
+      <Button style={button} href={confirmationUrl}>
+        Accepter l'invitation
+      </Button>
+    </Section>
+
+    <Hr style={langRule} />
+
+    {/* English */}
+    <Text style={enLabel}>English</Text>
+    <Text style={h1}>You've been invited</Text>
+    <Text style={paragraph}>
+      You've been invited to join Panorama P Residence. Accept the invitation to
+      create your account.
+    </Text>
+    <Section style={ctaWrap}>
+      <Button style={button} href={confirmationUrl}>
+        Accept invitation
+      </Button>
+    </Section>
+    <Text style={linkFallback}>
+      Si vous n'attendiez pas cette invitation, ignorez cet e-mail. / If you
+      weren't expecting this invitation, you can safely ignore this email.
+    </Text>
+  </EmailShell>
 )
 
 export default InviteEmail
-
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
-const container = { padding: '20px 25px' }
-const h1 = {
-  fontSize: '22px',
-  fontWeight: 'bold' as const,
-  color: '#000000',
-  margin: '0 0 20px',
-}
-const text = {
-  fontSize: '14px',
-  color: '#55575d',
-  lineHeight: '1.5',
-  margin: '0 0 25px',
-}
-const link = { color: 'inherit', textDecoration: 'underline' }
-const button = {
-  backgroundColor: '#000000',
-  color: '#ffffff',
-  fontSize: '14px',
-  borderRadius: '8px',
-  padding: '12px 20px',
-  textDecoration: 'none',
-}
-const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
