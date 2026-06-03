@@ -187,8 +187,15 @@ function AuthPage() {
                 )
               ) : (
                 <form onSubmit={signIn} className="mt-5 space-y-4">
-                  <Field label={t.admin.email} type="email" value={email} onChange={setEmail} />
-                  <Field label={t.admin.password} type="password" value={password} onChange={setPassword} />
+                  <Field label={t.admin.email} type="email" value={email} onChange={setEmail} autoComplete="username" />
+                  <Field label={t.admin.password} type="password" value={password} onChange={setPassword} autoComplete="current-password" />
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Checkbox
+                      checked={remember}
+                      onCheckedChange={(v) => setRemember(v === true)}
+                    />
+                    Se souvenir de moi
+                  </label>
                   <Button type="submit" variant="gold" className="w-full" disabled={loading}>
                     {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                     {t.admin.signIn}
