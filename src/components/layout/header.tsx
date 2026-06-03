@@ -12,6 +12,7 @@ export function Header() {
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const { location } = useRouterState();
+  const { isAdmin } = useAdminStatus();
 
   const links = [
     { to: "/", label: t.nav.home },
