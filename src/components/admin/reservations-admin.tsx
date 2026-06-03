@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Search, Phone, Mail, Plane, Calendar } from "lucide-react";
+import { Loader2, Search, Phone, Mail, Plane, Calendar, FileDown, FileSpreadsheet, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -17,6 +18,9 @@ import {
   adminListReservations,
   adminUpdateReservationStatus,
 } from "@/lib/admin.functions";
+import { exportReservationsPdf, exportReservationsExcel } from "@/lib/admin-export";
+
+const PAGE_SIZE = 20;
 
 interface Reservation {
   id: string;
@@ -52,6 +56,8 @@ export function ReservationsAdmin() {
   const { data = [], isLoading } = useQuery({
     queryKey: ["admin-reservations"],
     queryFn: async () => (await runList()) as Reservation[],
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   });
 
   const [search, setSearch] = useState("");
@@ -59,6 +65,7 @@ export function ReservationsAdmin() {
   const [arrivalFrom, setArrivalFrom] = useState("");
   const [departureTo, setDepartureTo] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   const fmtStatus = (s: string) =>
     (d.reservationStatus as Record<string, string>)[s] ?? s;
@@ -80,6 +87,30 @@ export function ReservationsAdmin() {
       return true;
     });
   }, [data, search, status, arrivalFrom, departureTo]);
+
+  // Reset to first page whenever filters change.
+  useEffect(() => {
+    setPage(1);
+  }, [search, status, arrivalFrom, departureTo]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageItems = useMemo(
+    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filtered, page],
+  );
+
+  const ex = d.exports;
+  const pg = d.pagination;
+  const exportLabels = ex;
+  const doExportPdf = () => {
+    if (filtered.length === 0) return toast.error(ex.empty);
+    exportReservationsPdf(filtered, exportLabels, fmtStatus).catch(() => toast.error(ex.empty));
+  };
+  const doExportExcel = () => {
+    if (filtered.length === 0) return toast.error(ex.empty);
+    exportReservationsExcel(filtered, exportLabels, fmtStatus).catch(() => toast.error(ex.empty));
+  };
+
 
   const today = new Date().toISOString().slice(0, 10);
   const upcomingArrivals = useMemo(
@@ -141,6 +172,15 @@ export function ReservationsAdmin() {
         </div>
       )}
 
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={doExportPdf}>
+          <FileDown className="h-4 w-4" /> {ex.pdf}
+        </Button>
+        <Button variant="outline" size="sm" onClick={doExportExcel}>
+          <FileSpreadsheet className="h-4 w-4" /> {ex.excel}
+        </Button>
+      </div>
+
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <div className="relative sm:col-span-2 lg:col-span-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -178,7 +218,7 @@ export function ReservationsAdmin() {
         <p className="text-muted-foreground">{d.reservations.none}</p>
       ) : (
         <div className="space-y-3">
-          {filtered.map((r) => (
+          {pageItems.map((r) => (
             <div key={r.id} className="rounded-xl border border-border/60 bg-card p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -226,6 +266,37 @@ export function ReservationsAdmin() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {filtered.length > 0 && (
+        <div className="flex items-center justify-between gap-3 pt-1 text-sm">
+          <span className="text-muted-foreground">
+            {pg.showing.replace("{count}", String(filtered.length))}
+          </span>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+              >
+                <ChevronLeft className="h-4 w-4" /> {pg.prev}
+              </Button>
+              <span className="text-muted-foreground">
+                {pg.page.replace("{page}", String(page)).replace("{total}", String(totalPages))}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+              >
+                {pg.next} <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

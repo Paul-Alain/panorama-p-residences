@@ -23,6 +23,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AProposRouteImport } from './routes/a-propos'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthResetRouteImport } from './routes/auth.reset'
+import { Route as ApiPublicHooksReservationStatusSyncRouteImport } from './routes/api/public/hooks/reservation-status-sync'
 
 const TemoignagesRoute = TemoignagesRouteImport.update({
   id: '/temoignages',
@@ -94,6 +95,12 @@ const AuthResetRoute = AuthResetRouteImport.update({
   path: '/reset',
   getParentRoute: () => AuthRoute,
 } as any)
+const ApiPublicHooksReservationStatusSyncRoute =
+  ApiPublicHooksReservationStatusSyncRouteImport.update({
+    id: '/api/public/hooks/reservation-status-sync',
+    path: '/api/public/hooks/reservation-status-sync',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/temoignages': typeof TemoignagesRoute
   '/auth/reset': typeof AuthResetRoute
+  '/api/public/hooks/reservation-status-sync': typeof ApiPublicHooksReservationStatusSyncRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -126,6 +134,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/temoignages': typeof TemoignagesRoute
   '/auth/reset': typeof AuthResetRoute
+  '/api/public/hooks/reservation-status-sync': typeof ApiPublicHooksReservationStatusSyncRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -143,6 +152,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/temoignages': typeof TemoignagesRoute
   '/auth/reset': typeof AuthResetRoute
+  '/api/public/hooks/reservation-status-sync': typeof ApiPublicHooksReservationStatusSyncRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/temoignages'
     | '/auth/reset'
+    | '/api/public/hooks/reservation-status-sync'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -177,6 +188,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/temoignages'
     | '/auth/reset'
+    | '/api/public/hooks/reservation-status-sync'
   id:
     | '__root__'
     | '/'
@@ -193,6 +205,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/temoignages'
     | '/auth/reset'
+    | '/api/public/hooks/reservation-status-sync'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -209,6 +222,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TemoignagesRoute: typeof TemoignagesRoute
+  ApiPublicHooksReservationStatusSyncRoute: typeof ApiPublicHooksReservationStatusSyncRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -311,6 +325,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthResetRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/api/public/hooks/reservation-status-sync': {
+      id: '/api/public/hooks/reservation-status-sync'
+      path: '/api/public/hooks/reservation-status-sync'
+      fullPath: '/api/public/hooks/reservation-status-sync'
+      preLoaderRoute: typeof ApiPublicHooksReservationStatusSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -338,6 +359,8 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TemoignagesRoute: TemoignagesRoute,
+  ApiPublicHooksReservationStatusSyncRoute:
+    ApiPublicHooksReservationStatusSyncRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
