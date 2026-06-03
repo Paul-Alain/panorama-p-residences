@@ -10,6 +10,17 @@ import galleryVue from "@/assets/gallery-vue.jpg";
 import galleryDouche from "@/assets/gallery-douche.jpg";
 import galleryExterieur from "@/assets/gallery-exterieur.jpg";
 
+// Real residence photos hosted on the CDN.
+import residenceFacade from "@/assets/residence-facade.jpg.asset.json";
+import residenceCote from "@/assets/residence-cote.jpg.asset.json";
+import residenceAlleeVue from "@/assets/residence-allee-vue.jpg.asset.json";
+import residenceEntree from "@/assets/residence-entree.jpg.asset.json";
+import residenceAllee from "@/assets/residence-allee.jpg.asset.json";
+import residenceJardin from "@/assets/residence-jardin.jpg.asset.json";
+import residenceCouloir from "@/assets/residence-couloir.jpg.asset.json";
+import residenceCouloirVue from "@/assets/residence-couloir-vue.jpg.asset.json";
+import residencePorte from "@/assets/residence-porte.jpg.asset.json";
+
 const assetMap: Record<string, string> = {
   "hero-residence": heroResidence,
   "logement-studio": logementStudio,
@@ -20,6 +31,16 @@ const assetMap: Record<string, string> = {
   "gallery-vue": galleryVue,
   "gallery-douche": galleryDouche,
   "gallery-exterieur": galleryExterieur,
+  // Real residence photos
+  "residence-facade": residenceFacade.url,
+  "residence-cote": residenceCote.url,
+  "residence-allee-vue": residenceAlleeVue.url,
+  "residence-entree": residenceEntree.url,
+  "residence-allee": residenceAllee.url,
+  "residence-jardin": residenceJardin.url,
+  "residence-couloir": residenceCouloir.url,
+  "residence-couloir-vue": residenceCouloirVue.url,
+  "residence-porte": residencePorte.url,
 };
 
 export { heroResidence };
@@ -31,12 +52,13 @@ export function resolveImage(id?: string | null): string {
 }
 
 export const galleryImages: { id: string; key: string }[] = [
-  { id: "gallery-salon", key: "salon" },
-  { id: "logement-chambre", key: "chambre" },
-  { id: "gallery-cuisine", key: "cuisine" },
-  { id: "gallery-douche", key: "douche" },
-  { id: "gallery-vue", key: "vue" },
-  { id: "gallery-exterieur", key: "exterieur" },
-  { id: "logement-studio", key: "studio" },
-  { id: "logement-appartement", key: "appartement" },
+  { id: "residence-facade", key: "facade" },
+  { id: "residence-cote", key: "cote" },
+  { id: "residence-allee-vue", key: "vue" },
+  { id: "residence-entree", key: "entree" },
+  { id: "residence-allee", key: "allee" },
+  { id: "residence-jardin", key: "jardin" },
+  { id: "residence-couloir", key: "couloir" },
+  { id: "residence-couloir-vue", key: "balcon" },
+  { id: "residence-porte", key: "chambre" },
 ];
