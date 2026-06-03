@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -87,6 +87,30 @@ export function ReservationsAdmin() {
       return true;
     });
   }, [data, search, status, arrivalFrom, departureTo]);
+
+  // Reset to first page whenever filters change.
+  useEffect(() => {
+    setPage(1);
+  }, [search, status, arrivalFrom, departureTo]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageItems = useMemo(
+    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filtered, page],
+  );
+
+  const ex = d.exports;
+  const pg = d.pagination;
+  const exportLabels = ex;
+  const doExportPdf = () => {
+    if (filtered.length === 0) return toast.error(ex.empty);
+    exportReservationsPdf(filtered, exportLabels, fmtStatus).catch(() => toast.error(ex.empty));
+  };
+  const doExportExcel = () => {
+    if (filtered.length === 0) return toast.error(ex.empty);
+    exportReservationsExcel(filtered, exportLabels, fmtStatus).catch(() => toast.error(ex.empty));
+  };
+
 
   const today = new Date().toISOString().slice(0, 10);
   const upcomingArrivals = useMemo(
