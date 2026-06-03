@@ -11,6 +11,7 @@ import {
   Star,
   Users,
   PenLine,
+  KeyRound,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { PageHeader } from "@/components/layout/page-header";
@@ -116,9 +117,11 @@ function AccountPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="profile" className="mt-6">
+          <TabsContent value="profile" className="mt-6 space-y-6">
             <ProfileSection userId={userId} email={session.user.email ?? ""} />
+            <SecuritySection />
           </TabsContent>
+
           <TabsContent value="reservations" className="mt-6">
             <ReservationsSection userId={userId} />
           </TabsContent>
@@ -263,6 +266,75 @@ function ProfileSection({ userId, email }: { userId: string; email: string }) {
     </div>
   );
 }
+
+/* ---------------- Security (change password) ---------------- */
+
+function SecuritySection() {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== confirm) {
+      toast.error("Les mots de passe ne correspondent pas.");
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase.auth.updateUser({ password });
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setPassword("");
+    setConfirm("");
+    toast.success("Votre mot de passe a été mis à jour.");
+  };
+
+  return (
+    <div className="rounded-3xl border border-border/60 bg-card p-6 shadow-soft sm:p-8">
+      <div className="mb-5 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary">
+          <KeyRound className="h-5 w-5 text-muted-foreground" />
+        </div>
+        <div>
+          <p className="font-display text-lg font-semibold">Sécurité</p>
+          <p className="text-sm text-muted-foreground">Modifier votre mot de passe</p>
+        </div>
+      </div>
+
+      <form onSubmit={submit} className="space-y-4">
+        <div className="space-y-1.5">
+          <Label>Nouveau mot de passe</Label>
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength={6}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Confirmer le mot de passe</Label>
+          <Input
+            type="password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            required
+            minLength={6}
+          />
+        </div>
+        <Button type="submit" variant="gold" disabled={saving}>
+          {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+          Mettre à jour
+        </Button>
+      </form>
+    </div>
+  );
+}
+
+
 
 /* ---------------- Shared review data ---------------- */
 
