@@ -308,6 +308,38 @@ const de: Dict = {
     reservations: "Buchungen",
     messages: "Nachrichten",
   },
+  account: {
+    nav: "Mein Kundenbereich",
+    title: "Mein Kundenbereich",
+    subtitle: "Verwalten Sie Ihr Profil und verfolgen Sie Ihre Anfragen.",
+    signOut: "Abmelden",
+    loading: "Laden…",
+    tabs: {
+      profile: "Profil",
+      reservations: "Meine Buchungen",
+      messages: "Meine Nachrichten",
+      reviews: "Meine Bewertungen",
+    },
+    profile: {
+      fullName: "Vollständiger Name",
+      phone: "Telefon",
+      avatar: "Avatar-Link (optional)",
+      email: "E-Mail",
+      save: "Speichern",
+      saving: "Speichern…",
+      saved: "Profil aktualisiert.",
+      error: "Ein Fehler ist aufgetreten.",
+    },
+    empty: {
+      reservations: "Sie haben noch keine Buchungen.",
+      messages: "Sie haben noch keine Nachricht gesendet.",
+      reviews: "Sie haben noch keine Bewertung veröffentlicht.",
+    },
+    labels: {
+      guests: "Pers.",
+      rating: "Bewertung",
+    },
+  },
 };
 
 const en: Dict = {
