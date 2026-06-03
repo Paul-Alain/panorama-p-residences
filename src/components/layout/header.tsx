@@ -105,6 +105,15 @@ export function Header() {
                 >
                   <User className="h-4 w-4" /> {t.account.nav}
                 </Link>
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setOpen(false)}
+                    className="inline-flex items-center gap-2 rounded-lg px-3 py-2.5 text-base font-medium text-gold transition-colors hover:bg-secondary"
+                  >
+                    <ShieldCheck className="h-4 w-4" /> {t.nav.admin}
+                  </Link>
+                )}
                 <Button asChild variant="gold" className="mt-3">
                   <Link to="/reservation" onClick={() => setOpen(false)}>
                     {t.nav.book}
