@@ -274,14 +274,10 @@ interface Message {
 }
 
 function MessagesAdmin() {
+  const runListMessages = useServerFn(adminListMessages);
   const { data = [], isLoading } = useQuery({
     queryKey: ["admin-messages"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("messages").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as Message[];
-    },
+    queryFn: async () => (await runListMessages()) as Message[],
   });
 
   if (isLoading) return <Loader2 className="h-5 w-5 animate-spin text-gold" />;
