@@ -73,7 +73,7 @@ function Index() {
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
           <Reveal>
             <img
-              src={resolveImage("gallery-salon")}
+              src={resolveImage("int-salon-rotin")}
               alt={t.about.title}
               loading="lazy"
               width={1280}
