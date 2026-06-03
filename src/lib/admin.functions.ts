@@ -159,3 +159,157 @@ export const adminListReviews = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return data ?? [];
   });
+
+// Admin-only: aggregate business metrics for the dashboard cards. Uses the
+// RLS-scoped admin client; counts only, no rows transferred (head: true).
+export const adminGetStats = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const sb = context.supabase;
+    const count = async (
+      q: PromiseLike<{ count: number | null; error: { message: string } | null }>,
+    ): Promise<number> => {
+      const { count: c, error } = await q;
+      if (error) throw new Error(error.message);
+      return c ?? 0;
+    };
+    const [
+      totalReservations,
+      pendingReservations,
+      confirmedReservations,
+      completedReservations,
+      totalUsers,
+      newMessages,
+      pendingReviews,
+    ] = await Promise.all([
+      count(sb.from("reservations").select("*", { count: "exact", head: true })),
+      count(sb.from("reservations").select("*", { count: "exact", head: true }).eq("status", "nouvelle")),
+      count(sb.from("reservations").select("*", { count: "exact", head: true }).eq("status", "confirmée")),
+      count(sb.from("reservations").select("*", { count: "exact", head: true }).eq("status", "terminée")),
+      count(sb.from("profiles").select("*", { count: "exact", head: true })),
+      count(sb.from("messages").select("*", { count: "exact", head: true }).neq("status", "répondu")),
+      count(sb.from("testimonials").select("*", { count: "exact", head: true }).lt("sort_order", 0)),
+    ]);
+    return {
+      totalReservations,
+      pendingReservations,
+      confirmedReservations,
+      completedReservations,
+      totalUsers,
+      newMessages,
+      pendingReviews,
+    };
+  });
+
+// Admin-only: update a reservation's lifecycle status.
+export const adminUpdateReservationStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        status: z.enum(["nouvelle", "confirmée", "terminée", "annulée"]),
+      })
+      .parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await context.supabase
+      .from("reservations")
+      .update({ status: data.status })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Admin-only: list all reviews with their full text for moderation. Pending
+// reviews use sort_order < 0 (see PENDING_SORT_ORDER); approved use >= 0.
+export const adminListReviewsFull = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data, error } = await context.supabase
+      .from("testimonials")
+      .select("id, name, location, rating, message_fr, sort_order, created_at, user_id")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+// Admin-only: approve (publish) or hide a review without any schema change.
+export const adminModerateReview = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({ id: z.string().uuid(), action: z.enum(["approve", "hide"]) })
+      .parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const sort_order = data.action === "approve" ? 0 : -1;
+    const { error } = await context.supabase
+      .from("testimonials")
+      .update({ sort_order })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Admin-only: overview of registered users with their activity counts. Emails
+// live in auth.users, so this uses the service-role admin client (after the
+// server-side admin check) to join profile + auth + activity data.
+export const adminListUsers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: profiles, error: pErr } = await supabaseAdmin
+      .from("profiles")
+      .select("id, full_name, created_at");
+    if (pErr) throw new Error(pErr.message);
+
+    const emailMap = new Map<string, string>();
+    for (let page = 1; ; page++) {
+      const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({
+        page,
+        perPage: 1000,
+      });
+      if (error) throw new Error(error.message);
+      for (const u of list.users) if (u.email) emailMap.set(u.id, u.email);
+      if (list.users.length < 1000) break;
+    }
+
+    const [resRows, revRows, msgRows] = await Promise.all([
+      supabaseAdmin.from("reservations").select("user_id"),
+      supabaseAdmin.from("testimonials").select("user_id"),
+      supabaseAdmin.from("messages").select("user_id"),
+    ]);
+
+    const tally = (rows: { user_id: string | null }[] | null) => {
+      const m = new Map<string, number>();
+      for (const r of rows ?? []) {
+        if (r.user_id) m.set(r.user_id, (m.get(r.user_id) ?? 0) + 1);
+      }
+      return m;
+    };
+    const resMap = tally(resRows.data);
+    const revMap = tally(revRows.data);
+    const msgMap = tally(msgRows.data);
+
+    return (profiles ?? [])
+      .map((p) => ({
+        id: p.id,
+        full_name: p.full_name as string | null,
+        email: emailMap.get(p.id) ?? null,
+        created_at: p.created_at as string,
+        reservations: resMap.get(p.id) ?? 0,
+        reviews: revMap.get(p.id) ?? 0,
+        messages: msgMap.get(p.id) ?? 0,
+      }))
+      .sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
+  });
