@@ -12,12 +12,12 @@ import { EmailChangeEmail } from '@/lib/email-templates/email-change'
 import { ReauthenticationEmail } from '@/lib/email-templates/reauthentication'
 
 const EMAIL_SUBJECTS: Record<string, string> = {
-  signup: 'Confirm your email',
-  invite: "You've been invited",
-  magiclink: 'Your login link',
-  recovery: 'Reset your password',
-  email_change: 'Confirm your new email',
-  reauthentication: 'Your verification code',
+  signup: 'Confirmez votre e-mail · Confirm your email — Panorama P Residence',
+  invite: 'Vous êtes invité · You're invited — Panorama P Residence',
+  magiclink: 'Votre lien de connexion · Your login link — Panorama P Residence',
+  recovery: 'Réinitialisation du mot de passe · Reset your password — Panorama P Residence',
+  email_change: 'Confirmez votre nouvel e-mail · Confirm your new email — Panorama P Residence',
+  reauthentication: 'Votre code de vérification · Your verification code — Panorama P Residence',
 }
 
 // Template mapping
