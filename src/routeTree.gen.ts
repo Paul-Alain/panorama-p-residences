@@ -31,6 +31,8 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiPublicHooksReservationStatusSyncRouteImport } from './routes/api/public/hooks/reservation-status-sync'
+import { Route as ApiPublicEmailReservationConfirmationRouteImport } from './routes/api/public/email/reservation-confirmation'
+import { Route as ApiPublicEmailContactConfirmationRouteImport } from './routes/api/public/email/contact-confirmation'
 
 const TemoignagesRoute = TemoignagesRouteImport.update({
   id: '/temoignages',
@@ -146,6 +148,18 @@ const ApiPublicHooksReservationStatusSyncRoute =
     path: '/api/public/hooks/reservation-status-sync',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicEmailReservationConfirmationRoute =
+  ApiPublicEmailReservationConfirmationRouteImport.update({
+    id: '/api/public/email/reservation-confirmation',
+    path: '/api/public/email/reservation-confirmation',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEmailContactConfirmationRoute =
+  ApiPublicEmailContactConfirmationRouteImport.update({
+    id: '/api/public/email/contact-confirmation',
+    path: '/api/public/email/contact-confirmation',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -164,6 +178,8 @@ export interface FileRoutesByFullPath {
   '/auth/reset': typeof AuthResetRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/api/public/email/contact-confirmation': typeof ApiPublicEmailContactConfirmationRoute
+  '/api/public/email/reservation-confirmation': typeof ApiPublicEmailReservationConfirmationRoute
   '/api/public/hooks/reservation-status-sync': typeof ApiPublicHooksReservationStatusSyncRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -188,6 +204,8 @@ export interface FileRoutesByTo {
   '/auth/reset': typeof AuthResetRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/api/public/email/contact-confirmation': typeof ApiPublicEmailContactConfirmationRoute
+  '/api/public/email/reservation-confirmation': typeof ApiPublicEmailReservationConfirmationRoute
   '/api/public/hooks/reservation-status-sync': typeof ApiPublicHooksReservationStatusSyncRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -213,6 +231,8 @@ export interface FileRoutesById {
   '/auth/reset': typeof AuthResetRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/api/public/email/contact-confirmation': typeof ApiPublicEmailContactConfirmationRoute
+  '/api/public/email/reservation-confirmation': typeof ApiPublicEmailReservationConfirmationRoute
   '/api/public/hooks/reservation-status-sync': typeof ApiPublicHooksReservationStatusSyncRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -239,6 +259,8 @@ export interface FileRouteTypes {
     | '/auth/reset'
     | '/email/unsubscribe'
     | '/lovable/email/suppression'
+    | '/api/public/email/contact-confirmation'
+    | '/api/public/email/reservation-confirmation'
     | '/api/public/hooks/reservation-status-sync'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -263,6 +285,8 @@ export interface FileRouteTypes {
     | '/auth/reset'
     | '/email/unsubscribe'
     | '/lovable/email/suppression'
+    | '/api/public/email/contact-confirmation'
+    | '/api/public/email/reservation-confirmation'
     | '/api/public/hooks/reservation-status-sync'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -287,6 +311,8 @@ export interface FileRouteTypes {
     | '/auth/reset'
     | '/email/unsubscribe'
     | '/lovable/email/suppression'
+    | '/api/public/email/contact-confirmation'
+    | '/api/public/email/reservation-confirmation'
     | '/api/public/hooks/reservation-status-sync'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -311,6 +337,8 @@ export interface RootRouteChildren {
   TemoignagesRoute: typeof TemoignagesRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  ApiPublicEmailContactConfirmationRoute: typeof ApiPublicEmailContactConfirmationRoute
+  ApiPublicEmailReservationConfirmationRoute: typeof ApiPublicEmailReservationConfirmationRoute
   ApiPublicHooksReservationStatusSyncRoute: typeof ApiPublicHooksReservationStatusSyncRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -475,6 +503,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksReservationStatusSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/email/reservation-confirmation': {
+      id: '/api/public/email/reservation-confirmation'
+      path: '/api/public/email/reservation-confirmation'
+      fullPath: '/api/public/email/reservation-confirmation'
+      preLoaderRoute: typeof ApiPublicEmailReservationConfirmationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/email/contact-confirmation': {
+      id: '/api/public/email/contact-confirmation'
+      path: '/api/public/email/contact-confirmation'
+      fullPath: '/api/public/email/contact-confirmation'
+      preLoaderRoute: typeof ApiPublicEmailContactConfirmationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -504,6 +546,10 @@ const rootRouteChildren: RootRouteChildren = {
   TemoignagesRoute: TemoignagesRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  ApiPublicEmailContactConfirmationRoute:
+    ApiPublicEmailContactConfirmationRoute,
+  ApiPublicEmailReservationConfirmationRoute:
+    ApiPublicEmailReservationConfirmationRoute,
   ApiPublicHooksReservationStatusSyncRoute:
     ApiPublicHooksReservationStatusSyncRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
@@ -515,3 +561,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
