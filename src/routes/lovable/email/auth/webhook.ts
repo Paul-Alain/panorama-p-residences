@@ -13,7 +13,7 @@ import { ReauthenticationEmail } from '@/lib/email-templates/reauthentication'
 
 const EMAIL_SUBJECTS: Record<string, string> = {
   signup: 'Confirmez votre e-mail · Confirm your email — Panorama P Residence',
-  invite: 'Vous êtes invité · You're invited — Panorama P Residence',
+  invite: 'Vous êtes invité · You are invited — Panorama P Residence',
   magiclink: 'Votre lien de connexion · Your login link — Panorama P Residence',
   recovery: 'Réinitialisation du mot de passe · Reset your password — Panorama P Residence',
   email_change: 'Confirmez votre nouvel e-mail · Confirm your new email — Panorama P Residence',
