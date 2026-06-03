@@ -220,9 +220,11 @@ export function EmailShell({
 export const h1 = {
   margin: '0 0 6px',
   color: brand.ink,
-  fontSize: '23px',
-  lineHeight: '30px',
+  fontFamily: "Georgia, 'Times New Roman', 'Playfair Display', serif",
+  fontSize: '24px',
+  lineHeight: '32px',
   fontWeight: 700 as const,
+  letterSpacing: '0.2px',
 }
 
 export const lead = {
