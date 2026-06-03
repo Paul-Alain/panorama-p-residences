@@ -238,8 +238,8 @@ function AuthPage() {
                     <PhoneInput value={phone} onChange={setPhone} required />
                   </div>
 
-                  <Field label={t.admin.email} type="email" value={email} onChange={setEmail} />
-                  <Field label={t.admin.password} type="password" value={password} onChange={setPassword} />
+                  <Field label={t.admin.email} type="email" value={email} onChange={setEmail} autoComplete="username" />
+                  <Field label={t.admin.password} type="password" value={password} onChange={setPassword} autoComplete="new-password" />
 
                   <Button type="submit" variant="gold" className="w-full" disabled={loading}>
                     {loading && <Loader2 className="h-4 w-4 animate-spin" />}
