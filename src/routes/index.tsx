@@ -11,6 +11,7 @@ import { GalleryGrid } from "@/components/gallery/gallery-grid";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { logementsQuery } from "@/lib/data";
 import { resolveImage } from "@/lib/assets";
+import presentationVideo from "@/assets/presentation-panorama.mp4.asset.json";
 
 export const Route = createFileRoute("/")({
   head: () => ({
