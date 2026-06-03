@@ -17,6 +17,7 @@ import { Header } from "../components/layout/header";
 import { Footer } from "../components/layout/footer";
 import { WhatsAppButton } from "../components/layout/whatsapp-button";
 import { Toaster } from "../components/ui/sonner";
+import { supabase } from "../integrations/supabase/client";
 
 function NotFoundComponent() {
   return (
