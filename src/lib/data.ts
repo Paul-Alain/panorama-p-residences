@@ -136,6 +136,30 @@ export const logementsQuery = queryOptions({
   },
 });
 
+/** Public, available physical units with their category type (RLS allows anon read). */
+export const logementUnitsQuery = queryOptions({
+  queryKey: ["logement-units"],
+  queryFn: async (): Promise<LogementUnit[]> => {
+    const { data, error } = await supabase
+      .from("logement_units")
+      .select("id, logement_id, label, unit_number, available, sort_order, logements(type)")
+      .order("sort_order", { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map((u) => {
+      const parent = (u as { logements: { type: string } | null }).logements;
+      return {
+        id: u.id,
+        logement_id: u.logement_id,
+        label: u.label,
+        unit_number: u.unit_number,
+        available: u.available,
+        sort_order: u.sort_order,
+        type: parent?.type ?? "",
+      };
+    });
+  },
+});
+
 export const testimonialsQuery = queryOptions({
   queryKey: ["testimonials"],
   queryFn: async (): Promise<Testimonial[]> => {
