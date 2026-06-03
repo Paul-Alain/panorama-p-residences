@@ -240,14 +240,10 @@ interface Reservation {
 }
 
 function ReservationsAdmin() {
+  const runListReservations = useServerFn(adminListReservations);
   const { data = [], isLoading } = useQuery({
     queryKey: ["admin-reservations"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("reservations").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as Reservation[];
-    },
+    queryFn: async () => (await runListReservations()) as Reservation[],
   });
 
   if (isLoading) return <Loader2 className="h-5 w-5 animate-spin text-gold" />;
