@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PhoneInput } from "@/components/forms/phone-input";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { whatsappLink } from "@/lib/site-config";
@@ -95,15 +96,14 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="r-phone">{t.reservation.phone}</Label>
-          <Input
+          <PhoneInput
             id="r-phone"
-            type="tel"
             value={form.phone}
-            onChange={(e) => set("phone", e.target.value)}
+            onChange={(v) => set("phone", v)}
             required
-            maxLength={40}
           />
         </div>
+
       </div>
 
       <div className="space-y-1.5">
