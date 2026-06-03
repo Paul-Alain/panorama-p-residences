@@ -202,8 +202,17 @@ function AuthPage() {
                 </div>
               ) : (
                 <form onSubmit={signUp} className="mt-5 space-y-4">
+                  <Field label={t.auth.fullName} type="text" value={fullName} onChange={setFullName} />
+                  <Field
+                    label={t.auth.phone}
+                    type="tel"
+                    value={phone}
+                    onChange={setPhone}
+                    placeholder={t.auth.phonePlaceholder}
+                  />
                   <Field label={t.admin.email} type="email" value={email} onChange={setEmail} />
                   <Field label={t.admin.password} type="password" value={password} onChange={setPassword} />
+
                   <Button type="submit" variant="gold" className="w-full" disabled={loading}>
                     {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                     Créer un compte
