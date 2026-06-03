@@ -1322,6 +1322,8 @@ const en: Dict = {
     phonePlaceholder: "+1 555 123 4567",
     nameError: "Please enter your full name.",
     phoneError: "Please enter a valid phone number in international format (e.g. +1 555 123 4567).",
+    or: "or",
+    continueWithGoogle: "Continue with Google",
   },
   notifications: {
     title: "Notifications",
