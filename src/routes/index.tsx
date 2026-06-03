@@ -14,17 +14,49 @@ import { resolveImage } from "@/lib/assets";
 import presentationVideo from "@/assets/presentation-panorama.mp4.asset.json";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Panorama P – Résidence meublée à Bafoussam" },
-      {
-        name: "description",
-        content:
-          "Studios et appartements meublés confortables à Bafoussam, dans un cadre moderne et sécurisé. Réservez votre séjour à la résidence Panorama P.",
-      },
-    ],
-    links: [{ rel: "canonical", href: "/" }],
-  }),
+  head: () => {
+    const title = "Panorama P – Résidence meublée à Bafoussam";
+    const description =
+      "Studios et appartements meublés confortables à Bafoussam, dans un cadre moderne et sécurisé. Réservez votre séjour à la résidence Panorama P.";
+    const url = "https://panorama-p-residences.lovable.app/";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "website" },
+        { property: "og:url", content: url },
+        { property: "og:locale", content: "fr_FR" },
+        { property: "og:site_name", content: "Panorama P" },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+      ],
+      links: [{ rel: "canonical", href: url }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "LodgingBusiness",
+            name: "Panorama P",
+            description,
+            url,
+            address: {
+              "@type": "PostalAddress",
+              addressLocality: "Bafoussam",
+              addressCountry: "CM",
+            },
+            amenityFeature: [
+              { "@type": "LocationFeatureSpecification", name: "WiFi", value: true },
+              { "@type": "LocationFeatureSpecification", name: "Sécurité", value: true },
+            ],
+          }),
+        },
+      ],
+    };
+  },
   component: Index,
 });
 
