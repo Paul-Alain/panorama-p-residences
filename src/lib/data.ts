@@ -74,6 +74,45 @@ export function parseReviewMeta(text: string): ReviewMeta | null {
   }
 }
 
+/**
+ * Customer support messages reuse the existing `messages` table without any
+ * schema change. The optional subject, linked reservation id and the admin
+ * reply are encoded as a trailing JSON block in the `message` column, delimited
+ * by this marker. The plain message body always precedes the marker so the
+ * existing contact-form / admin listings stay human-readable.
+ */
+export const MESSAGE_META_MARKER = "\n\n⟦pp-msg⟧";
+
+export interface MessageMeta {
+  subject?: string;
+  reservationId?: string;
+  reply?: string;
+  repliedAt?: string;
+}
+
+export function encodeMessage(content: string, meta: MessageMeta): string {
+  const clean: MessageMeta = {};
+  if (meta.subject) clean.subject = meta.subject;
+  if (meta.reservationId) clean.reservationId = meta.reservationId;
+  if (meta.reply) clean.reply = meta.reply;
+  if (meta.repliedAt) clean.repliedAt = meta.repliedAt;
+  return `${content.trim()}${MESSAGE_META_MARKER}${JSON.stringify(clean)}`;
+}
+
+export function stripMessageMeta(text: string): string {
+  return text.split(MESSAGE_META_MARKER)[0].trim();
+}
+
+export function parseMessageMeta(text: string): MessageMeta | null {
+  const idx = text.indexOf(MESSAGE_META_MARKER);
+  if (idx === -1) return null;
+  try {
+    return JSON.parse(text.slice(idx + MESSAGE_META_MARKER.length)) as MessageMeta;
+  } catch {
+    return null;
+  }
+}
+
 export const logementsQuery = queryOptions({
   queryKey: ["logements"],
   queryFn: async (): Promise<Logement[]> => {
