@@ -6,10 +6,16 @@ import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { PhoneInput } from "@/components/forms/phone-input";
+import {
+  LAST_EMAIL_KEY,
+  REMEMBER_KEY,
+  SESSION_MARKER_KEY,
+} from "@/lib/auth-prefs";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Connexion – Panorama P" }, { name: "robots", content: "noindex" }] }),
@@ -27,17 +33,33 @@ function AuthPage() {
   const [signupSent, setSignupSent] = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [remember, setRemember] = useState(true);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/mon-espace" });
     });
+    // Pre-fill the last used email for returning clients.
+    const stored = window.localStorage.getItem(LAST_EMAIL_KEY);
+    if (stored) setEmail(stored);
   }, [navigate]);
 
   const signIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (!error) {
+      // Remember the email (never the password) for next time.
+      window.localStorage.setItem(LAST_EMAIL_KEY, email);
+      if (remember) {
+        window.localStorage.setItem(REMEMBER_KEY, "1");
+        window.sessionStorage.removeItem(SESSION_MARKER_KEY);
+      } else {
+        // Keep the session only for the current tab.
+        window.localStorage.setItem(REMEMBER_KEY, "0");
+        window.sessionStorage.setItem(SESSION_MARKER_KEY, "1");
+      }
+    }
     setLoading(false);
     if (error) {
       if (error.message.toLowerCase().includes("email not confirmed")) {
@@ -165,8 +187,15 @@ function AuthPage() {
                 )
               ) : (
                 <form onSubmit={signIn} className="mt-5 space-y-4">
-                  <Field label={t.admin.email} type="email" value={email} onChange={setEmail} />
-                  <Field label={t.admin.password} type="password" value={password} onChange={setPassword} />
+                  <Field label={t.admin.email} type="email" value={email} onChange={setEmail} autoComplete="username" />
+                  <Field label={t.admin.password} type="password" value={password} onChange={setPassword} autoComplete="current-password" />
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Checkbox
+                      checked={remember}
+                      onCheckedChange={(v) => setRemember(v === true)}
+                    />
+                    Se souvenir de moi
+                  </label>
                   <Button type="submit" variant="gold" className="w-full" disabled={loading}>
                     {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                     {t.admin.signIn}
@@ -209,8 +238,8 @@ function AuthPage() {
                     <PhoneInput value={phone} onChange={setPhone} required />
                   </div>
 
-                  <Field label={t.admin.email} type="email" value={email} onChange={setEmail} />
-                  <Field label={t.admin.password} type="password" value={password} onChange={setPassword} />
+                  <Field label={t.admin.email} type="email" value={email} onChange={setEmail} autoComplete="username" />
+                  <Field label={t.admin.password} type="password" value={password} onChange={setPassword} autoComplete="new-password" />
 
                   <Button type="submit" variant="gold" className="w-full" disabled={loading}>
                     {loading && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -239,12 +268,14 @@ function Field({
   value,
   onChange,
   placeholder,
+  autoComplete,
 }: {
   label: string;
   type: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  autoComplete?: string;
 }) {
   return (
     <div className="space-y-1.5">
@@ -254,6 +285,7 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        autoComplete={autoComplete}
         required
         minLength={type === "password" ? 6 : undefined}
       />

@@ -17,6 +17,7 @@ import { Header } from "../components/layout/header";
 import { Footer } from "../components/layout/footer";
 import { WhatsAppButton } from "../components/layout/whatsapp-button";
 import { Toaster } from "../components/ui/sonner";
+import { supabase } from "../integrations/supabase/client";
 
 function NotFoundComponent() {
   return (
@@ -138,6 +139,21 @@ function RootComponent() {
   const { location } = useRouterState();
   const bareRoute =
     location.pathname.startsWith("/admin") || location.pathname.startsWith("/auth");
+
+  // Enforce "Se souvenir de moi": if the client opted out, only keep the
+  // session for the current browser tab.
+  useEffect(() => {
+    let cancelled = false;
+    import("../lib/auth-prefs").then(({ shouldClearEphemeralSession }) => {
+      if (!cancelled && shouldClearEphemeralSession()) {
+        supabase.auth.signOut();
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
 
   return (
     <QueryClientProvider client={queryClient}>
