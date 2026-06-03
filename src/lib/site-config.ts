@@ -2,18 +2,20 @@
 export const siteConfig = {
   name: "Panorama P",
   // Numéro WhatsApp au format international, sans espaces ni "+" pour le lien wa.me
-  whatsappNumber: "237600000000",
-  phoneDisplay: "+237 6 00 00 00 00",
-  email: "contact@panoramap.cm",
-  address: "Quartier résidentiel, Bafoussam, Cameroun",
-  // Carte Google Maps centrée sur Bafoussam (modifiable)
+  whatsappNumber: "237655862405",
+  phoneDisplay: "+237 655 862 405 / +237 677 831 027",
+  email: "Residencespanoramap@gmail.com",
+  address:
+    "Bafoussam, à 500 m du stade municipal de Bamendzi vers le carrefour Aladji, première entrée à gauche",
+  // Carte Google Maps centrée sur le stade municipal de Bamendzi, Bafoussam (modifiable)
   mapEmbedUrl:
-    "https://www.google.com/maps?q=Bafoussam,Cameroun&z=13&output=embed",
-  mapLink: "https://www.google.com/maps/search/?api=1&query=Bafoussam,Cameroun",
+    "https://www.google.com/maps?q=Stade+municipal+de+Bamendzi,Bafoussam,Cameroun&z=15&output=embed",
+  mapLink:
+    "https://www.google.com/maps/search/?api=1&query=Stade+municipal+de+Bamendzi,Bafoussam,Cameroun",
   social: {
     facebook: "https://facebook.com",
     instagram: "https://instagram.com",
-    whatsapp: "https://wa.me/237600000000",
+    whatsapp: "https://wa.me/237655862405",
   },
 } as const;
 
