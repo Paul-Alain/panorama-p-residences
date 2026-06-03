@@ -34,7 +34,44 @@ export interface Testimonial {
 export function localized(row: object, base: string, lang: Lang): string {
   const r = row as Record<string, unknown>;
   const value = (r[`${base}_${lang}`] ?? r[`${base}_fr`]) as string | null;
-  return value ?? "";
+  return stripReviewMeta(value ?? "");
+}
+
+/**
+ * Customer reviews are stored in the existing `testimonials` table without any
+ * schema change. Detailed sub-ratings and the originating reservation id are
+ * encoded as a trailing JSON block in `message_fr`, delimited by this marker.
+ * Pending (unapproved) reviews use `sort_order = -1` so they never appear on
+ * the public site until an admin promotes them.
+ */
+export const REVIEW_META_MARKER = "\n\n⟦pp-review⟧";
+export const PENDING_SORT_ORDER = -1;
+
+export interface ReviewMeta {
+  reservationId?: string;
+  cleanliness?: number;
+  comfort?: number;
+  security?: number;
+  hospitality?: number;
+  value?: number;
+}
+
+export function encodeReview(comment: string, meta: ReviewMeta): string {
+  return `${comment.trim()}${REVIEW_META_MARKER}${JSON.stringify(meta)}`;
+}
+
+export function stripReviewMeta(text: string): string {
+  return text.split(REVIEW_META_MARKER)[0].trim();
+}
+
+export function parseReviewMeta(text: string): ReviewMeta | null {
+  const idx = text.indexOf(REVIEW_META_MARKER);
+  if (idx === -1) return null;
+  try {
+    return JSON.parse(text.slice(idx + REVIEW_META_MARKER.length)) as ReviewMeta;
+  } catch {
+    return null;
+  }
 }
 
 export const logementsQuery = queryOptions({
@@ -55,6 +92,7 @@ export const testimonialsQuery = queryOptions({
     const { data, error } = await supabase
       .from("testimonials")
       .select("*")
+      .gte("sort_order", 0)
       .order("sort_order", { ascending: true });
     if (error) throw error;
     return (data ?? []) as Testimonial[];

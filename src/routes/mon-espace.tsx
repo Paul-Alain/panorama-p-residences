@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Star,
   Users,
+  PenLine,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { PageHeader } from "@/components/layout/page-header";
@@ -17,9 +18,27 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/lib/i18n/language-context";
+import {
+  encodeReview,
+  parseReviewMeta,
+  stripReviewMeta,
+  PENDING_SORT_ORDER,
+  type ReviewMeta,
+} from "@/lib/data";
+
+const COMPLETED_STATUS = "terminée";
 
 export const Route = createFileRoute("/mon-espace")({
   head: () => ({
@@ -245,10 +264,72 @@ function ProfileSection({ userId, email }: { userId: string; email: string }) {
   );
 }
 
+/* ---------------- Shared review data ---------------- */
+
+interface ReviewRow {
+  id: string;
+  rating: number;
+  location: string | null;
+  message_fr: string;
+  sort_order: number;
+  created_at: string;
+}
+
+function useMyReviews(userId: string) {
+  return useQuery({
+    queryKey: ["my-reviews", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("testimonials")
+        .select("id, rating, location, message_fr, sort_order, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as ReviewRow[];
+    },
+  });
+}
+
+/* ---------------- Star rating input ---------------- */
+
+function StarInput({
+  value,
+  onChange,
+  label,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-sm">{label}</span>
+      <div className="flex items-center gap-0.5">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <button
+            key={i}
+            type="button"
+            aria-label={`${label} ${i + 1}`}
+            onClick={() => onChange(i + 1)}
+            className="p-0.5"
+          >
+            <Star
+              className={`h-5 w-5 transition-colors ${
+                i < value ? "fill-gold text-gold" : "text-muted-foreground/40"
+              }`}
+            />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ---------------- Reservations ---------------- */
 
 interface ReservationRow {
   id: string;
+  name: string;
   arrival_date: string;
   departure_date: string;
   guests: number;
@@ -260,12 +341,14 @@ interface ReservationRow {
 
 function ReservationsSection({ userId }: { userId: string }) {
   const { t } = useLanguage();
+  const [reviewTarget, setReviewTarget] = useState<ReservationRow | null>(null);
+
   const { data = [], isLoading } = useQuery({
     queryKey: ["my-reservations", userId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reservations")
-        .select("id, arrival_date, departure_date, guests, logement_type, message, status, created_at")
+        .select("id, name, arrival_date, departure_date, guests, logement_type, message, status, created_at")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -273,29 +356,179 @@ function ReservationsSection({ userId }: { userId: string }) {
     },
   });
 
+  const { data: reviews = [] } = useMyReviews(userId);
+  const reviewedReservationIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const rev of reviews) {
+      const meta = parseReviewMeta(rev.message_fr);
+      if (meta?.reservationId) set.add(meta.reservationId);
+    }
+    return set;
+  }, [reviews]);
+
   if (isLoading) return <SectionLoader />;
   if (data.length === 0) return <EmptyState text={t.account.empty.reservations} />;
 
   return (
-    <div className="space-y-3">
-      {data.map((r) => (
-        <div key={r.id} className="rounded-2xl border border-border/60 bg-card p-5 shadow-soft">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="font-medium">
-              {fmtDate(r.arrival_date)} → {fmtDate(r.departure_date)}
-            </p>
-            <Badge variant="secondary" className="capitalize">{r.status}</Badge>
+    <>
+      <div className="space-y-3">
+        {data.map((r) => {
+          const completed = r.status === COMPLETED_STATUS;
+          const alreadyReviewed = reviewedReservationIds.has(r.id);
+          return (
+            <div key={r.id} className="rounded-2xl border border-border/60 bg-card p-5 shadow-soft">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-medium">
+                  {fmtDate(r.arrival_date)} → {fmtDate(r.departure_date)}
+                </p>
+                <Badge variant="secondary" className="capitalize">{r.status}</Badge>
+              </div>
+              <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                <span className="inline-flex items-center gap-1">
+                  <Users className="h-3.5 w-3.5" /> {r.guests} {t.account.labels.guests}
+                </span>
+                {r.logement_type && <span>· {r.logement_type}</span>}
+              </p>
+              {r.message && <p className="mt-2 text-sm">{r.message}</p>}
+              {completed && (
+                <div className="mt-4 border-t border-border/60 pt-4">
+                  {alreadyReviewed ? (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Star className="h-3.5 w-3.5 fill-gold text-gold" />
+                      {t.account.review.already}
+                    </span>
+                  ) : (
+                    <Button
+                      variant="gold"
+                      size="sm"
+                      onClick={() => setReviewTarget(r)}
+                    >
+                      <PenLine className="h-4 w-4" /> {t.account.review.cta}
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <ReviewDialog
+        userId={userId}
+        reservation={reviewTarget}
+        onClose={() => setReviewTarget(null)}
+      />
+    </>
+  );
+}
+
+/* ---------------- Review dialog ---------------- */
+
+const SUB_KEYS = ["cleanliness", "comfort", "security", "hospitality", "value"] as const;
+type SubKey = (typeof SUB_KEYS)[number];
+
+function ReviewDialog({
+  userId,
+  reservation,
+  onClose,
+}: {
+  userId: string;
+  reservation: ReservationRow | null;
+  onClose: () => void;
+}) {
+  const { t } = useLanguage();
+  const qc = useQueryClient();
+  const [overall, setOverall] = useState(5);
+  const [subs, setSubs] = useState<Record<SubKey, number>>({
+    cleanliness: 5,
+    comfort: 5,
+    security: 5,
+    hospitality: 5,
+    value: 5,
+  });
+  const [comment, setComment] = useState("");
+
+  useEffect(() => {
+    if (reservation) {
+      setOverall(5);
+      setSubs({ cleanliness: 5, comfort: 5, security: 5, hospitality: 5, value: 5 });
+      setComment("");
+    }
+  }, [reservation]);
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      if (!reservation) return;
+      const meta: ReviewMeta = {
+        reservationId: reservation.id,
+        cleanliness: subs.cleanliness,
+        comfort: subs.comfort,
+        security: subs.security,
+        hospitality: subs.hospitality,
+        value: subs.value,
+      };
+      const { error } = await supabase.from("testimonials").insert({
+        user_id: userId,
+        name: reservation.name || "Client",
+        rating: overall,
+        sort_order: PENDING_SORT_ORDER,
+        message_fr: encodeReview(comment, meta),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(t.account.review.success);
+      qc.invalidateQueries({ queryKey: ["my-reviews", userId] });
+      onClose();
+    },
+    onError: () => toast.error(t.account.review.error),
+  });
+
+  return (
+    <Dialog open={!!reservation} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{t.account.review.title}</DialogTitle>
+          <DialogDescription>{t.account.review.description}</DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="rounded-xl border border-border/60 bg-secondary/40 p-4">
+            <StarInput value={overall} onChange={setOverall} label={t.account.review.overall} />
           </div>
-          <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
-              <Users className="h-3.5 w-3.5" /> {r.guests} {t.account.labels.guests}
-            </span>
-            {r.logement_type && <span>· {r.logement_type}</span>}
-          </p>
-          {r.message && <p className="mt-2 text-sm">{r.message}</p>}
+          <div className="space-y-3">
+            {SUB_KEYS.map((key) => (
+              <StarInput
+                key={key}
+                value={subs[key]}
+                onChange={(v) => setSubs((s) => ({ ...s, [key]: v }))}
+                label={t.account.review[key]}
+              />
+            ))}
+          </div>
+          <div className="space-y-1.5">
+            <Label>{t.account.review.comment}</Label>
+            <Textarea
+              rows={4}
+              value={comment}
+              maxLength={1000}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder={t.account.review.commentPlaceholder}
+            />
+          </div>
         </div>
-      ))}
-    </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={mutation.isPending}>
+            {t.account.review.cancel}
+          </Button>
+          <Button variant="gold" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+            {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            {mutation.isPending ? t.account.review.submitting : t.account.review.submit}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -343,50 +576,40 @@ function MessagesSection({ userId }: { userId: string }) {
 
 /* ---------------- Reviews ---------------- */
 
-interface ReviewRow {
-  id: string;
-  rating: number;
-  location: string | null;
-  message_fr: string;
-  created_at: string;
-}
-
 function ReviewsSection({ userId }: { userId: string }) {
   const { t } = useLanguage();
-  const { data = [], isLoading } = useQuery({
-    queryKey: ["my-reviews", userId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("testimonials")
-        .select("id, rating, location, message_fr, created_at")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as ReviewRow[];
-    },
-  });
+  const { data = [], isLoading } = useMyReviews(userId);
 
   if (isLoading) return <SectionLoader />;
   if (data.length === 0) return <EmptyState text={t.account.empty.reviews} />;
 
   return (
     <div className="space-y-3">
-      {data.map((rev) => (
-        <div key={rev.id} className="rounded-2xl border border-border/60 bg-card p-5 shadow-soft">
-          <div className="flex items-center gap-0.5">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star
-                key={i}
-                className={`h-4 w-4 ${i < rev.rating ? "fill-gold text-gold" : "text-muted-foreground/40"}`}
-              />
-            ))}
+      {data.map((rev) => {
+        const pending = rev.sort_order < 0;
+        const comment = stripReviewMeta(rev.message_fr);
+        return (
+          <div key={rev.id} className="rounded-2xl border border-border/60 bg-card p-5 shadow-soft">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-0.5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`h-4 w-4 ${i < rev.rating ? "fill-gold text-gold" : "text-muted-foreground/40"}`}
+                  />
+                ))}
+              </div>
+              <Badge variant={pending ? "secondary" : "default"}>
+                {pending ? t.account.review.pending : t.account.review.approved}
+              </Badge>
+            </div>
+            {comment && <p className="mt-2 text-sm">{comment}</p>}
+            <p className="mt-1 text-xs text-muted-foreground">
+              {[rev.location, fmtDate(rev.created_at)].filter(Boolean).join(" · ")}
+            </p>
           </div>
-          <p className="mt-2 text-sm">{rev.message_fr}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {[rev.location, fmtDate(rev.created_at)].filter(Boolean).join(" · ")}
-          </p>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
