@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
+import { encodeMessage, parseMessageMeta, stripMessageMeta } from "@/lib/data";
 
 // Server-side admin verification. Uses the request's authenticated, RLS-scoped
 // Supabase client and the has_role() security-definer function.
