@@ -33,6 +33,15 @@ export function ContactForm() {
       toast.error(t.contact.error);
       return;
     }
+    // Fire-and-forget branded confirmation email (only when an address is given).
+    const confirmEmail = form.email.trim();
+    if (confirmEmail) {
+      fetch("/api/public/email/contact-confirmation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: confirmEmail, name: form.name.trim() }),
+      }).catch(() => {});
+    }
     toast.success(t.contact.success);
     setForm({ name: "", phone: "", email: "", message: "" });
   };
