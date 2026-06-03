@@ -574,6 +574,13 @@ const en: Dict = {
       pending: "Pending approval",
       approved: "Published",
     },
+    auth: {
+      fullName: "Full name",
+      phone: "Phone (international format)",
+      phonePlaceholder: "+1 555 123 4567",
+      nameError: "Please enter your full name.",
+      phoneError: "Please enter a valid phone number in international format (e.g. +1 555 123 4567).",
+    },
   },
 };
 
