@@ -20,6 +20,8 @@ function AuthPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [signupSent, setSignupSent] = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
