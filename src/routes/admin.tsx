@@ -1,52 +1,33 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Plus, Pencil, Trash2, LogOut, ShieldCheck, Home, Send } from "lucide-react";
+import {
+  Loader2,
+  LogOut,
+  ShieldCheck,
+  Home,
+  LayoutDashboard,
+  CalendarDays,
+  MessageSquare,
+  Star,
+  Users,
+  BedDouble,
+} from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { LogementEditor } from "@/components/admin/logement-editor";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminNotifications } from "@/components/notifications/admin-notifications";
-import {
-  claimAdmin,
-  getAdminStatus,
-  adminDeleteLogement,
-  adminListReservations,
-  adminListMessages,
-  adminUpdateMessage,
-} from "@/lib/admin.functions";
-import {
-  logementsQuery,
-  formatPrice,
-  parseMessageMeta,
-  stripMessageMeta,
-  type Logement,
-} from "@/lib/data";
+import { DashboardOverview } from "@/components/admin/dashboard-overview";
+import { ReservationsAdmin } from "@/components/admin/reservations-admin";
+import { MessagesAdmin } from "@/components/admin/messages-admin";
+import { ReviewsAdmin } from "@/components/admin/reviews-admin";
+import { UsersAdmin } from "@/components/admin/users-admin";
+import { LogementsAdmin } from "@/components/admin/logements-admin";
+import { useLanguage } from "@/lib/i18n/language-context";
+import { claimAdmin, getAdminStatus } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Administration – Panorama P" }, { name: "robots", content: "noindex" }] }),
@@ -97,7 +78,6 @@ function AdminPage() {
     };
   }, [session, runGetAdminStatus]);
 
-
   const handleClaim = async () => {
     setClaiming(true);
     try {
@@ -144,7 +124,7 @@ function AdminPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         {!isAdmin ? (
           <div className="mx-auto max-w-md rounded-3xl border border-border/60 bg-card p-8 text-center shadow-soft">
             <ShieldCheck className="mx-auto h-10 w-10 text-gold" />
@@ -167,274 +147,45 @@ function AdminPage() {
 }
 
 function AdminDashboard() {
+  const { t } = useLanguage();
+  const tabs = t.admin.dash.tabs;
+
   return (
-    <Tabs defaultValue="logements">
-      <TabsList>
-        <TabsTrigger value="logements">Logements</TabsTrigger>
-        <TabsTrigger value="reservations">Réservations</TabsTrigger>
-        <TabsTrigger value="messages">Messages</TabsTrigger>
-      </TabsList>
-      <TabsContent value="logements" className="mt-6"><LogementsAdmin /></TabsContent>
+    <Tabs defaultValue="overview">
+      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <TabsList className="w-max">
+          <TabsTrigger value="overview" className="gap-1.5">
+            <LayoutDashboard className="h-4 w-4" />
+            <span className="hidden sm:inline">{tabs.overview}</span>
+          </TabsTrigger>
+          <TabsTrigger value="reservations" className="gap-1.5">
+            <CalendarDays className="h-4 w-4" />
+            <span className="hidden sm:inline">{tabs.reservations}</span>
+          </TabsTrigger>
+          <TabsTrigger value="messages" className="gap-1.5">
+            <MessageSquare className="h-4 w-4" />
+            <span className="hidden sm:inline">{tabs.messages}</span>
+          </TabsTrigger>
+          <TabsTrigger value="reviews" className="gap-1.5">
+            <Star className="h-4 w-4" />
+            <span className="hidden sm:inline">{tabs.reviews}</span>
+          </TabsTrigger>
+          <TabsTrigger value="users" className="gap-1.5">
+            <Users className="h-4 w-4" />
+            <span className="hidden sm:inline">{tabs.users}</span>
+          </TabsTrigger>
+          <TabsTrigger value="logements" className="gap-1.5">
+            <BedDouble className="h-4 w-4" />
+            <span className="hidden sm:inline">{tabs.logements}</span>
+          </TabsTrigger>
+        </TabsList>
+      </div>
+      <TabsContent value="overview" className="mt-6"><DashboardOverview /></TabsContent>
       <TabsContent value="reservations" className="mt-6"><ReservationsAdmin /></TabsContent>
       <TabsContent value="messages" className="mt-6"><MessagesAdmin /></TabsContent>
+      <TabsContent value="reviews" className="mt-6"><ReviewsAdmin /></TabsContent>
+      <TabsContent value="users" className="mt-6"><UsersAdmin /></TabsContent>
+      <TabsContent value="logements" className="mt-6"><LogementsAdmin /></TabsContent>
     </Tabs>
-  );
-}
-
-function LogementsAdmin() {
-  const qc = useQueryClient();
-  const { data: logements = [], isLoading } = useQuery(logementsQuery);
-  const [editing, setEditing] = useState<Logement | null>(null);
-  const [open, setOpen] = useState(false);
-  const runDeleteLogement = useServerFn(adminDeleteLogement);
-
-  const refresh = () => qc.invalidateQueries({ queryKey: ["logements"] });
-
-  const remove = async (id: string) => {
-    try {
-      await runDeleteLogement({ data: { id } });
-    } catch {
-      toast.error("Suppression refusée.");
-      return;
-    }
-    toast.success("Logement supprimé.");
-    refresh();
-  };
-
-  return (
-    <div>
-      <div className="mb-4 flex justify-end">
-        <Button variant="gold" onClick={() => { setEditing(null); setOpen(true); }}>
-          <Plus className="h-4 w-4" /> Ajouter
-        </Button>
-      </div>
-      {isLoading ? (
-        <Loader2 className="h-5 w-5 animate-spin text-gold" />
-      ) : (
-        <div className="space-y-3">
-          {logements.map((l) => (
-            <div key={l.id} className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-card p-4">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="truncate font-medium">{l.title_fr}</p>
-                  <Badge variant="secondary">{l.type}</Badge>
-                  {!l.available && <Badge variant="destructive">Complet</Badge>}
-                </div>
-                <p className="text-sm text-muted-foreground">{formatPrice(l.price, l.currency)} / {l.price_unit}</p>
-              </div>
-              <div className="flex shrink-0 gap-2">
-                <Button variant="outline" size="icon" onClick={() => { setEditing(l); setOpen(true); }}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Supprimer ce logement ?</AlertDialogTitle>
-                      <AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Annuler</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => remove(l.id)}>Supprimer</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-      <LogementEditor open={open} onOpenChange={setOpen} logement={editing} onSaved={refresh} />
-    </div>
-  );
-}
-
-interface Reservation {
-  id: string; name: string; phone: string; email: string | null;
-  arrival_date: string; departure_date: string; guests: number;
-  logement_type: string | null; message: string | null; status: string; created_at: string;
-}
-
-function ReservationsAdmin() {
-  const runListReservations = useServerFn(adminListReservations);
-  const { data = [], isLoading } = useQuery({
-    queryKey: ["admin-reservations"],
-    queryFn: async () => (await runListReservations()) as Reservation[],
-  });
-
-  if (isLoading) return <Loader2 className="h-5 w-5 animate-spin text-gold" />;
-  if (data.length === 0) return <p className="text-muted-foreground">Aucune réservation.</p>;
-
-  return (
-    <div className="space-y-3">
-      {data.map((r) => (
-        <div key={r.id} className="rounded-xl border border-border/60 bg-card p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="font-medium">{r.name} · {r.phone}</p>
-            <Badge variant="secondary">{r.logement_type ?? "—"}</Badge>
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {r.arrival_date} → {r.departure_date} · {r.guests} pers.
-            {r.email ? ` · ${r.email}` : ""}
-          </p>
-          {r.message && <p className="mt-2 text-sm">{r.message}</p>}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-interface Message {
-  id: string; name: string; phone: string | null; email: string | null;
-  message: string; status: string; user_id: string | null; created_at: string;
-}
-
-const ADMIN_STATUSES = ["nouveau", "lu", "répondu"] as const;
-const STATUS_LABEL: Record<string, string> = {
-  nouveau: "Nouveau",
-  lu: "Lu",
-  répondu: "Répondu",
-};
-
-function MessagesAdmin() {
-  const qc = useQueryClient();
-  const runListMessages = useServerFn(adminListMessages);
-  const { data = [], isLoading } = useQuery({
-    queryKey: ["admin-messages"],
-    queryFn: async () => (await runListMessages()) as Message[],
-  });
-
-  if (isLoading) return <Loader2 className="h-5 w-5 animate-spin text-gold" />;
-  if (data.length === 0) return <p className="text-muted-foreground">Aucun message.</p>;
-
-  return (
-    <div className="space-y-3">
-      {data.map((m) => (
-        <MessageAdminCard
-          key={m.id}
-          message={m}
-          onSaved={() => qc.invalidateQueries({ queryKey: ["admin-messages"] })}
-        />
-      ))}
-    </div>
-  );
-}
-
-function MessageAdminCard({
-  message,
-  onSaved,
-}: {
-  message: Message;
-  onSaved: () => void;
-}) {
-  const runUpdate = useServerFn(adminUpdateMessage);
-  const meta = parseMessageMeta(message.message);
-  const body = stripMessageMeta(message.message);
-  const [status, setStatus] = useState(message.status);
-  const [reply, setReply] = useState(meta?.reply ?? "");
-  const [saving, setSaving] = useState(false);
-
-  const fmtDate = (d: string) => {
-    const date = new Date(d);
-    return Number.isNaN(date.getTime()) ? d : date.toLocaleDateString();
-  };
-
-  const save = async (opts: { withReply: boolean }) => {
-    setSaving(true);
-    try {
-      await runUpdate({
-        data: {
-          id: message.id,
-          status,
-          ...(opts.withReply ? { reply: reply.trim() } : {}),
-        },
-      });
-      toast.success("Message mis à jour.");
-      onSaved();
-    } catch {
-      toast.error("Mise à jour refusée.");
-    }
-    setSaving(false);
-  };
-
-  return (
-    <div className="rounded-xl border border-border/60 bg-card p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-medium">{message.name}</p>
-        <Badge variant={message.status === "répondu" ? "default" : "secondary"}>
-          {STATUS_LABEL[message.status] ?? message.status}
-        </Badge>
-      </div>
-      <p className="text-sm text-muted-foreground">
-        {[message.phone, message.email].filter(Boolean).join(" · ") || "—"}
-        {" · "}
-        {fmtDate(message.created_at)}
-      </p>
-      {meta?.subject && <p className="mt-2 font-medium">{meta.subject}</p>}
-      <p className="mt-1 whitespace-pre-line text-sm">{body}</p>
-
-      {meta?.reply && (
-        <div className="mt-3 rounded-lg border border-gold/30 bg-gold/5 p-3 text-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gold">
-            Réponse envoyée
-          </p>
-          <p className="mt-1 whitespace-pre-line">{meta.reply}</p>
-        </div>
-      )}
-
-      <div className="mt-4 grid gap-3 border-t border-border/60 pt-4 sm:grid-cols-[180px_1fr] sm:items-start">
-        <div className="space-y-1.5">
-          <Label className="text-xs">Statut</Label>
-          <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {ADMIN_STATUSES.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {STATUS_LABEL[s]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full"
-            disabled={saving}
-            onClick={() => save({ withReply: false })}
-          >
-            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-            Enregistrer le statut
-          </Button>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label className="text-xs">Réponse</Label>
-          <Textarea
-            rows={3}
-            value={reply}
-            maxLength={5000}
-            onChange={(e) => setReply(e.target.value)}
-            placeholder="Votre réponse au client…"
-          />
-          <Button
-            variant="gold"
-            size="sm"
-            disabled={saving || !reply.trim()}
-            onClick={() => save({ withReply: true })}
-          >
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-            Envoyer la réponse
-          </Button>
-        </div>
-      </div>
-    </div>
   );
 }
