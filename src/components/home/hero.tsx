@@ -10,7 +10,7 @@ export function Hero() {
   return (
     <section className="relative isolate overflow-hidden">
       <img
-        src={heroResidence}
+        src={residenceFacade.url}
         alt="Panorama P – résidence meublée à Bafoussam"
         width={1920}
         height={1080}
