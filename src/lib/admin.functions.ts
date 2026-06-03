@@ -145,3 +145,17 @@ export const adminUpdateMessage = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// Admin-only: list all reviews/testimonials (including pending, sort_order < 0)
+// ordered by newest. Used to build admin notifications. No schema change.
+export const adminListReviews = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data, error } = await context.supabase
+      .from("testimonials")
+      .select("id, name, rating, sort_order, created_at")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
