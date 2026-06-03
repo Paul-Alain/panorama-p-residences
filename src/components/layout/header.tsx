@@ -48,6 +48,18 @@ export function Header() {
 
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            className="hidden sm:inline-flex"
+            aria-label={t.account.nav}
+            title={t.account.nav}
+          >
+            <Link to="/mon-espace">
+              <User className="h-5 w-5" />
+            </Link>
+          </Button>
           <Button asChild variant="gold" size="sm" className="hidden sm:inline-flex">
             <Link to="/reservation">{t.nav.book}</Link>
           </Button>
