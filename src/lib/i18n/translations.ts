@@ -217,6 +217,30 @@ const fr = {
     nameError: "Veuillez saisir votre nom complet.",
     phoneError: "Veuillez saisir un numéro de téléphone valide au format international (ex. +33 6 12 34 56 78).",
   },
+  notifications: {
+    title: "Notifications",
+    empty: "Aucune notification pour le moment.",
+    markAllRead: "Tout marquer comme lu",
+    unreadLabel: "non lues",
+    client: {
+      reservationTitle: "Réservation enregistrée",
+      reservationBody: "Votre réservation a été enregistrée. Nous revenons vers vous rapidement.",
+      replyTitle: "Réponse du support",
+      replyBody: "Panorama P a répondu à votre message.",
+      reviewTitle: "Avis soumis",
+      reviewBody: "Merci ! Votre avis a bien été soumis et sera publié après validation.",
+      reviewApprovedTitle: "Avis publié",
+      reviewApprovedBody: "Votre avis a été validé et est maintenant visible sur le site.",
+    },
+    admin: {
+      reservationTitle: "Nouvelle réservation",
+      reservationBody: "{name} a effectué une nouvelle réservation.",
+      messageTitle: "Nouveau message",
+      messageBody: "{name} a envoyé un message au support.",
+      reviewTitle: "Nouvel avis",
+      reviewBody: "{name} a soumis un avis ({rating}/5).",
+    },
+  },
 };
 
 export type Dict = typeof fr;
@@ -436,6 +460,30 @@ const de: Dict = {
     nameError: "Bitte geben Sie Ihren vollständigen Namen ein.",
     phoneError: "Bitte geben Sie eine gültige Telefonnummer im internationalen Format ein (z. B. +49 151 23456789).",
   },
+  notifications: {
+    title: "Benachrichtigungen",
+    empty: "Noch keine Benachrichtigungen.",
+    markAllRead: "Alle als gelesen markieren",
+    unreadLabel: "ungelesen",
+    client: {
+      reservationTitle: "Reservierung erfasst",
+      reservationBody: "Ihre Reservierung wurde erfasst. Wir melden uns in Kürze.",
+      replyTitle: "Antwort vom Support",
+      replyBody: "Panorama P hat auf Ihre Nachricht geantwortet.",
+      reviewTitle: "Bewertung gesendet",
+      reviewBody: "Danke! Ihre Bewertung wurde gesendet und wird nach Prüfung veröffentlicht.",
+      reviewApprovedTitle: "Bewertung veröffentlicht",
+      reviewApprovedBody: "Ihre Bewertung wurde freigegeben und ist jetzt auf der Website sichtbar.",
+    },
+    admin: {
+      reservationTitle: "Neue Reservierung",
+      reservationBody: "{name} hat eine neue Reservierung vorgenommen.",
+      messageTitle: "Neue Nachricht",
+      messageBody: "{name} hat eine Nachricht an den Support gesendet.",
+      reviewTitle: "Neue Bewertung",
+      reviewBody: "{name} hat eine Bewertung abgegeben ({rating}/5).",
+    },
+  },
 };
 
 const en: Dict = {
@@ -649,6 +697,30 @@ const en: Dict = {
     phonePlaceholder: "+1 555 123 4567",
     nameError: "Please enter your full name.",
     phoneError: "Please enter a valid phone number in international format (e.g. +1 555 123 4567).",
+  },
+  notifications: {
+    title: "Notifications",
+    empty: "No notifications yet.",
+    markAllRead: "Mark all as read",
+    unreadLabel: "unread",
+    client: {
+      reservationTitle: "Reservation recorded",
+      reservationBody: "Your reservation has been recorded. We'll get back to you shortly.",
+      replyTitle: "Support reply",
+      replyBody: "Panorama P replied to your message.",
+      reviewTitle: "Review submitted",
+      reviewBody: "Thank you! Your review has been submitted and will be published after approval.",
+      reviewApprovedTitle: "Review published",
+      reviewApprovedBody: "Your review has been approved and is now visible on the site.",
+    },
+    admin: {
+      reservationTitle: "New reservation",
+      reservationBody: "{name} made a new reservation.",
+      messageTitle: "New message",
+      messageBody: "{name} sent a message to support.",
+      reviewTitle: "New review",
+      reviewBody: "{name} submitted a review ({rating}/5).",
+    },
   },
 };
 

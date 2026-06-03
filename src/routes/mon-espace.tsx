@@ -18,6 +18,7 @@ import type { Session } from "@supabase/supabase-js";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ClientNotifications } from "@/components/notifications/client-notifications";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -99,7 +100,8 @@ function AccountPage() {
   return (
     <>
       <PageHeader title={t.account.title} subtitle={t.account.subtitle}>
-        <div className="mt-6 flex justify-center">
+        <div className="mt-6 flex items-center justify-center gap-2">
+          <ClientNotifications userId={userId} />
           <Button variant="outline" size="sm" onClick={signOut}>
             <LogOut className="h-4 w-4" /> {t.account.signOut}
           </Button>
