@@ -474,6 +474,38 @@ const en: Dict = {
     reservations: "Bookings",
     messages: "Messages",
   },
+  account: {
+    nav: "My account",
+    title: "My account",
+    subtitle: "Manage your profile and track your requests.",
+    signOut: "Sign out",
+    loading: "Loading…",
+    tabs: {
+      profile: "Profile",
+      reservations: "My reservations",
+      messages: "My messages",
+      reviews: "My reviews",
+    },
+    profile: {
+      fullName: "Full name",
+      phone: "Phone",
+      avatar: "Avatar link (optional)",
+      email: "Email",
+      save: "Save",
+      saving: "Saving…",
+      saved: "Profile updated.",
+      error: "Something went wrong.",
+    },
+    empty: {
+      reservations: "You have no reservations yet.",
+      messages: "You haven't sent any message.",
+      reviews: "You haven't posted any review.",
+    },
+    labels: {
+      guests: "guests",
+      rating: "Rating",
+    },
+  },
 };
 
 export const dictionaries: Record<Lang, Dict> = { fr, de, en };
