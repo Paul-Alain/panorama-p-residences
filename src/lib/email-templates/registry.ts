@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react'
 import { template as reservationConfirmation } from './reservation-confirmation'
+import { template as reservationTeamAlert } from './reservation-team-alert'
 import { template as contactConfirmation } from './contact-confirmation'
 import { template as adminReply } from './admin-reply'
 
@@ -18,6 +19,7 @@ export interface TemplateEntry {
  */
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'reservation-confirmation': reservationConfirmation,
+  'reservation-team-alert': reservationTeamAlert,
   'contact-confirmation': contactConfirmation,
   'admin-reply': adminReply,
 }
