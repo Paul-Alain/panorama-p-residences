@@ -34,6 +34,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/lib/i18n/language-context";
+import { useAdminStatus } from "@/lib/use-admin-status";
 import {
   encodeReview,
   parseReviewMeta,
