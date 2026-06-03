@@ -116,9 +116,11 @@ function AccountPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="profile" className="mt-6">
+          <TabsContent value="profile" className="mt-6 space-y-6">
             <ProfileSection userId={userId} email={session.user.email ?? ""} />
+            <SecuritySection />
           </TabsContent>
+
           <TabsContent value="reservations" className="mt-6">
             <ReservationsSection userId={userId} />
           </TabsContent>
