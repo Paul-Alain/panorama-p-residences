@@ -101,6 +101,7 @@ export type Database = {
           name: string
           phone: string | null
           status: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -110,6 +111,7 @@ export type Database = {
           name: string
           phone?: string | null
           status?: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -119,6 +121,34 @@ export type Database = {
           name?: string
           phone?: string | null
           status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          phone_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id: string
+          phone_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          phone_number?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -135,6 +165,7 @@ export type Database = {
           name: string
           phone: string
           status: string
+          user_id: string | null
         }
         Insert: {
           arrival_date: string
@@ -148,6 +179,7 @@ export type Database = {
           name: string
           phone: string
           status?: string
+          user_id?: string | null
         }
         Update: {
           arrival_date?: string
@@ -161,6 +193,7 @@ export type Database = {
           name?: string
           phone?: string
           status?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -175,6 +208,7 @@ export type Database = {
           name: string
           rating: number
           sort_order: number
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -186,6 +220,7 @@ export type Database = {
           name: string
           rating?: number
           sort_order?: number
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -197,6 +232,7 @@ export type Database = {
           name?: string
           rating?: number
           sort_order?: number
+          user_id?: string | null
         }
         Relationships: []
       }
