@@ -615,7 +615,7 @@ function ReviewDialog({
   );
 }
 
-/* ---------------- Messages ---------------- */
+/* ---------------- Messages / Support ---------------- */
 
 interface MessageRow {
   id: string;
@@ -624,8 +624,22 @@ interface MessageRow {
   created_at: string;
 }
 
-function MessagesSection({ userId }: { userId: string }) {
+const STATUS_LABEL = (
+  status: string,
+  t: ReturnType<typeof useLanguage>["t"],
+): string => {
+  if (status === "lu") return t.account.support.statusRead;
+  if (status === "répondu") return t.account.support.statusReplied;
+  return t.account.support.statusNew;
+};
+
+function MessagesSection({ userId, email }: { userId: string; email: string }) {
   const { t } = useLanguage();
+  const qc = useQueryClient();
+  const [subject, setSubject] = useState("");
+  const [content, setContent] = useState("");
+  const [reservationId, setReservationId] = useState<string>("none");
+
   const { data = [], isLoading } = useQuery({
     queryKey: ["my-messages", userId],
     queryFn: async () => {
@@ -639,20 +653,195 @@ function MessagesSection({ userId }: { userId: string }) {
     },
   });
 
-  if (isLoading) return <SectionLoader />;
-  if (data.length === 0) return <EmptyState text={t.account.empty.messages} />;
+  const { data: reservations = [] } = useQuery({
+    queryKey: ["my-reservations", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("reservations")
+        .select("id, name, arrival_date, departure_date, guests, logement_type, message, status, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as ReservationRow[];
+    },
+  });
+
+  const { data: profile } = useQuery({
+    queryKey: ["my-profile", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, phone_number, avatar_url")
+        .eq("id", userId)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as ProfileRow | null;
+    },
+  });
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const body = content.trim();
+      if (!body) return;
+      const { error } = await supabase.from("messages").insert({
+        user_id: userId,
+        name: profile?.full_name || email || "Client",
+        email: email || null,
+        phone: profile?.phone_number || null,
+        status: "nouveau",
+        message: encodeMessage(body, {
+          subject: subject.trim() || undefined,
+          reservationId: reservationId !== "none" ? reservationId : undefined,
+        }),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(t.account.support.success);
+      setSubject("");
+      setContent("");
+      setReservationId("none");
+      qc.invalidateQueries({ queryKey: ["my-messages", userId] });
+    },
+    onError: () => toast.error(t.account.support.error),
+  });
 
   return (
-    <div className="space-y-3">
-      {data.map((m) => (
-        <div key={m.id} className="rounded-2xl border border-border/60 bg-card p-5 shadow-soft">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm text-muted-foreground">{fmtDate(m.created_at)}</p>
-            <Badge variant="secondary" className="capitalize">{m.status}</Badge>
+    <div className="space-y-6">
+      {/* Compose */}
+      <div className="rounded-3xl border border-border/60 bg-card p-6 shadow-soft sm:p-8">
+        <div className="mb-5 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary">
+            <MessageSquare className="h-5 w-5 text-muted-foreground" />
           </div>
-          <p className="mt-2 text-sm">{m.message}</p>
+          <p className="font-display text-lg font-semibold">
+            {t.account.support.compose}
+          </p>
         </div>
-      ))}
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            mutation.mutate();
+          }}
+          className="space-y-4"
+        >
+          <div className="space-y-1.5">
+            <Label>{t.account.support.subject}</Label>
+            <Input
+              value={subject}
+              maxLength={150}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder={t.account.support.subjectPlaceholder}
+            />
+          </div>
+
+          {reservations.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>{t.account.support.relatedReservation}</Label>
+              <Select value={reservationId} onValueChange={setReservationId}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">
+                    {t.account.support.noReservation}
+                  </SelectItem>
+                  {reservations.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {fmtDate(r.arrival_date)} → {fmtDate(r.departure_date)}
+                      {r.logement_type ? ` · ${r.logement_type}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <Label>{t.account.support.content}</Label>
+            <Textarea
+              rows={4}
+              required
+              value={content}
+              maxLength={2000}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder={t.account.support.contentPlaceholder}
+            />
+          </div>
+
+          <Button
+            type="submit"
+            variant="gold"
+            disabled={mutation.isPending || !content.trim()}
+          >
+            {mutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+            {mutation.isPending ? t.account.support.sending : t.account.support.send}
+          </Button>
+        </form>
+      </div>
+
+      {/* History */}
+      <div className="space-y-3">
+        <h3 className="font-display text-base font-semibold">
+          {t.account.support.historyTitle}
+        </h3>
+        {isLoading ? (
+          <SectionLoader />
+        ) : data.length === 0 ? (
+          <EmptyState text={t.account.empty.messages} />
+        ) : (
+          data.map((m) => {
+            const meta = parseMessageMeta(m.message);
+            const body = stripMessageMeta(m.message);
+            const reservation = reservations.find(
+              (r) => r.id === meta?.reservationId,
+            );
+            return (
+              <div
+                key={m.id}
+                className="rounded-2xl border border-border/60 bg-card p-5 shadow-soft"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm text-muted-foreground">
+                    {fmtDate(m.created_at)}
+                  </p>
+                  <Badge
+                    variant={m.status === "répondu" ? "default" : "secondary"}
+                  >
+                    {STATUS_LABEL(m.status, t)}
+                  </Badge>
+                </div>
+                {meta?.subject && (
+                  <p className="mt-2 font-medium">{meta.subject}</p>
+                )}
+                <p className="mt-1 whitespace-pre-line text-sm">{body}</p>
+                {reservation && (
+                  <p className="mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    {fmtDate(reservation.arrival_date)} →{" "}
+                    {fmtDate(reservation.departure_date)}
+                  </p>
+                )}
+                {meta?.reply && (
+                  <div className="mt-3 rounded-xl border border-gold/30 bg-gold/5 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gold">
+                      {t.account.support.reply}
+                    </p>
+                    <p className="mt-1 whitespace-pre-line text-sm">
+                      {meta.reply}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }
