@@ -10,12 +10,20 @@ import {
   Mail,
   Star,
   Loader2,
+  Percent,
+  Coins,
+  MoonStar,
+  Plane,
+  LogOut,
+  BedDouble,
+  DoorOpen,
   type LucideIcon,
 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { formatRelative } from "@/lib/notifications";
 import {
   adminGetStats,
+  adminGetHotelKpis,
   adminListReservations,
   adminListMessages,
   adminListReviewsFull,
@@ -42,36 +50,65 @@ const ACTIVITY_ICON: Record<ActivityItem["kind"], LucideIcon> = {
   account: Users,
 };
 
+const QUERY_OPTS = { staleTime: 60_000, refetchOnWindowFocus: false } as const;
+
 export function DashboardOverview() {
   const { t, lang } = useLanguage();
   const d = t.admin.dash;
 
+  const runKpis = useServerFn(adminGetHotelKpis);
   const runStats = useServerFn(adminGetStats);
   const runReservations = useServerFn(adminListReservations);
   const runMessages = useServerFn(adminListMessages);
   const runReviews = useServerFn(adminListReviewsFull);
   const runUsers = useServerFn(adminListUsers);
 
+  const { data: kpis, isLoading: kpiLoading } = useQuery({
+    queryKey: ["admin-kpis"],
+    queryFn: () => runKpis(),
+    ...QUERY_OPTS,
+  });
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["admin-stats"],
     queryFn: () => runStats(),
+    ...QUERY_OPTS,
   });
   const { data: reservations = [] } = useQuery({
     queryKey: ["admin-reservations"],
     queryFn: () => runReservations(),
+    ...QUERY_OPTS,
   });
   const { data: messages = [] } = useQuery({
     queryKey: ["admin-messages"],
     queryFn: () => runMessages(),
+    ...QUERY_OPTS,
   });
   const { data: reviews = [] } = useQuery({
     queryKey: ["admin-reviews"],
     queryFn: () => runReviews(),
+    ...QUERY_OPTS,
   });
   const { data: users = [] } = useQuery({
     queryKey: ["admin-users"],
     queryFn: () => runUsers(),
+    ...QUERY_OPTS,
   });
+
+  const k = d.kpi;
+  const kpiCards: { icon: LucideIcon; label: string; value: string }[] = [
+    { icon: CheckCircle2, label: k.confirmed, value: String(kpis?.confirmedReservations ?? 0) },
+    { icon: Clock, label: k.pending, value: String(kpis?.pendingReservations ?? 0) },
+    {
+      icon: Coins,
+      label: k.revenue,
+      value: `${(kpis?.estimatedRevenue ?? 0).toLocaleString(lang)} FCFA`,
+    },
+    { icon: MoonStar, label: k.avgStay, value: `${kpis?.avgStay ?? 0} ${k.nights}` },
+    { icon: Plane, label: k.arrivals, value: String(kpis?.todayArrivals ?? 0) },
+    { icon: LogOut, label: k.departures, value: String(kpis?.todayDepartures ?? 0) },
+    { icon: BedDouble, label: k.occupied, value: `${kpis?.occupiedUnits ?? 0}/${kpis?.totalUnits ?? 0}` },
+    { icon: DoorOpen, label: k.available, value: String(kpis?.availableUnits ?? 0) },
+  ];
 
   const cards: { icon: LucideIcon; label: string; value: number; accent?: boolean }[] = [
     { icon: CalendarCheck, label: d.cards.totalReservations, value: stats?.totalReservations ?? 0 },
@@ -124,6 +161,48 @@ export function DashboardOverview() {
 
   return (
     <div className="space-y-8">
+      {/* Hotel KPIs */}
+      <section className="space-y-3">
+        <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
+          {k.title}
+          {kpiLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+        </h2>
+
+        {/* Highlighted occupancy rate */}
+        <div className="grid gap-3 lg:grid-cols-4">
+          <div className="rounded-2xl border border-gold/40 bg-gradient-to-br from-gold/15 to-gold/5 p-5 shadow-soft lg:col-span-1">
+            <div className="flex items-center justify-between">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gold/20 text-gold">
+                <Percent className="h-4 w-4" />
+              </span>
+            </div>
+            <p className="mt-3 font-display text-3xl font-semibold tabular-nums">
+              {kpis?.occupancyRate ?? 0}%
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{k.occupancyRate}</p>
+            <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+              <div
+                className="h-full rounded-full bg-gold transition-all"
+                style={{ width: `${Math.min(100, kpis?.occupancyRate ?? 0)}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:col-span-3 lg:grid-cols-4">
+            {kpiCards.slice(0, 4).map((c) => (
+              <KpiTile key={c.label} {...c} />
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {kpiCards.slice(4).map((c) => (
+            <KpiTile key={c.label} {...c} />
+          ))}
+        </div>
+      </section>
+
+      {/* Operational counters */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {cards.map((c) => (
           <div
@@ -171,6 +250,18 @@ export function DashboardOverview() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function KpiTile({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-soft">
+      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-muted-foreground">
+        <Icon className="h-4 w-4" />
+      </span>
+      <p className="mt-3 font-display text-xl font-semibold tabular-nums">{value}</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">{label}</p>
     </div>
   );
 }
