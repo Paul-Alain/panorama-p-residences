@@ -145,19 +145,19 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
       toast.error(t.reservation.error);
       return;
     }
-    // Fire-and-forget branded confirmation email (only when an address is given).
+    // Fire-and-forget: branded guest confirmation (when an address is given)
+    // plus an automatic alert to the team inbox for every new booking.
     const confirmEmail = form.email.trim();
-    if (confirmEmail) {
-      fetch("/api/public/email/reservation-confirmation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: confirmEmail,
-          name: form.name.trim(),
-          unitLabel: selectedUnit?.label ?? "",
-        }),
-      }).catch(() => {});
-    }
+    fetch("/api/public/email/reservation-confirmation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: confirmEmail,
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        unitLabel: selectedUnit?.label ?? "",
+      }),
+    }).catch(() => {});
     toast.success(t.reservation.success);
     setForm({
       name: "",
