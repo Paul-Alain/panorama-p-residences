@@ -92,6 +92,7 @@ export const testimonialsQuery = queryOptions({
     const { data, error } = await supabase
       .from("testimonials")
       .select("*")
+      .gte("sort_order", 0)
       .order("sort_order", { ascending: true });
     if (error) throw error;
     return (data ?? []) as Testimonial[];
