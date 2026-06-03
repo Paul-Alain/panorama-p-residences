@@ -116,6 +116,8 @@ const fr = {
     error: "Une erreur est survenue. Réessayez ou contactez-nous sur WhatsApp.",
     whatsappCta: "Réserver via WhatsApp",
     dateError: "La date de départ doit être après la date d'arrivée.",
+    arrivalInPast: "La date d'arrivée ne peut pas être dans le passé.",
+    departureBeforeArrival: "La date de départ doit être après la date d'arrivée.",
     requiredHint: "Champs obligatoires",
   },
   testimonials: {
@@ -570,6 +572,8 @@ const de: Dict = {
     error: "Ein Fehler ist aufgetreten. Bitte erneut versuchen oder WhatsApp nutzen.",
     whatsappCta: "Über WhatsApp buchen",
     dateError: "Das Abreisedatum muss nach dem Anreisedatum liegen.",
+    arrivalInPast: "Das Anreisedatum darf nicht in der Vergangenheit liegen.",
+    departureBeforeArrival: "Das Abreisedatum muss nach dem Anreisedatum liegen.",
     requiredHint: "Pflichtfelder",
   },
   testimonials: {
@@ -1019,6 +1023,8 @@ const en: Dict = {
     error: "Something went wrong. Try again or contact us on WhatsApp.",
     whatsappCta: "Book via WhatsApp",
     dateError: "Departure date must be after arrival date.",
+    arrivalInPast: "Arrival date cannot be in the past.",
+    departureBeforeArrival: "Departure date must be after arrival date.",
     requiredHint: "Required fields",
   },
   testimonials: {
