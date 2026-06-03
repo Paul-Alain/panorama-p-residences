@@ -50,7 +50,10 @@ export function ContactForm() {
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="c-name">{t.contact.name}</Label>
+          <Label htmlFor="c-name">
+            {t.contact.name}
+            <span className="text-destructive"> *</span>
+          </Label>
           <Input
             id="c-name"
             value={form.name}
@@ -83,7 +86,10 @@ export function ContactForm() {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="c-message">{t.contact.message}</Label>
+        <Label htmlFor="c-message">
+          {t.contact.message}
+          <span className="text-destructive"> *</span>
+        </Label>
         <Textarea
           id="c-message"
           rows={5}

@@ -1,8 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
-import { CalendarCheck, MessageCircle } from "lucide-react";
+import { AlertCircle, CalendarCheck, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,9 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -20,10 +16,20 @@ import { PhoneInput } from "@/components/forms/phone-input";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { whatsappLink } from "@/lib/site-config";
-import { logementUnitsQuery, type LogementUnit } from "@/lib/data";
-import { getUnitAvailability } from "@/lib/units.functions";
 
-const CATEGORY_ORDER = ["chambre", "studio", "appartement"];
+const TYPE_OPTIONS = ["chambre", "studio", "appartement"] as const;
+type LogementType = (typeof TYPE_OPTIONS)[number];
+
+const MAX_GUESTS: Record<LogementType, number> = {
+  chambre: 2,
+  studio: 2,
+  appartement: 4,
+};
+
+/** Small red asterisk marking a required field. */
+function Req() {
+  return <span className="text-destructive"> *</span>;
+}
 
 export function ReservationForm({ defaultType = "" }: { defaultType?: string }) {
   const { t } = useLanguage();
@@ -34,51 +40,24 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
     email: "",
     arrival: "",
     departure: "",
+    type: "",
     guests: "1",
-    unitId: "",
     message: "",
   });
 
   const set = (key: string, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
 
-  const { data: units = [] } = useQuery(logementUnitsQuery);
-  const runAvailability = useServerFn(getUnitAvailability);
-
-  const datesValid =
-    !!form.arrival && !!form.departure && form.departure > form.arrival;
-
-  /* Availability for the selected date range (booked unit ids) */
-  const { data: availability, isFetching: checkingAvailability } = useQuery({
-    queryKey: ["unit-availability", form.arrival, form.departure],
-    queryFn: () =>
-      runAvailability({ data: { arrival: form.arrival, departure: form.departure } }),
-    enabled: datesValid,
-  });
-  const bookedIds = useMemo(
-    () => new Set(availability?.bookedUnitIds ?? []),
-    [availability],
-  );
-
-  const isUnitBookable = (u: LogementUnit) => u.available && !bookedIds.has(u.id);
-
-  /* Group units by category in a stable order */
-  const grouped = useMemo(() => {
-    const map = new Map<string, LogementUnit[]>();
-    for (const u of units) {
-      if (!map.has(u.type)) map.set(u.type, []);
-      map.get(u.type)!.push(u);
+  /* Preselect a type when coming from a logement card */
+  useEffect(() => {
+    if (
+      defaultType &&
+      !form.type &&
+      (TYPE_OPTIONS as readonly string[]).includes(defaultType)
+    ) {
+      setForm((f) => ({ ...f, type: defaultType }));
     }
-    return Array.from(map.entries()).sort(
-      (a, b) => CATEGORY_ORDER.indexOf(a[0]) - CATEGORY_ORDER.indexOf(b[0]),
-    );
-  }, [units]);
-
-  const typeLabel: Record<string, string> = {
-    studio: t.logements.types.studio,
-    chambre: t.logements.types.chambre,
-    appartement: t.logements.types.appartement,
-  };
+  }, [defaultType, form.type]);
 
   /* Pre-fill from profile when user is logged in */
   useEffect(() => {
@@ -102,28 +81,34 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
     return () => { mounted = false; };
   }, []);
 
-  /* Preselect the first available unit matching defaultType (from a logement card) */
-  useEffect(() => {
-    if (!defaultType || form.unitId || units.length === 0) return;
-    const match = units.find((u) => u.type === defaultType && u.available);
-    if (match) setForm((f) => ({ ...f, unitId: match.id }));
-  }, [defaultType, units, form.unitId]);
+  const maxGuests = form.type
+    ? MAX_GUESTS[form.type as LogementType]
+    : undefined;
+  const guestsNum = Number(form.guests) || 0;
+  const guestsExceeded = maxGuests !== undefined && guestsNum > maxGuests;
 
-  /* Clear a selection that became unavailable for the chosen dates */
-  useEffect(() => {
-    if (form.unitId && bookedIds.has(form.unitId)) {
-      setForm((f) => ({ ...f, unitId: "" }));
-    }
-  }, [bookedIds, form.unitId]);
-
-  const selectedUnit = units.find((u) => u.id === form.unitId);
+  const typeLabel = (type: string) =>
+    t.reservation.typeOptions[type as LogementType] ?? type;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.phone.trim() || !form.arrival || !form.departure)
+    if (
+      !form.name.trim() ||
+      !form.phone.trim() ||
+      !form.email.trim() ||
+      !form.arrival ||
+      !form.departure ||
+      !form.type
+    )
       return;
     if (new Date(form.departure) <= new Date(form.arrival)) {
       toast.error(t.reservation.dateError);
+      return;
+    }
+    if (guestsExceeded) {
+      toast.error(
+        t.reservation.maxGuestsWarning.replace("{max}", String(maxGuests)),
+      );
       return;
     }
     setLoading(true);
@@ -134,9 +119,9 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
       email: form.email.trim().slice(0, 160) || null,
       arrival_date: form.arrival,
       departure_date: form.departure,
-      guests: Number(form.guests) || 1,
-      logement_unit_id: form.unitId || null,
-      logement_type: selectedUnit?.type ?? null,
+      guests: guestsNum || 1,
+      logement_unit_id: null,
+      logement_type: form.type,
       message: form.message.trim().slice(0, 1000) || null,
       user_id: user?.id ?? null,
     });
@@ -145,17 +130,16 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
       toast.error(t.reservation.error);
       return;
     }
-    // Fire-and-forget: branded guest confirmation (when an address is given)
-    // plus an automatic alert to the team inbox for every new booking.
-    const confirmEmail = form.email.trim();
+    // Fire-and-forget: branded guest confirmation plus an automatic alert
+    // to the team inbox for every new booking.
     fetch("/api/public/email/reservation-confirmation", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        email: confirmEmail,
+        email: form.email.trim(),
         name: form.name.trim(),
         phone: form.phone.trim(),
-        unitLabel: selectedUnit?.label ?? "",
+        unitLabel: typeLabel(form.type),
       }),
     }).catch(() => {});
     toast.success(t.reservation.success);
@@ -165,19 +149,23 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
       email: "",
       arrival: "",
       departure: "",
+      type: "",
       guests: "1",
-      unitId: "",
       message: "",
     });
   };
 
-  const waMessage = `Bonjour Panorama P,%0A${t.reservation.title}:%0A- ${form.name}%0A- ${form.arrival} → ${form.departure}%0A- ${form.guests} pers.%0A- ${selectedUnit?.label ?? ""}`;
+  const waMessage = `Bonjour Panorama P,%0A${t.reservation.title}:%0A- ${form.name}%0A- ${form.arrival} → ${form.departure}%0A- ${form.guests} pers.%0A- ${form.type ? typeLabel(form.type) : ""}`;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      <p className="text-xs text-muted-foreground">
+        <span className="text-destructive">*</span> {t.reservation.requiredHint}
+      </p>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="r-name">{t.reservation.name}</Label>
+          <Label htmlFor="r-name">{t.reservation.name}<Req /></Label>
           <Input
             id="r-name"
             value={form.name}
@@ -187,7 +175,7 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="r-phone">{t.reservation.phone}</Label>
+          <Label htmlFor="r-phone">{t.reservation.phone}<Req /></Label>
           <PhoneInput
             id="r-phone"
             value={form.phone}
@@ -195,23 +183,23 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
             required
           />
         </div>
-
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="r-email">{t.reservation.email}</Label>
+        <Label htmlFor="r-email">{t.reservation.email}<Req /></Label>
         <Input
           id="r-email"
           type="email"
           value={form.email}
           onChange={(e) => set("email", e.target.value)}
+          required
           maxLength={160}
         />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="r-arrival">{t.reservation.arrival}</Label>
+          <Label htmlFor="r-arrival">{t.reservation.arrival}<Req /></Label>
           <Input
             id="r-arrival"
             type="date"
@@ -221,7 +209,7 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="r-departure">{t.reservation.departure}</Label>
+          <Label htmlFor="r-departure">{t.reservation.departure}<Req /></Label>
           <Input
             id="r-departure"
             type="date"
@@ -234,46 +222,54 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="r-guests">{t.reservation.guests}</Label>
+          <Label>{t.reservation.type}<Req /></Label>
+          <Select
+            value={form.type}
+            onValueChange={(v) => {
+              setForm((f) => {
+                const max = MAX_GUESTS[v as LogementType];
+                const current = Number(f.guests) || 1;
+                return {
+                  ...f,
+                  type: v,
+                  guests: String(Math.min(current, max)),
+                };
+              });
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={t.reservation.typePlaceholder} />
+            </SelectTrigger>
+            <SelectContent>
+              {TYPE_OPTIONS.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {typeLabel(type)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="r-guests">{t.reservation.guests}<Req /></Label>
           <Input
             id="r-guests"
             type="number"
             min={1}
-            max={20}
+            max={maxGuests ?? 4}
             value={form.guests}
             onChange={(e) => set("guests", e.target.value)}
+            required
+            aria-invalid={guestsExceeded}
           />
-        </div>
-        <div className="space-y-1.5">
-          <Label>{t.reservation.unit}</Label>
-          <Select value={form.unitId} onValueChange={(v) => set("unitId", v)}>
-            <SelectTrigger>
-              <SelectValue placeholder={t.reservation.unitPlaceholder} />
-            </SelectTrigger>
-            <SelectContent>
-              {grouped.map(([type, list]) => (
-                <SelectGroup key={type}>
-                  <SelectLabel>{typeLabel[type] ?? type}</SelectLabel>
-                  {list.map((u) => {
-                    const bookable = isUnitBookable(u);
-                    return (
-                      <SelectItem key={u.id} value={u.id} disabled={!bookable}>
-                        {u.label}
-                        {!bookable && datesValid ? ` (${t.reservation.unitBooked})` : ""}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectGroup>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">
-            {checkingAvailability
-              ? t.reservation.checkingAvailability
-              : datesValid
-                ? ""
-                : t.reservation.selectDatesFirst}
-          </p>
+          {guestsExceeded && (
+            <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+              {t.reservation.maxGuestsWarning.replace(
+                "{max}",
+                String(maxGuests),
+              )}
+            </p>
+          )}
         </div>
       </div>
 
@@ -289,7 +285,13 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Button type="submit" variant="gold" size="lg" disabled={loading} className="flex-1">
+        <Button
+          type="submit"
+          variant="gold"
+          size="lg"
+          disabled={loading || guestsExceeded}
+          className="flex-1"
+        >
           <CalendarCheck className="h-5 w-5" />
           {loading ? t.reservation.submitting : t.reservation.submit}
         </Button>
