@@ -196,7 +196,6 @@ function ProfileSection({ userId, email }: { userId: string; email: string }) {
       <div className="mb-6 flex items-center gap-4">
         <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary">
           {avatar ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img src={avatar} alt={fullName || email} className="h-full w-full object-cover" />
           ) : (
             <UserIcon className="h-7 w-7 text-muted-foreground" />
