@@ -1,15 +1,17 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Database } from "@/integrations/supabase/types";
 
 // Server-side admin verification. Uses the request's authenticated, RLS-scoped
 // Supabase client and the has_role() security-definer function.
-async function assertAdmin(context: {
-  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> };
-  userId: string;
-}): Promise<void> {
-  const { data, error } = await context.supabase.rpc("has_role", {
-    _user_id: context.userId,
+async function assertAdmin(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+): Promise<void> {
+  const { data, error } = await supabase.rpc("has_role", {
+    _user_id: userId,
     _role: "admin",
   });
   if (error) throw new Error(error.message);
