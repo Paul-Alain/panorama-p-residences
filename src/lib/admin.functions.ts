@@ -508,7 +508,12 @@ export const adminUpdateUnit = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     await assertAdmin(context.supabase, context.userId);
-    const updates: Record<string, unknown> = {};
+    const updates: {
+      label?: string;
+      unit_number?: number;
+      available?: boolean;
+      sort_order?: number;
+    } = {};
     if (data.label !== undefined) updates.label = data.label.trim();
     if (data.unit_number !== undefined) updates.unit_number = data.unit_number;
     if (data.available !== undefined) updates.available = data.available;
