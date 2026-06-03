@@ -145,6 +145,19 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
       toast.error(t.reservation.error);
       return;
     }
+    // Fire-and-forget branded confirmation email (only when an address is given).
+    const confirmEmail = form.email.trim();
+    if (confirmEmail) {
+      fetch("/api/public/email/reservation-confirmation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: confirmEmail,
+          name: form.name.trim(),
+          unitLabel: selectedUnit?.label ?? "",
+        }),
+      }).catch(() => {});
+    }
     toast.success(t.reservation.success);
     setForm({
       name: "",
