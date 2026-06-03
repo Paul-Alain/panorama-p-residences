@@ -43,6 +43,7 @@ function AdminPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const runClaim = useServerFn(claimAdmin);
+  const runGetAdminStatus = useServerFn(getAdminStatus);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
@@ -61,17 +62,24 @@ function AdminPage() {
 
   useEffect(() => {
     if (!session) return;
-    supabase
-      .from("user_roles")
-      .select("id")
-      .eq("user_id", session.user.id)
-      .eq("role", "admin")
-      .maybeSingle()
-      .then(({ data }) => {
-        setIsAdmin(!!data);
+    let active = true;
+    // Admin status is verified server-side; the client flag is only a UI hint.
+    runGetAdminStatus()
+      .then((res) => {
+        if (!active) return;
+        setIsAdmin(res.isAdmin);
+        setChecking(false);
+      })
+      .catch(() => {
+        if (!active) return;
+        setIsAdmin(false);
         setChecking(false);
       });
-  }, [session]);
+    return () => {
+      active = false;
+    };
+  }, [session, runGetAdminStatus]);
+
 
   const handleClaim = async () => {
     setClaiming(true);
