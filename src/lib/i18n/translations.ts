@@ -355,6 +355,8 @@ const fr = {
     subtitle: "Gérez votre profil et suivez vos demandes.",
     signOut: "Se déconnecter",
     loading: "Chargement…",
+    adminAccess: "Vous disposez d'un accès administrateur.",
+    adminCta: "Ouvrir le tableau de bord",
     tabs: {
       profile: "Profil",
       reservations: "Mes réservations",
