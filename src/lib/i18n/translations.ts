@@ -1268,6 +1268,8 @@ const en: Dict = {
     subtitle: "Manage your profile and track your requests.",
     signOut: "Sign out",
     loading: "Loading…",
+    adminAccess: "You have administrator access.",
+    adminCta: "Open dashboard",
     tabs: {
       profile: "Profile",
       reservations: "My reservations",
