@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Facebook, Instagram, Mail, MapPin, Phone } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { Logo } from "@/components/brand/logo";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { siteConfig, whatsappLink } from "@/lib/site-config";
