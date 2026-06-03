@@ -26,6 +26,7 @@ import studioConfort from "@/assets/studio-confort.jpg.asset.json";
 import appartementConfort from "@/assets/appartement-confort.jpg.asset.json";
 import studioVueSalon from "@/assets/studio-vue-salon.jpg.asset.json";
 import appartementVueSalon from "@/assets/appartement-vue-salon.jpg.asset.json";
+import studioSalonLed from "@/assets/studio-salon-led.jpg.asset.json";
 
 const assetMap: Record<string, string> = {
   // Exterior
@@ -53,6 +54,7 @@ const assetMap: Record<string, string> = {
   "appartement-confort": appartementConfort.url,
   "studio-vue-salon": studioVueSalon.url,
   "appartement-vue-salon": appartementVueSalon.url,
+  "studio-salon-led": studioSalonLed.url,
 };
 
 const fallback = residenceFacade.url;
