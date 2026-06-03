@@ -3,6 +3,7 @@ import { ArrowRight, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/lib/i18n/language-context";
 import accueilResidence from "@/assets/accueil-residence.jpg.asset.json";
+import logoMark from "@/assets/logo-panorama-p.png.asset.json";
 
 export function Hero() {
   const { t } = useLanguage();
