@@ -68,6 +68,7 @@ export const Route = createFileRoute("/mon-espace")({
 function AccountPage() {
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const { isAdmin } = useAdminStatus();
   const [session, setSession] = useState<Session | null>(null);
   const [checking, setChecking] = useState(true);
 
