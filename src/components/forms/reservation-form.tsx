@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CalendarCheck, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,28 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
 
   const set = (key: string, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
+
+  /* Pre-fill from profile when user is logged in */
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, phone_number")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!mounted || !profile) return;
+      setForm((f) => ({
+        ...f,
+        name: profile.full_name ?? f.name,
+        phone: profile.phone_number ?? f.phone,
+        email: user.email ?? f.email,
+      }));
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const typeLabel: Record<string, string> = {
     studio: t.logements.types.studio,
