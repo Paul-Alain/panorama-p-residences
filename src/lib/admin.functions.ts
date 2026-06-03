@@ -75,7 +75,13 @@ export const adminDeleteLogement = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// Admin-only: list reservations (verified server-side).
+// Sentinel status used to represent manual maintenance blocks stored as
+// reservation rows (no schema change). Excluded from all guest-facing lists,
+// counts and revenue so it never pollutes real reservation business logic.
+export const BLOCK_STATUS = "bloqué";
+
+// Admin-only: list reservations (verified server-side). Maintenance blocks are
+// excluded — they are surfaced only through the occupancy calendar.
 export const adminListReservations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -83,6 +89,7 @@ export const adminListReservations = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("reservations")
       .select("*")
+      .neq("status", BLOCK_STATUS)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
