@@ -925,6 +925,7 @@ const en: Dict = {
     testimonials: "Reviews",
     contact: "Contact",
     book: "Book",
+    admin: "Admin",
   },
   hero: {
     title: "Panorama P – Furnished Residence in Bafoussam",
