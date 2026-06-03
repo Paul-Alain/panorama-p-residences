@@ -180,6 +180,10 @@ function AdminDashboard() {
             <BedDouble className="h-4 w-4" />
             <span className="hidden sm:inline">{tabs.logements}</span>
           </TabsTrigger>
+          <TabsTrigger value="manager" className="gap-1.5">
+            <Activity className="h-4 w-4" />
+            <span className="hidden sm:inline">{tabs.manager}</span>
+          </TabsTrigger>
         </TabsList>
       </div>
       <TabsContent value="overview" className="mt-6"><DashboardOverview /></TabsContent>
@@ -188,6 +192,7 @@ function AdminDashboard() {
       <TabsContent value="reviews" className="mt-6"><ReviewsAdmin /></TabsContent>
       <TabsContent value="users" className="mt-6"><UsersAdmin /></TabsContent>
       <TabsContent value="logements" className="mt-6"><LogementsAdmin /></TabsContent>
+      <TabsContent value="manager" className="mt-6"><ManagerActivity /></TabsContent>
     </Tabs>
   );
 }
