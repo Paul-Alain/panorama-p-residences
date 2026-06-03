@@ -139,6 +139,21 @@ function RootComponent() {
   const bareRoute =
     location.pathname.startsWith("/admin") || location.pathname.startsWith("/auth");
 
+  // Enforce "Se souvenir de moi": if the client opted out, only keep the
+  // session for the current browser tab.
+  useEffect(() => {
+    let cancelled = false;
+    import("../lib/auth-prefs").then(({ shouldClearEphemeralSession }) => {
+      if (!cancelled && shouldClearEphemeralSession()) {
+        supabase.auth.signOut();
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+
   return (
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
