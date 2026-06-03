@@ -18,6 +18,7 @@ const labels: Record<string, Record<string, string>> = {
   chambreBleue: { fr: "Chambre élégante", de: "Elegantes Zimmer", en: "Elegant bedroom" },
   salleDeBain: { fr: "Salle d'eau moderne", de: "Modernes Bad", en: "Modern bathroom" },
   douche: { fr: "Douche & sanitaires", de: "Dusche & Sanitär", en: "Shower & bathroom" },
+  solaire: { fr: "Installation solaire", de: "Solaranlage", en: "Solar installation" },
 };
 
 export function GalleryGrid() {
