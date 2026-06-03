@@ -217,6 +217,30 @@ const fr = {
     nameError: "Veuillez saisir votre nom complet.",
     phoneError: "Veuillez saisir un numéro de téléphone valide au format international (ex. +33 6 12 34 56 78).",
   },
+  notifications: {
+    title: "Notifications",
+    empty: "Aucune notification pour le moment.",
+    markAllRead: "Tout marquer comme lu",
+    unreadLabel: "non lues",
+    client: {
+      reservationTitle: "Réservation enregistrée",
+      reservationBody: "Votre réservation a été enregistrée. Nous revenons vers vous rapidement.",
+      replyTitle: "Réponse du support",
+      replyBody: "Panorama P a répondu à votre message.",
+      reviewTitle: "Avis soumis",
+      reviewBody: "Merci ! Votre avis a bien été soumis et sera publié après validation.",
+      reviewApprovedTitle: "Avis publié",
+      reviewApprovedBody: "Votre avis a été validé et est maintenant visible sur le site.",
+    },
+    admin: {
+      reservationTitle: "Nouvelle réservation",
+      reservationBody: "{name} a effectué une nouvelle réservation.",
+      messageTitle: "Nouveau message",
+      messageBody: "{name} a envoyé un message au support.",
+      reviewTitle: "Nouvel avis",
+      reviewBody: "{name} a soumis un avis ({rating}/5).",
+    },
+  },
 };
 
 export type Dict = typeof fr;
