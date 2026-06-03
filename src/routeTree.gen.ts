@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TemoignagesRouteImport } from './routes/temoignages'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReservationRouteImport } from './routes/reservation'
 import { Route as MonEspaceRouteImport } from './routes/mon-espace'
 import { Route as LogementsRouteImport } from './routes/logements'
@@ -30,6 +31,11 @@ const TemoignagesRoute = TemoignagesRouteImport.update({
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReservationRoute = ReservationRouteImport.update({
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/logements': typeof LogementsRoute
   '/mon-espace': typeof MonEspaceRoute
   '/reservation': typeof ReservationRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/temoignages': typeof TemoignagesRoute
 }
@@ -108,6 +115,7 @@ export interface FileRoutesByTo {
   '/logements': typeof LogementsRoute
   '/mon-espace': typeof MonEspaceRoute
   '/reservation': typeof ReservationRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/temoignages': typeof TemoignagesRoute
 }
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   '/logements': typeof LogementsRoute
   '/mon-espace': typeof MonEspaceRoute
   '/reservation': typeof ReservationRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/temoignages': typeof TemoignagesRoute
 }
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
     | '/logements'
     | '/mon-espace'
     | '/reservation'
+    | '/reset-password'
     | '/sitemap.xml'
     | '/temoignages'
   fileRoutesByTo: FileRoutesByTo
@@ -153,6 +163,7 @@ export interface FileRouteTypes {
     | '/logements'
     | '/mon-espace'
     | '/reservation'
+    | '/reset-password'
     | '/sitemap.xml'
     | '/temoignages'
   id:
@@ -167,6 +178,7 @@ export interface FileRouteTypes {
     | '/logements'
     | '/mon-espace'
     | '/reservation'
+    | '/reset-password'
     | '/sitemap.xml'
     | '/temoignages'
   fileRoutesById: FileRoutesById
@@ -182,6 +194,7 @@ export interface RootRouteChildren {
   LogementsRoute: typeof LogementsRoute
   MonEspaceRoute: typeof MonEspaceRoute
   ReservationRoute: typeof ReservationRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TemoignagesRoute: typeof TemoignagesRoute
 }
@@ -200,6 +213,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reservation': {
@@ -286,6 +306,7 @@ const rootRouteChildren: RootRouteChildren = {
   LogementsRoute: LogementsRoute,
   MonEspaceRoute: MonEspaceRoute,
   ReservationRoute: ReservationRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TemoignagesRoute: TemoignagesRoute,
 }
