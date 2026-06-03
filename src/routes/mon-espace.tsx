@@ -137,7 +137,7 @@ function AccountPage() {
             <ReservationsSection userId={userId} />
           </TabsContent>
           <TabsContent value="messages" className="mt-6">
-            <MessagesSection userId={userId} />
+            <MessagesSection userId={userId} email={session.user.email ?? ""} />
           </TabsContent>
           <TabsContent value="reviews" className="mt-6">
             <ReviewsSection userId={userId} />
