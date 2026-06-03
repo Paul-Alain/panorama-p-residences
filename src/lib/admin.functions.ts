@@ -65,7 +65,7 @@ export const adminDeleteLogement = createServerFn({ method: "POST" })
     z.object({ id: z.string().uuid() }).parse(input),
   )
   .handler(async ({ context, data }) => {
-    await assertAdmin(context);
+    await assertAdmin(context.supabase, context.userId);
     const { error } = await context.supabase
       .from("logements")
       .delete()
