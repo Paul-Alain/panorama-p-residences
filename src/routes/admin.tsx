@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { LogementEditor } from "@/components/admin/logement-editor";
 import { supabase } from "@/integrations/supabase/client";
+import { AdminNotifications } from "@/components/notifications/admin-notifications";
 import {
   claimAdmin,
   getAdminStatus,
