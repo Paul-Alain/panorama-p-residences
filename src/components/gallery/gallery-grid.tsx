@@ -7,14 +7,17 @@ import { useLanguage } from "@/lib/i18n/language-context";
 
 const labels: Record<string, Record<string, string>> = {
   facade: { fr: "Façade de la résidence", de: "Fassade der Residenz", en: "Residence facade" },
-  cote: { fr: "Vue latérale", de: "Seitenansicht", en: "Side view" },
+  cote: { fr: "Vue extérieure", de: "Außenansicht", en: "Exterior view" },
   vue: { fr: "Allée & vue panoramique", de: "Weg & Panoramablick", en: "Walkway & panoramic view" },
-  entree: { fr: "Entrée & terrasse", de: "Eingang & Terrasse", en: "Entrance & terrace" },
-  allee: { fr: "Allée pavée", de: "Gepflasterter Weg", en: "Paved driveway" },
   jardin: { fr: "Jardin paysager", de: "Angelegter Garten", en: "Landscaped garden" },
-  couloir: { fr: "Couloir intérieur", de: "Innenflur", en: "Interior hallway" },
-  balcon: { fr: "Couloir & balcon", de: "Flur & Balkon", en: "Hallway & balcony" },
-  chambre: { fr: "Accès chambre", de: "Zimmerzugang", en: "Room access" },
+  salon: { fr: "Salon & coin repas", de: "Wohn- & Essbereich", en: "Living & dining area" },
+  salonLed: { fr: "Séjour & cuisine équipée", de: "Wohnraum & Einbauküche", en: "Living room & fitted kitchen" },
+  salonCuisine: { fr: "Espace de vie ouvert", de: "Offener Wohnbereich", en: "Open living space" },
+  couloir: { fr: "Espace TV & couloir", de: "TV-Bereich & Flur", en: "TV area & hallway" },
+  chambre: { fr: "Chambre confort", de: "Komfortzimmer", en: "Comfort bedroom" },
+  chambreBleue: { fr: "Chambre élégante", de: "Elegantes Zimmer", en: "Elegant bedroom" },
+  salleDeBain: { fr: "Salle d'eau moderne", de: "Modernes Bad", en: "Modern bathroom" },
+  douche: { fr: "Douche & sanitaires", de: "Dusche & Sanitär", en: "Shower & bathroom" },
 };
 
 export function GalleryGrid() {
