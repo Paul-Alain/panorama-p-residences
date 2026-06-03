@@ -127,10 +127,16 @@ export const adminUpdateMessage = createServerFn({ method: "POST" })
     const updates: { status?: string; message?: string } = {};
     if (data.status) updates.status = data.status;
 
+    // Captured for the optional reply notification email.
+    let replyRecipient: string | null = null;
+    let replyRecipientName = "";
+    let replyOriginal = "";
+    let replyText = "";
+
     if (data.reply !== undefined) {
       const { data: row, error: fetchErr } = await context.supabase
         .from("messages")
-        .select("message")
+        .select("message, email, name")
         .eq("id", data.id)
         .single();
       if (fetchErr) throw new Error(fetchErr.message);
@@ -141,6 +147,11 @@ export const adminUpdateMessage = createServerFn({ method: "POST" })
       meta.repliedAt = new Date().toISOString();
       updates.message = encodeMessage(content, meta);
       if (!data.status) updates.status = "répondu";
+
+      replyRecipient = (row.email as string | null) ?? null;
+      replyRecipientName = (row.name as string | null) ?? "";
+      replyOriginal = content;
+      replyText = data.reply.trim();
     }
 
     if (Object.keys(updates).length === 0) return { ok: true };
@@ -150,6 +161,26 @@ export const adminUpdateMessage = createServerFn({ method: "POST" })
       .update(updates)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+
+    // Send the branded admin-reply email (best-effort, never blocks the save).
+    if (replyRecipient && replyText) {
+      try {
+        const { enqueueAppEmail } = await import("@/lib/email/enqueue.server");
+        await enqueueAppEmail({
+          templateName: "admin-reply",
+          recipientEmail: replyRecipient,
+          idempotencyKey: `admin-reply-${data.id}-${Date.now()}`,
+          templateData: {
+            name: replyRecipientName || "cher client",
+            reply: replyText,
+            originalMessage: replyOriginal.slice(0, 600),
+          },
+        });
+      } catch (e) {
+        console.error("Failed to send admin-reply email", e);
+      }
+    }
+
     return { ok: true };
   });
 
