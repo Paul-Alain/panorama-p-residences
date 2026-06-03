@@ -268,7 +268,27 @@ function AuthPage() {
             </TabsContent>
 
           </Tabs>
+
+          <div className="my-5 flex items-center gap-3">
+            <span className="h-px flex-1 bg-border" />
+            <span className="text-xs uppercase tracking-wide text-muted-foreground">
+              {t.auth.or}
+            </span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={loading}
+            onClick={signInWithGoogle}
+          >
+            <GoogleIcon className="h-4 w-4" />
+            {t.auth.continueWithGoogle}
+          </Button>
         </div>
+
 
         <div className="mt-6 text-center">
           <Link to="/" className="text-sm text-muted-foreground hover:text-gold">
