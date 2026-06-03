@@ -22,6 +22,8 @@ import intChambreBleue from "@/assets/int-chambre-bleue.jpg.asset.json";
 import intDoucheBeige from "@/assets/int-douche-beige.jpg.asset.json";
 import intSalonCouloir from "@/assets/int-salon-couloir.jpg.asset.json";
 import intDoucheBleue from "@/assets/int-douche-bleue.jpg.asset.json";
+import studioConfort from "@/assets/studio-confort.jpg.asset.json";
+import appartementConfort from "@/assets/appartement-confort.jpg.asset.json";
 
 const assetMap: Record<string, string> = {
   // Exterior
@@ -44,6 +46,9 @@ const assetMap: Record<string, string> = {
   "int-douche-beige": intDoucheBeige.url,
   "int-salon-couloir": intSalonCouloir.url,
   "int-douche-bleue": intDoucheBleue.url,
+  // New cover photos
+  "studio-confort": studioConfort.url,
+  "appartement-confort": appartementConfort.url,
 };
 
 const fallback = residenceFacade.url;
