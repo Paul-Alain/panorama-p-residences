@@ -216,20 +216,17 @@ export function OccupancyCalendar() {
                       <SelectValue placeholder={o.assignPlaceholder} />
                     </SelectTrigger>
                     <SelectContent>
-                      {units
-                        .filter((unit) => !r.logement_type || unit.type === r.logement_type)
+                      {[...units]
+                        .sort((a, b) => {
+                          const am = r.logement_type && a.type === r.logement_type ? 0 : 1;
+                          const bm = r.logement_type && b.type === r.logement_type ? 0 : 1;
+                          return am - bm;
+                        })
                         .map((unit) => (
                           <SelectItem key={unit.id} value={unit.id}>
                             {unit.label}
                           </SelectItem>
                         ))}
-                      {units.map((unit) =>
-                        r.logement_type && unit.type === r.logement_type ? null : (
-                          <SelectItem key={`all-${unit.id}`} value={unit.id}>
-                            {unit.label}
-                          </SelectItem>
-                        ),
-                      )}
                     </SelectContent>
                   </Select>
                   {assigningId === r.id && <Loader2 className="h-4 w-4 animate-spin text-gold" />}
