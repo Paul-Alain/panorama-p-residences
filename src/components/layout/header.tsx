@@ -50,6 +50,20 @@ export function Header() {
 
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
+          {isAdmin && (
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className="hidden sm:inline-flex text-gold"
+              aria-label={t.nav.admin}
+              title={t.nav.admin}
+            >
+              <Link to="/admin">
+                <ShieldCheck className="h-5 w-5" />
+              </Link>
+            </Button>
+          )}
           <Button
             asChild
             variant="ghost"
