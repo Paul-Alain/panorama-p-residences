@@ -56,6 +56,8 @@ export function ReservationsAdmin() {
   const { data = [], isLoading } = useQuery({
     queryKey: ["admin-reservations"],
     queryFn: async () => (await runList()) as Reservation[],
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   });
 
   const [search, setSearch] = useState("");
@@ -63,6 +65,7 @@ export function ReservationsAdmin() {
   const [arrivalFrom, setArrivalFrom] = useState("");
   const [departureTo, setDepartureTo] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   const fmtStatus = (s: string) =>
     (d.reservationStatus as Record<string, string>)[s] ?? s;
