@@ -24,6 +24,8 @@ import intSalonCouloir from "@/assets/int-salon-couloir.jpg.asset.json";
 import intDoucheBleue from "@/assets/int-douche-bleue.jpg.asset.json";
 import studioConfort from "@/assets/studio-confort.jpg.asset.json";
 import appartementConfort from "@/assets/appartement-confort.jpg.asset.json";
+import studioVueSalon from "@/assets/studio-vue-salon.jpg.asset.json";
+import appartementVueSalon from "@/assets/appartement-vue-salon.jpg.asset.json";
 
 const assetMap: Record<string, string> = {
   // Exterior
@@ -49,6 +51,8 @@ const assetMap: Record<string, string> = {
   // New cover photos
   "studio-confort": studioConfort.url,
   "appartement-confort": appartementConfort.url,
+  "studio-vue-salon": studioVueSalon.url,
+  "appartement-vue-salon": appartementVueSalon.url,
 };
 
 const fallback = residenceFacade.url;
