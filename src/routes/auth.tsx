@@ -268,12 +268,14 @@ function Field({
   value,
   onChange,
   placeholder,
+  autoComplete,
 }: {
   label: string;
   type: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  autoComplete?: string;
 }) {
   return (
     <div className="space-y-1.5">
@@ -283,6 +285,7 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        autoComplete={autoComplete}
         required
         minLength={type === "password" ? 6 : undefined}
       />
