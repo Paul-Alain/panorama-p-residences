@@ -144,6 +144,7 @@ const fr = {
         reviews: "Avis",
         users: "Clients",
         logements: "Logements",
+        manager: "Gérants",
       },
       cards: {
         totalReservations: "Réservations totales",
@@ -488,6 +489,7 @@ const de: Dict = {
         reviews: "Bewertungen",
         users: "Kunden",
         logements: "Unterkünfte",
+        manager: "Manager",
       },
       cards: {
         totalReservations: "Buchungen gesamt",
@@ -827,6 +829,7 @@ const en: Dict = {
         reviews: "Reviews",
         users: "Guests",
         logements: "Stays",
+        manager: "Managers",
       },
       cards: {
         totalReservations: "Total bookings",
