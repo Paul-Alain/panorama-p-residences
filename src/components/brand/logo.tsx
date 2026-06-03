@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import logoMark from "@/assets/logo-panorama-p.png.asset.json";
 
 export function Logo({
   className = "",
@@ -12,20 +13,12 @@ export function Logo({
 
   return (
     <Link to="/" className={`group flex items-center gap-2.5 ${className}`}>
-      <span className="relative flex h-10 w-10 items-center justify-center rounded-full bg-gradient-gold shadow-gold transition-transform duration-300 group-hover:scale-105">
-        <svg
-          viewBox="0 0 32 32"
-          className="h-6 w-6"
-          fill="none"
-          aria-hidden="true"
-        >
-          <path
-            d="M3 22 L11 12 L16 18 L21 9 L29 22 Z"
-            fill="oklch(0.25 0.015 60)"
-            opacity="0.9"
-          />
-          <circle cx="24" cy="8" r="2.4" fill="oklch(0.99 0.01 85)" />
-        </svg>
+      <span className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-background shadow-gold transition-transform duration-300 group-hover:scale-105">
+        <img
+          src={logoMark.url}
+          alt="Logo Panorama P Residence"
+          className="h-9 w-9 object-contain"
+        />
       </span>
       <span className="flex flex-col leading-none">
         <span className={`font-display text-xl font-semibold tracking-tight ${text}`}>
