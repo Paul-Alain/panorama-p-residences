@@ -286,10 +286,18 @@ function ReservationsAdmin() {
 
 interface Message {
   id: string; name: string; phone: string | null; email: string | null;
-  message: string; created_at: string;
+  message: string; status: string; user_id: string | null; created_at: string;
 }
 
+const ADMIN_STATUSES = ["nouveau", "lu", "répondu"] as const;
+const STATUS_LABEL: Record<string, string> = {
+  nouveau: "Nouveau",
+  lu: "Lu",
+  répondu: "Répondu",
+};
+
 function MessagesAdmin() {
+  const qc = useQueryClient();
   const runListMessages = useServerFn(adminListMessages);
   const { data = [], isLoading } = useQuery({
     queryKey: ["admin-messages"],
@@ -302,14 +310,129 @@ function MessagesAdmin() {
   return (
     <div className="space-y-3">
       {data.map((m) => (
-        <div key={m.id} className="rounded-xl border border-border/60 bg-card p-4">
-          <p className="font-medium">{m.name}</p>
-          <p className="text-sm text-muted-foreground">
-            {[m.phone, m.email].filter(Boolean).join(" · ") || "—"}
-          </p>
-          <p className="mt-2 text-sm">{m.message}</p>
-        </div>
+        <MessageAdminCard
+          key={m.id}
+          message={m}
+          onSaved={() => qc.invalidateQueries({ queryKey: ["admin-messages"] })}
+        />
       ))}
+    </div>
+  );
+}
+
+function MessageAdminCard({
+  message,
+  onSaved,
+}: {
+  message: Message;
+  onSaved: () => void;
+}) {
+  const runUpdate = useServerFn(adminUpdateMessage);
+  const meta = parseMessageMeta(message.message);
+  const body = stripMessageMeta(message.message);
+  const [status, setStatus] = useState(message.status);
+  const [reply, setReply] = useState(meta?.reply ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const fmtDate = (d: string) => {
+    const date = new Date(d);
+    return Number.isNaN(date.getTime()) ? d : date.toLocaleDateString();
+  };
+
+  const save = async (opts: { withReply: boolean }) => {
+    setSaving(true);
+    try {
+      await runUpdate({
+        data: {
+          id: message.id,
+          status,
+          ...(opts.withReply ? { reply: reply.trim() } : {}),
+        },
+      });
+      toast.success("Message mis à jour.");
+      onSaved();
+    } catch {
+      toast.error("Mise à jour refusée.");
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className="rounded-xl border border-border/60 bg-card p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="font-medium">{message.name}</p>
+        <Badge variant={message.status === "répondu" ? "default" : "secondary"}>
+          {STATUS_LABEL[message.status] ?? message.status}
+        </Badge>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        {[message.phone, message.email].filter(Boolean).join(" · ") || "—"}
+        {" · "}
+        {fmtDate(message.created_at)}
+      </p>
+      {meta?.subject && <p className="mt-2 font-medium">{meta.subject}</p>}
+      <p className="mt-1 whitespace-pre-line text-sm">{body}</p>
+
+      {meta?.reply && (
+        <div className="mt-3 rounded-lg border border-gold/30 bg-gold/5 p-3 text-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gold">
+            Réponse envoyée
+          </p>
+          <p className="mt-1 whitespace-pre-line">{meta.reply}</p>
+        </div>
+      )}
+
+      <div className="mt-4 grid gap-3 border-t border-border/60 pt-4 sm:grid-cols-[180px_1fr] sm:items-start">
+        <div className="space-y-1.5">
+          <Label className="text-xs">Statut</Label>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ADMIN_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {STATUS_LABEL[s]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            disabled={saving}
+            onClick={() => save({ withReply: false })}
+          >
+            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+            Enregistrer le statut
+          </Button>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs">Réponse</Label>
+          <Textarea
+            rows={3}
+            value={reply}
+            maxLength={5000}
+            onChange={(e) => setReply(e.target.value)}
+            placeholder="Votre réponse au client…"
+          />
+          <Button
+            variant="gold"
+            size="sm"
+            disabled={saving || !reply.trim()}
+            onClick={() => save({ withReply: true })}
+          >
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+            Envoyer la réponse
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
