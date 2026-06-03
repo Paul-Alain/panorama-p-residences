@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AlertCircle, CalendarCheck, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,8 +31,15 @@ function Req() {
   return <span className="text-destructive"> *</span>;
 }
 
+/** Start of today in local time for date comparisons. */
+function startOfToday() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 export function ReservationForm({ defaultType = "" }: { defaultType?: string }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -90,8 +97,19 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
   const typeLabel = (type: string) =>
     t.reservation.typeOptions[type as LogementType] ?? type;
 
-  /** WhatsApp pre-filled message in the user's current language */
-  const waMessage = (() => {
+  /* Date validation */
+  const today = startOfToday();
+  const arrivalDate = form.arrival ? new Date(form.arrival) : null;
+  const departureDate = form.departure ? new Date(form.departure) : null;
+
+  const arrivalInPast = arrivalDate !== null && arrivalDate < today;
+  const departureBeforeArrival =
+    departureDate !== null && arrivalDate !== null && departureDate <= arrivalDate;
+
+  const dateInvalid = arrivalInPast || departureBeforeArrival;
+
+  /* WhatsApp pre-filled message in the user's current language */
+  const waMessage = useMemo(() => {
     const arrival = form.arrival
       ? new Date(form.arrival).toLocaleDateString(lang, {
           day: "numeric",
@@ -152,7 +170,7 @@ Stay details:
 Please confirm availability and price.
 
 Best regards,`;
-  })();
+  }, [form.arrival, form.departure, form.type, form.guests, lang]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,8 +183,13 @@ Best regards,`;
       !form.type
     )
       return;
-    if (new Date(form.departure) <= new Date(form.arrival)) {
-      toast.error(t.reservation.dateError);
+
+    if (arrivalInPast) {
+      toast.error(t.reservation.arrivalInPast);
+      return;
+    }
+    if (departureBeforeArrival) {
+      toast.error(t.reservation.departureBeforeArrival);
       return;
     }
     if (guestsExceeded) {
@@ -175,6 +198,7 @@ Best regards,`;
       );
       return;
     }
+
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     const { error } = await supabase.from("reservations").insert({
@@ -218,8 +242,6 @@ Best regards,`;
       message: "",
     });
   };
-
-  const waMessage = `Bonjour Panorama P,%0A${t.reservation.title}:%0A- ${form.name}%0A- ${form.arrival} → ${form.departure}%0A- ${form.guests} pers.%0A- ${form.type ? typeLabel(form.type) : ""}`;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
@@ -270,7 +292,15 @@ Best regards,`;
             value={form.arrival}
             onChange={(e) => set("arrival", e.target.value)}
             required
+            aria-invalid={arrivalInPast}
+            className={arrivalInPast ? "border-destructive ring-destructive" : ""}
           />
+          {arrivalInPast && (
+            <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+              {t.reservation.arrivalInPast}
+            </p>
+          )}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="r-departure">{t.reservation.departure}<Req /></Label>
@@ -280,7 +310,15 @@ Best regards,`;
             value={form.departure}
             onChange={(e) => set("departure", e.target.value)}
             required
+            aria-invalid={departureBeforeArrival}
+            className={departureBeforeArrival ? "border-destructive ring-destructive" : ""}
           />
+          {departureBeforeArrival && (
+            <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+              {t.reservation.departureBeforeArrival}
+            </p>
+          )}
         </div>
       </div>
 
@@ -353,14 +391,14 @@ Best regards,`;
           type="submit"
           variant="gold"
           size="lg"
-          disabled={loading || guestsExceeded}
+          disabled={loading || guestsExceeded || dateInvalid}
           className="flex-1"
         >
           <CalendarCheck className="h-5 w-5" />
           {loading ? t.reservation.submitting : t.reservation.submit}
         </Button>
         <Button asChild variant="outline" size="lg" className="flex-1">
-          <a href={whatsappLink(decodeURIComponent(waMessage))} target="_blank" rel="noreferrer">
+          <a href={whatsappLink(waMessage)} target="_blank" rel="noreferrer">
             <MessageCircle className="h-5 w-5" />
             {t.reservation.whatsappCta}
           </a>
