@@ -55,7 +55,7 @@ function AuthPage() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/mon-espace` },
+      options: { emailRedirectTo: `${window.location.origin}/auth` },
     });
     setLoading(false);
     if (error) {
@@ -77,7 +77,7 @@ function AuthPage() {
     e.preventDefault();
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${window.location.origin}/auth/reset`,
     });
     setLoading(false);
     if (error) {
