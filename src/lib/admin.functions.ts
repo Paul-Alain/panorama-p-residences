@@ -100,3 +100,48 @@ export const adminListMessages = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return data ?? [];
   });
+
+// Admin-only: update a message status and/or store a reply. The reply is kept
+// in the existing `message` column via an encoded meta block (no schema change).
+export const adminUpdateMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        status: z.enum(["nouveau", "lu", "répondu"]).optional(),
+        reply: z.string().max(5000).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+
+    const updates: Record<string, unknown> = {};
+    if (data.status) updates.status = data.status;
+
+    if (data.reply !== undefined) {
+      const { data: row, error: fetchErr } = await context.supabase
+        .from("messages")
+        .select("message")
+        .eq("id", data.id)
+        .single();
+      if (fetchErr) throw new Error(fetchErr.message);
+
+      const content = stripMessageMeta(row.message);
+      const meta = parseMessageMeta(row.message) ?? {};
+      meta.reply = data.reply.trim();
+      meta.repliedAt = new Date().toISOString();
+      updates.message = encodeMessage(content, meta);
+      if (!data.status) updates.status = "répondu";
+    }
+
+    if (Object.keys(updates).length === 0) return { ok: true };
+
+    const { error } = await context.supabase
+      .from("messages")
+      .update(updates)
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
