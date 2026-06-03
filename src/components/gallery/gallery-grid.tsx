@@ -6,14 +6,15 @@ import { resolveImage, galleryImages } from "@/lib/assets";
 import { useLanguage } from "@/lib/i18n/language-context";
 
 const labels: Record<string, Record<string, string>> = {
-  salon: { fr: "Salon", de: "Wohnzimmer", en: "Lounge" },
-  chambre: { fr: "Chambre", de: "Zimmer", en: "Bedroom" },
-  cuisine: { fr: "Cuisine", de: "Küche", en: "Kitchen" },
-  douche: { fr: "Salle de douche", de: "Dusche", en: "Bathroom" },
-  vue: { fr: "Vue panoramique", de: "Panoramablick", en: "Panoramic view" },
-  exterieur: { fr: "Extérieur", de: "Außenbereich", en: "Exterior" },
-  studio: { fr: "Studio", de: "Studio", en: "Studio" },
-  appartement: { fr: "Appartement", de: "Apartment", en: "Apartment" },
+  facade: { fr: "Façade de la résidence", de: "Fassade der Residenz", en: "Residence facade" },
+  cote: { fr: "Vue latérale", de: "Seitenansicht", en: "Side view" },
+  vue: { fr: "Allée & vue panoramique", de: "Weg & Panoramablick", en: "Walkway & panoramic view" },
+  entree: { fr: "Entrée & terrasse", de: "Eingang & Terrasse", en: "Entrance & terrace" },
+  allee: { fr: "Allée pavée", de: "Gepflasterter Weg", en: "Paved driveway" },
+  jardin: { fr: "Jardin paysager", de: "Angelegter Garten", en: "Landscaped garden" },
+  couloir: { fr: "Couloir intérieur", de: "Innenflur", en: "Interior hallway" },
+  balcon: { fr: "Couloir & balcon", de: "Flur & Balkon", en: "Hallway & balcony" },
+  chambre: { fr: "Accès chambre", de: "Zimmerzugang", en: "Room access" },
 };
 
 export function GalleryGrid() {
