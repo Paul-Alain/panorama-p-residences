@@ -99,6 +99,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "Panorama P" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Panorama P – Résidence meublée à Bafoussam" },
+      { name: "description", content: "Panorama P est une plateforme de réservation en ligne dédiée à une résidence meublée de standing située à Bafoussam, au Cameroun." },
+      { property: "og:description", content: "Panorama P est une plateforme de réservation en ligne dédiée à une résidence meublée de standing située à Bafoussam, au Cameroun." },
+      { name: "twitter:description", content: "Panorama P est une plateforme de réservation en ligne dédiée à une résidence meublée de standing située à Bafoussam, au Cameroun." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a59dcb21-fb59-4c8d-83f2-230066fc7482/id-preview-070c6499--7b778ff9-74cc-484d-b552-abc2d2333774.lovable.app-1780495819932.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a59dcb21-fb59-4c8d-83f2-230066fc7482/id-preview-070c6499--7b778ff9-74cc-484d-b552-abc2d2333774.lovable.app-1780495819932.png" },
     ],
     links: [
       {
