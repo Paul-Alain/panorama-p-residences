@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Search, Phone, Mail, Plane, Calendar } from "lucide-react";
+import { Loader2, Search, Phone, Mail, Plane, Calendar, FileDown, FileSpreadsheet, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -17,6 +18,9 @@ import {
   adminListReservations,
   adminUpdateReservationStatus,
 } from "@/lib/admin.functions";
+import { exportReservationsPdf, exportReservationsExcel } from "@/lib/admin-export";
+
+const PAGE_SIZE = 20;
 
 interface Reservation {
   id: string;
