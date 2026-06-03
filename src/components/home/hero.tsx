@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/lib/i18n/language-context";
-import { heroResidence } from "@/lib/assets";
+import residenceFacade from "@/assets/residence-facade.jpg.asset.json";
 
 export function Hero() {
   const { t } = useLanguage();
