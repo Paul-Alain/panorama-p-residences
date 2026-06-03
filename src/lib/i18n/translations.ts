@@ -145,6 +145,8 @@ const fr = {
         users: "Clients",
         logements: "Logements",
         manager: "Gérants",
+        units: "Unités",
+        calendar: "Calendrier",
       },
       cards: {
         totalReservations: "Réservations totales",
@@ -490,6 +492,8 @@ const de: Dict = {
         users: "Kunden",
         logements: "Unterkünfte",
         manager: "Manager",
+        units: "Einheiten",
+        calendar: "Kalender",
       },
       cards: {
         totalReservations: "Buchungen gesamt",
@@ -830,6 +834,8 @@ const en: Dict = {
         users: "Guests",
         logements: "Stays",
         manager: "Managers",
+        units: "Units",
+        calendar: "Calendar",
       },
       cards: {
         totalReservations: "Total bookings",
