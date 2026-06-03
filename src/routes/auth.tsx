@@ -130,6 +130,23 @@ function AuthPage() {
     );
   };
 
+  const signInWithGoogle = async () => {
+    setLoading(true);
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
+    if (result.redirected) return;
+    if (result.error) {
+      setLoading(false);
+      toast.error(result.error.message);
+      return;
+    }
+    setLoading(false);
+    navigate({ to: "/mon-espace" });
+  };
+
+
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-secondary/40 px-4">
       <div className="w-full max-w-md">
