@@ -13,6 +13,7 @@ import {
   Star,
   Users,
   BedDouble,
+  Activity,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { Logo } from "@/components/brand/logo";
