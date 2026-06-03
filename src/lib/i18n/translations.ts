@@ -460,6 +460,30 @@ const de: Dict = {
     nameError: "Bitte geben Sie Ihren vollständigen Namen ein.",
     phoneError: "Bitte geben Sie eine gültige Telefonnummer im internationalen Format ein (z. B. +49 151 23456789).",
   },
+  notifications: {
+    title: "Benachrichtigungen",
+    empty: "Noch keine Benachrichtigungen.",
+    markAllRead: "Alle als gelesen markieren",
+    unreadLabel: "ungelesen",
+    client: {
+      reservationTitle: "Reservierung erfasst",
+      reservationBody: "Ihre Reservierung wurde erfasst. Wir melden uns in Kürze.",
+      replyTitle: "Antwort vom Support",
+      replyBody: "Panorama P hat auf Ihre Nachricht geantwortet.",
+      reviewTitle: "Bewertung gesendet",
+      reviewBody: "Danke! Ihre Bewertung wurde gesendet und wird nach Prüfung veröffentlicht.",
+      reviewApprovedTitle: "Bewertung veröffentlicht",
+      reviewApprovedBody: "Ihre Bewertung wurde freigegeben und ist jetzt auf der Website sichtbar.",
+    },
+    admin: {
+      reservationTitle: "Neue Reservierung",
+      reservationBody: "{name} hat eine neue Reservierung vorgenommen.",
+      messageTitle: "Neue Nachricht",
+      messageBody: "{name} hat eine Nachricht an den Support gesendet.",
+      reviewTitle: "Neue Bewertung",
+      reviewBody: "{name} hat eine Bewertung abgegeben ({rating}/5).",
+    },
+  },
 };
 
 const en: Dict = {
