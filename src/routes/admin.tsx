@@ -13,6 +13,7 @@ import {
   Star,
   Users,
   BedDouble,
+  Activity,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { Logo } from "@/components/brand/logo";
@@ -26,6 +27,7 @@ import { MessagesAdmin } from "@/components/admin/messages-admin";
 import { ReviewsAdmin } from "@/components/admin/reviews-admin";
 import { UsersAdmin } from "@/components/admin/users-admin";
 import { LogementsAdmin } from "@/components/admin/logements-admin";
+import { ManagerActivity } from "@/components/admin/manager-activity";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { claimAdmin, getAdminStatus } from "@/lib/admin.functions";
 
@@ -178,6 +180,10 @@ function AdminDashboard() {
             <BedDouble className="h-4 w-4" />
             <span className="hidden sm:inline">{tabs.logements}</span>
           </TabsTrigger>
+          <TabsTrigger value="manager" className="gap-1.5">
+            <Activity className="h-4 w-4" />
+            <span className="hidden sm:inline">{tabs.manager}</span>
+          </TabsTrigger>
         </TabsList>
       </div>
       <TabsContent value="overview" className="mt-6"><DashboardOverview /></TabsContent>
@@ -186,6 +192,7 @@ function AdminDashboard() {
       <TabsContent value="reviews" className="mt-6"><ReviewsAdmin /></TabsContent>
       <TabsContent value="users" className="mt-6"><UsersAdmin /></TabsContent>
       <TabsContent value="logements" className="mt-6"><LogementsAdmin /></TabsContent>
+      <TabsContent value="manager" className="mt-6"><ManagerActivity /></TabsContent>
     </Tabs>
   );
 }

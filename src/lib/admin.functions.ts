@@ -313,3 +313,128 @@ export const adminListUsers = createServerFn({ method: "GET" })
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
   });
+
+// Admin-only: collaborative "Manager Activity" view for the residence team.
+// No schema change: the admin roster comes from user_roles + auth metadata,
+// and the activity feed is DERIVED from existing data (reservation statuses,
+// replied messages, moderated reviews). Read-only; core workflows untouched.
+export const adminGetManagerActivity = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // 1. Admin roster -----------------------------------------------------
+    const { data: roleRows, error: rErr } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "admin");
+    if (rErr) throw new Error(rErr.message);
+    const adminIds = Array.from(new Set((roleRows ?? []).map((r) => r.user_id)));
+
+    const authMap = new Map<string, { email: string | null; lastSignIn: string | null }>();
+    for (let page = 1; ; page++) {
+      const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({
+        page,
+        perPage: 1000,
+      });
+      if (error) throw new Error(error.message);
+      for (const u of list.users) {
+        authMap.set(u.id, {
+          email: u.email ?? null,
+          lastSignIn: u.last_sign_in_at ?? null,
+        });
+      }
+      if (list.users.length < 1000) break;
+    }
+
+    const nameMap = new Map<string, string | null>();
+    if (adminIds.length > 0) {
+      const { data: profs } = await supabaseAdmin
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", adminIds);
+      for (const p of profs ?? []) nameMap.set(p.id, p.full_name as string | null);
+    }
+
+    const admins = adminIds.map((id) => {
+      const auth = authMap.get(id);
+      return {
+        id,
+        full_name: nameMap.get(id) ?? null,
+        email: auth?.email ?? null,
+        last_sign_in_at: auth?.lastSignIn ?? null,
+      };
+    });
+
+    // 2. Derived activity feed -------------------------------------------
+    type FeedItem = {
+      id: string;
+      kind:
+        | "reservation_confirmée"
+        | "reservation_terminée"
+        | "reservation_annulée"
+        | "message_reply"
+        | "review_approved"
+        | "review_hidden";
+      name: string;
+      at: string;
+    };
+    const feed: FeedItem[] = [];
+
+    const [resRows, msgRows, revRows] = await Promise.all([
+      supabaseAdmin
+        .from("reservations")
+        .select("id, name, status, created_at")
+        .neq("status", "nouvelle")
+        .order("created_at", { ascending: false })
+        .limit(50),
+      supabaseAdmin
+        .from("messages")
+        .select("id, name, message")
+        .order("created_at", { ascending: false })
+        .limit(80),
+      supabaseAdmin
+        .from("testimonials")
+        .select("id, name, sort_order, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50),
+    ]);
+
+    for (const r of resRows.data ?? []) {
+      const k =
+        r.status === "confirmée"
+          ? "reservation_confirmée"
+          : r.status === "terminée"
+            ? "reservation_terminée"
+            : r.status === "annulée"
+              ? "reservation_annulée"
+              : null;
+      if (k) feed.push({ id: `res-${r.id}`, kind: k, name: r.name, at: r.created_at });
+    }
+
+    for (const m of msgRows.data ?? []) {
+      const meta = parseMessageMeta(m.message);
+      if (meta?.repliedAt) {
+        feed.push({
+          id: `msg-${m.id}`,
+          kind: "message_reply",
+          name: m.name,
+          at: meta.repliedAt,
+        });
+      }
+    }
+
+    for (const v of revRows.data ?? []) {
+      feed.push({
+        id: `rev-${v.id}`,
+        kind: (v.sort_order as number) < 0 ? "review_hidden" : "review_approved",
+        name: v.name,
+        at: v.created_at as string,
+      });
+    }
+
+    feed.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+
+    return { admins, feed: feed.slice(0, 40) };
+  });
