@@ -875,6 +875,8 @@ const de: Dict = {
     phonePlaceholder: "+49 151 23456789",
     nameError: "Bitte geben Sie Ihren vollständigen Namen ein.",
     phoneError: "Bitte geben Sie eine gültige Telefonnummer im internationalen Format ein (z. B. +49 151 23456789).",
+    or: "oder",
+    continueWithGoogle: "Mit Google fortfahren",
   },
   notifications: {
     title: "Benachrichtigungen",
