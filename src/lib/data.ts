@@ -62,4 +62,4 @@ export const testimonialsQuery = queryOptions({
 });
 
 export const formatPrice = (price: number, currency: string) =>
-  `${new Intl.NumberFormat("fr-FR").format(price)} ${currency}`;
+  `${price} ${currency}`;
