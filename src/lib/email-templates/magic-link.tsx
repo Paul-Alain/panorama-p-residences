@@ -1,68 +1,67 @@
 import * as React from 'react'
-
+import { Button, Hr, Section, Text } from '@react-email/components'
 import {
-  Body,
-  Button,
-  Container,
-  Head,
-  Heading,
-  Html,
-  Preview,
-  Text,
-} from '@react-email/components'
+  EmailShell,
+  button,
+  ctaWrap,
+  enLabel,
+  h1,
+  langRule,
+  lead,
+  linkFallback,
+  paragraph,
+  securityNote,
+  securityText,
+} from './brand'
 
 interface MagicLinkEmailProps {
-  siteName: string
-  confirmationUrl: string
+  siteName?: string
+  confirmationUrl?: string
 }
 
 export const MagicLinkEmail = ({
-  siteName,
-  confirmationUrl,
+  confirmationUrl = '#',
 }: MagicLinkEmailProps) => (
-  <Html lang="en" dir="ltr">
-    <Head />
-    <Preview>Your login link for {siteName}</Preview>
-    <Body style={main}>
-      <Container style={container}>
-        <Heading style={h1}>Your login link</Heading>
-        <Text style={text}>
-          Click the button below to log in to {siteName}. This link will expire
-          shortly.
-        </Text>
-        <Button style={button} href={confirmationUrl}>
-          Log In
-        </Button>
-        <Text style={footer}>
-          If you didn't request this link, you can safely ignore this email.
-        </Text>
-      </Container>
-    </Body>
-  </Html>
+  <EmailShell preview="Votre lien de connexion · Your login link — Panorama P Residence">
+    {/* Français */}
+    <Text style={h1}>Votre lien de connexion</Text>
+    <Text style={lead}>
+      Connectez-vous à votre espace Panorama P Residence en un clic grâce au lien
+      sécurisé ci-dessous.
+    </Text>
+    <Section style={ctaWrap}>
+      <Button style={button} href={confirmationUrl}>
+        Se connecter
+      </Button>
+    </Section>
+    <Section style={securityNote}>
+      <Text style={securityText}>
+        Sécurité : ce lien est personnel et expire rapidement. Ne le partagez
+        avec personne.
+      </Text>
+    </Section>
+
+    <Hr style={langRule} />
+
+    {/* English */}
+    <Text style={enLabel}>English</Text>
+    <Text style={h1}>Your login link</Text>
+    <Text style={paragraph}>
+      Sign in to your Panorama P Residence account in one click with the secure
+      link below.
+    </Text>
+    <Section style={ctaWrap}>
+      <Button style={button} href={confirmationUrl}>
+        Log in
+      </Button>
+    </Section>
+    <Text style={linkFallback}>
+      Si le bouton ne fonctionne pas, copiez ce lien / If the button does not
+      work, copy this link:
+      <br />
+      {confirmationUrl}
+    </Text>
+  </EmailShell>
 )
 
 export default MagicLinkEmail
-
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
-const container = { padding: '20px 25px' }
-const h1 = {
-  fontSize: '22px',
-  fontWeight: 'bold' as const,
-  color: '#000000',
-  margin: '0 0 20px',
-}
-const text = {
-  fontSize: '14px',
-  color: '#55575d',
-  lineHeight: '1.5',
-  margin: '0 0 25px',
-}
-const button = {
-  backgroundColor: '#000000',
-  color: '#ffffff',
-  fontSize: '14px',
-  borderRadius: '8px',
-  padding: '12px 20px',
-  textDecoration: 'none',
-}
-const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }

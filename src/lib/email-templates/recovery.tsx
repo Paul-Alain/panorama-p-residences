@@ -1,69 +1,66 @@
 import * as React from 'react'
-
+import { Button, Hr, Section, Text } from '@react-email/components'
 import {
-  Body,
-  Button,
-  Container,
-  Head,
-  Heading,
-  Html,
-  Preview,
-  Text,
-} from '@react-email/components'
+  EmailShell,
+  button,
+  ctaWrap,
+  enLabel,
+  h1,
+  langRule,
+  lead,
+  linkFallback,
+  paragraph,
+  securityNote,
+  securityText,
+} from './brand'
 
 interface RecoveryEmailProps {
-  siteName: string
-  confirmationUrl: string
+  siteName?: string
+  confirmationUrl?: string
 }
 
-export const RecoveryEmail = ({
-  siteName,
-  confirmationUrl,
-}: RecoveryEmailProps) => (
-  <Html lang="en" dir="ltr">
-    <Head />
-    <Preview>Reset your password for {siteName}</Preview>
-    <Body style={main}>
-      <Container style={container}>
-        <Heading style={h1}>Reset your password</Heading>
-        <Text style={text}>
-          We received a request to reset your password for {siteName}. Click
-          the button below to choose a new password.
-        </Text>
-        <Button style={button} href={confirmationUrl}>
-          Reset Password
-        </Button>
-        <Text style={footer}>
-          If you didn't request a password reset, you can safely ignore this
-          email. Your password will not be changed.
-        </Text>
-      </Container>
-    </Body>
-  </Html>
+export const RecoveryEmail = ({ confirmationUrl = '#' }: RecoveryEmailProps) => (
+  <EmailShell preview="Réinitialisation du mot de passe · Reset your password — Panorama P Residence">
+    {/* Français */}
+    <Text style={h1}>Réinitialisez votre mot de passe</Text>
+    <Text style={lead}>
+      Nous avons reçu une demande de réinitialisation du mot de passe de votre
+      compte Panorama P Residence. Cliquez ci-dessous pour en choisir un nouveau.
+    </Text>
+    <Section style={ctaWrap}>
+      <Button style={button} href={confirmationUrl}>
+        Choisir un nouveau mot de passe
+      </Button>
+    </Section>
+    <Section style={securityNote}>
+      <Text style={securityText}>
+        Sécurité : ce lien expire prochainement. Si vous n'avez pas demandé cette
+        réinitialisation, ignorez cet e-mail — votre mot de passe restera
+        inchangé.
+      </Text>
+    </Section>
+
+    <Hr style={langRule} />
+
+    {/* English */}
+    <Text style={enLabel}>English</Text>
+    <Text style={h1}>Reset your password</Text>
+    <Text style={paragraph}>
+      We received a request to reset the password for your Panorama P Residence
+      account. Click below to choose a new one.
+    </Text>
+    <Section style={ctaWrap}>
+      <Button style={button} href={confirmationUrl}>
+        Reset password
+      </Button>
+    </Section>
+    <Text style={linkFallback}>
+      Si le bouton ne fonctionne pas, copiez ce lien / If the button does not
+      work, copy this link:
+      <br />
+      {confirmationUrl}
+    </Text>
+  </EmailShell>
 )
 
 export default RecoveryEmail
-
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
-const container = { padding: '20px 25px' }
-const h1 = {
-  fontSize: '22px',
-  fontWeight: 'bold' as const,
-  color: '#000000',
-  margin: '0 0 20px',
-}
-const text = {
-  fontSize: '14px',
-  color: '#55575d',
-  lineHeight: '1.5',
-  margin: '0 0 25px',
-}
-const button = {
-  backgroundColor: '#000000',
-  color: '#ffffff',
-  fontSize: '14px',
-  borderRadius: '8px',
-  padding: '12px 20px',
-  textDecoration: 'none',
-}
-const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
