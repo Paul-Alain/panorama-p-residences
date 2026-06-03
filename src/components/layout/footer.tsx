@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Facebook, Instagram, Mail, MapPin, Phone } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { Logo } from "@/components/brand/logo";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { siteConfig, whatsappLink } from "@/lib/site-config";
@@ -92,7 +93,7 @@ export function Footer() {
               aria-label="WhatsApp"
               className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-foreground/70 transition-colors hover:border-gold hover:text-gold"
             >
-              <Phone className="h-4 w-4" />
+              <WhatsAppIcon className="h-4 w-4" />
             </a>
           </div>
         </div>
