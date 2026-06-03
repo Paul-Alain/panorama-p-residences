@@ -137,6 +137,38 @@ const fr = {
     reservations: "Réservations",
     messages: "Messages",
   },
+  account: {
+    nav: "Mon espace client",
+    title: "Mon espace client",
+    subtitle: "Gérez votre profil et suivez vos demandes.",
+    signOut: "Se déconnecter",
+    loading: "Chargement…",
+    tabs: {
+      profile: "Profil",
+      reservations: "Mes réservations",
+      messages: "Mes messages",
+      reviews: "Mes avis",
+    },
+    profile: {
+      fullName: "Nom complet",
+      phone: "Téléphone",
+      avatar: "Lien de l'avatar (facultatif)",
+      email: "Email",
+      save: "Enregistrer",
+      saving: "Enregistrement…",
+      saved: "Profil mis à jour.",
+      error: "Une erreur est survenue.",
+    },
+    empty: {
+      reservations: "Vous n'avez aucune réservation pour le moment.",
+      messages: "Vous n'avez envoyé aucun message.",
+      reviews: "Vous n'avez publié aucun avis.",
+    },
+    labels: {
+      guests: "pers.",
+      rating: "Note",
+    },
+  },
 };
 
 export type Dict = typeof fr;
