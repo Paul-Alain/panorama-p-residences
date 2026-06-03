@@ -82,6 +82,13 @@ export function Header() {
                     {link.label}
                   </Link>
                 ))}
+                <Link
+                  to="/mon-espace"
+                  onClick={() => setOpen(false)}
+                  className="mt-1 inline-flex items-center gap-2 rounded-lg px-3 py-2.5 text-base font-medium text-foreground/80 transition-colors hover:bg-secondary hover:text-foreground"
+                >
+                  <User className="h-4 w-4" /> {t.account.nav}
+                </Link>
                 <Button asChild variant="gold" className="mt-3">
                   <Link to="/reservation" onClick={() => setOpen(false)}>
                     {t.nav.book}
