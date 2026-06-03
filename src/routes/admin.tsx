@@ -132,6 +132,7 @@ function AdminPage() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Logo />
           <div className="flex items-center gap-2">
+            {isAdmin && <AdminNotifications adminId={session.user.id} />}
             <Button asChild variant="ghost" size="sm">
               <Link to="/"><Home className="h-4 w-4" /> Site</Link>
             </Button>
