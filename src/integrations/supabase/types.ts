@@ -32,6 +32,47 @@ export type Database = {
         }
         Relationships: []
       }
+      logement_units: {
+        Row: {
+          available: boolean
+          created_at: string
+          id: string
+          label: string
+          logement_id: string
+          sort_order: number
+          unit_number: number
+          updated_at: string
+        }
+        Insert: {
+          available?: boolean
+          created_at?: string
+          id?: string
+          label: string
+          logement_id: string
+          sort_order?: number
+          unit_number?: number
+          updated_at?: string
+        }
+        Update: {
+          available?: boolean
+          created_at?: string
+          id?: string
+          label?: string
+          logement_id?: string
+          sort_order?: number
+          unit_number?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "logement_units_logement_id_fkey"
+            columns: ["logement_id"]
+            isOneToOne: false
+            referencedRelation: "logements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       logements: {
         Row: {
           available: boolean
@@ -161,6 +202,7 @@ export type Database = {
           guests: number
           id: string
           logement_type: string | null
+          logement_unit_id: string | null
           message: string | null
           name: string
           phone: string
@@ -175,6 +217,7 @@ export type Database = {
           guests?: number
           id?: string
           logement_type?: string | null
+          logement_unit_id?: string | null
           message?: string | null
           name: string
           phone: string
@@ -189,13 +232,22 @@ export type Database = {
           guests?: number
           id?: string
           logement_type?: string | null
+          logement_unit_id?: string | null
           message?: string | null
           name?: string
           phone?: string
           status?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "reservations_logement_unit_id_fkey"
+            columns: ["logement_unit_id"]
+            isOneToOne: false
+            referencedRelation: "logement_units"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       testimonials: {
         Row: {

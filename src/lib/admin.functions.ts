@@ -438,3 +438,160 @@ export const adminGetManagerActivity = createServerFn({ method: "GET" })
 
     return { admins, feed: feed.slice(0, 40) };
   });
+
+// ── Physical units (logement_units) ──────────────────────────────────────
+// Admin-only: list every physical unit (including unavailable) with its
+// parent category type. Read is RLS-allowed for authenticated; the admin
+// check keeps this endpoint admin-scoped for consistency.
+export const adminListUnits = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data, error } = await context.supabase
+      .from("logement_units")
+      .select("id, logement_id, label, unit_number, available, sort_order, logements(type, title_fr)")
+      .order("sort_order", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((u) => {
+      const parent = (u as { logements: { type: string; title_fr: string } | null }).logements;
+      return {
+        id: u.id as string,
+        logement_id: u.logement_id as string,
+        label: u.label as string,
+        unit_number: u.unit_number as number,
+        available: u.available as boolean,
+        sort_order: u.sort_order as number,
+        type: parent?.type ?? "",
+        category_title: parent?.title_fr ?? "",
+      };
+    });
+  });
+
+export const adminCreateUnit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        logement_id: z.string().uuid(),
+        label: z.string().min(1).max(120),
+        unit_number: z.number().int().min(1).max(999),
+        available: z.boolean().optional(),
+        sort_order: z.number().int().min(0).max(9999).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await context.supabase.from("logement_units").insert({
+      logement_id: data.logement_id,
+      label: data.label.trim(),
+      unit_number: data.unit_number,
+      available: data.available ?? true,
+      sort_order: data.sort_order ?? 0,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const adminUpdateUnit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        label: z.string().min(1).max(120).optional(),
+        unit_number: z.number().int().min(1).max(999).optional(),
+        available: z.boolean().optional(),
+        sort_order: z.number().int().min(0).max(9999).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const updates: {
+      label?: string;
+      unit_number?: number;
+      available?: boolean;
+      sort_order?: number;
+    } = {};
+    if (data.label !== undefined) updates.label = data.label.trim();
+    if (data.unit_number !== undefined) updates.unit_number = data.unit_number;
+    if (data.available !== undefined) updates.available = data.available;
+    if (data.sort_order !== undefined) updates.sort_order = data.sort_order;
+    if (Object.keys(updates).length === 0) return { ok: true };
+    const { error } = await context.supabase
+      .from("logement_units")
+      .update(updates)
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const adminDeleteUnit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ id: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await context.supabase
+      .from("logement_units")
+      .delete()
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Admin-only: assign (or clear) the physical unit linked to a reservation.
+export const adminAssignReservationUnit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        reservationId: z.string().uuid(),
+        unitId: z.string().uuid().nullable(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await context.supabase
+      .from("reservations")
+      .update({ logement_unit_id: data.unitId })
+      .eq("id", data.reservationId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Admin-only: occupancy data for the calendar — all units plus non-cancelled
+// reservations with their dates and assigned unit (null = unassigned legacy).
+export const adminGetOccupancy = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const sb = context.supabase;
+    const [unitsRes, resRes] = await Promise.all([
+      sb
+        .from("logement_units")
+        .select("id, label, sort_order, available, logements(type)")
+        .order("sort_order", { ascending: true }),
+      sb
+        .from("reservations")
+        .select("id, name, arrival_date, departure_date, status, logement_unit_id, logement_type")
+        .neq("status", "annulée")
+        .order("arrival_date", { ascending: true }),
+    ]);
+    if (unitsRes.error) throw new Error(unitsRes.error.message);
+    if (resRes.error) throw new Error(resRes.error.message);
+
+    const units = (unitsRes.data ?? []).map((u) => {
+      const parent = (u as { logements: { type: string } | null }).logements;
+      return {
+        id: u.id as string,
+        label: u.label as string,
+        available: u.available as boolean,
+        type: parent?.type ?? "",
+      };
+    });
+    return { units, reservations: resRes.data ?? [] };
+  });

@@ -20,6 +20,17 @@ export interface Logement {
   sort_order: number;
 }
 
+export interface LogementUnit {
+  id: string;
+  logement_id: string;
+  label: string;
+  unit_number: number;
+  available: boolean;
+  sort_order: number;
+  /** Category type pulled from the parent logement (studio/chambre/appartement). */
+  type: string;
+}
+
 export interface Testimonial {
   id: string;
   name: string;
@@ -122,6 +133,30 @@ export const logementsQuery = queryOptions({
       .order("sort_order", { ascending: true });
     if (error) throw error;
     return (data ?? []) as Logement[];
+  },
+});
+
+/** Public, available physical units with their category type (RLS allows anon read). */
+export const logementUnitsQuery = queryOptions({
+  queryKey: ["logement-units"],
+  queryFn: async (): Promise<LogementUnit[]> => {
+    const { data, error } = await supabase
+      .from("logement_units")
+      .select("id, logement_id, label, unit_number, available, sort_order, logements(type)")
+      .order("sort_order", { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map((u) => {
+      const parent = (u as { logements: { type: string } | null }).logements;
+      return {
+        id: u.id,
+        logement_id: u.logement_id,
+        label: u.label,
+        unit_number: u.unit_number,
+        available: u.available,
+        sort_order: u.sort_order,
+        type: parent?.type ?? "",
+      };
+    });
   },
 });
 
