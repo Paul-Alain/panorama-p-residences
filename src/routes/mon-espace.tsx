@@ -99,7 +99,8 @@ function AccountPage() {
   return (
     <>
       <PageHeader title={t.account.title} subtitle={t.account.subtitle}>
-        <div className="mt-6 flex justify-center">
+        <div className="mt-6 flex items-center justify-center gap-2">
+          <ClientNotifications userId={userId} />
           <Button variant="outline" size="sm" onClick={signOut}>
             <LogOut className="h-4 w-4" /> {t.account.signOut}
           </Button>
