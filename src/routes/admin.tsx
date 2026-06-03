@@ -168,13 +168,15 @@ function LogementsAdmin() {
   const { data: logements = [], isLoading } = useQuery(logementsQuery);
   const [editing, setEditing] = useState<Logement | null>(null);
   const [open, setOpen] = useState(false);
+  const runDeleteLogement = useServerFn(adminDeleteLogement);
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["logements"] });
 
   const remove = async (id: string) => {
-    const { error } = await supabase.from("logements").delete().eq("id", id);
-    if (error) {
-      toast.error(error.message);
+    try {
+      await runDeleteLogement({ data: { id } });
+    } catch {
+      toast.error("Suppression refusée.");
       return;
     }
     toast.success("Logement supprimé.");
