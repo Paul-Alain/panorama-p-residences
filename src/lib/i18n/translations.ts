@@ -423,6 +423,8 @@ const fr = {
     phonePlaceholder: "+33 6 12 34 56 78",
     nameError: "Veuillez saisir votre nom complet.",
     phoneError: "Veuillez saisir un numéro de téléphone valide au format international (ex. +33 6 12 34 56 78).",
+    or: "ou",
+    continueWithGoogle: "Continuer avec Google",
   },
   notifications: {
     title: "Notifications",
@@ -873,6 +875,8 @@ const de: Dict = {
     phonePlaceholder: "+49 151 23456789",
     nameError: "Bitte geben Sie Ihren vollständigen Namen ein.",
     phoneError: "Bitte geben Sie eine gültige Telefonnummer im internationalen Format ein (z. B. +49 151 23456789).",
+    or: "oder",
+    continueWithGoogle: "Mit Google fortfahren",
   },
   notifications: {
     title: "Benachrichtigungen",
@@ -1318,6 +1322,8 @@ const en: Dict = {
     phonePlaceholder: "+1 555 123 4567",
     nameError: "Please enter your full name.",
     phoneError: "Please enter a valid phone number in international format (e.g. +1 555 123 4567).",
+    or: "or",
+    continueWithGoogle: "Continue with Google",
   },
   notifications: {
     title: "Notifications",
