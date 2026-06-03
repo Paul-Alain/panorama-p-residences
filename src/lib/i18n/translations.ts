@@ -698,6 +698,30 @@ const en: Dict = {
     nameError: "Please enter your full name.",
     phoneError: "Please enter a valid phone number in international format (e.g. +1 555 123 4567).",
   },
+  notifications: {
+    title: "Notifications",
+    empty: "No notifications yet.",
+    markAllRead: "Mark all as read",
+    unreadLabel: "unread",
+    client: {
+      reservationTitle: "Reservation recorded",
+      reservationBody: "Your reservation has been recorded. We'll get back to you shortly.",
+      replyTitle: "Support reply",
+      replyBody: "Panorama P replied to your message.",
+      reviewTitle: "Review submitted",
+      reviewBody: "Thank you! Your review has been submitted and will be published after approval.",
+      reviewApprovedTitle: "Review published",
+      reviewApprovedBody: "Your review has been approved and is now visible on the site.",
+    },
+    admin: {
+      reservationTitle: "New reservation",
+      reservationBody: "{name} made a new reservation.",
+      messageTitle: "New message",
+      messageBody: "{name} sent a message to support.",
+      reviewTitle: "New review",
+      reviewBody: "{name} submitted a review ({rating}/5).",
+    },
+  },
 };
 
 export const dictionaries: Record<Lang, Dict> = { fr, de, en };
