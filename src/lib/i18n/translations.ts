@@ -12,6 +12,7 @@ const fr = {
     testimonials: "Témoignages",
     contact: "Contact",
     book: "Réserver",
+    admin: "Administration",
   },
   hero: {
     title: "Panorama P – Résidence meublée à Bafoussam",
