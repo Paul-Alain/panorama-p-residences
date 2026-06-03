@@ -1,34 +1,101 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import type { Database } from "@/integrations/supabase/types";
 
-// Grants admin to the very first signed-in user (bootstrap). Once an admin
-// exists, this only reports whether the current user is already an admin.
+// Server-side admin verification. Uses the request's authenticated, RLS-scoped
+// Supabase client and the has_role() security-definer function.
+async function assertAdmin(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+): Promise<void> {
+  const { data, error } = await supabase.rpc("has_role", {
+    _user_id: userId,
+    _role: "admin",
+  });
+  if (error) throw new Error(error.message);
+  if (data !== true) throw new Error("Forbidden: admin role required");
+}
+
+// Returns whether the current user is an admin (server-verified).
+export const getAdminStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data, error } = await supabase.rpc("has_role", {
+      _user_id: userId,
+      _role: "admin",
+    });
+    if (error) throw new Error(error.message);
+    return { isAdmin: data === true };
+  });
+
+// Grants admin to the very first signed-in user. This is an atomic, one-time
+// bootstrap enforced in the database (see bootstrap_admin): once the first
+// admin is created it can never be triggered again, even if admin rows are
+// later deleted. Returns whether the caller ends up an admin.
 export const claimAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { count, error: countError } = await supabaseAdmin
-      .from("user_roles")
-      .select("*", { count: "exact", head: true })
-      .eq("role", "admin");
-    if (countError) throw new Error(countError.message);
-
-    if ((count ?? 0) === 0) {
-      const { error } = await supabaseAdmin
-        .from("user_roles")
-        .insert({ user_id: userId, role: "admin" });
-      if (error) throw new Error(error.message);
-      return { admin: true };
-    }
-
-    const { data } = await supabaseAdmin
+    // Already an admin? Nothing to do.
+    const { data: existing } = await supabaseAdmin
       .from("user_roles")
       .select("id")
       .eq("user_id", userId)
       .eq("role", "admin")
       .maybeSingle();
+    if (existing) return { admin: true };
 
-    return { admin: !!data };
+    // Atomic one-time bootstrap; returns false if already consumed.
+    const { data, error } = await supabaseAdmin.rpc("bootstrap_admin", {
+      _user_id: userId,
+    });
+    if (error) throw new Error(error.message);
+    return { admin: data === true };
+  });
+
+// Admin-only: delete a logement (verified server-side, then RLS-scoped write).
+export const adminDeleteLogement = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ id: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await context.supabase
+      .from("logements")
+      .delete()
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Admin-only: list reservations (verified server-side).
+export const adminListReservations = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data, error } = await context.supabase
+      .from("reservations")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+// Admin-only: list contact messages (verified server-side).
+export const adminListMessages = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data, error } = await context.supabase
+      .from("messages")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
   });

@@ -22,7 +22,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { LogementEditor } from "@/components/admin/logement-editor";
 import { supabase } from "@/integrations/supabase/client";
-import { claimAdmin } from "@/lib/admin.functions";
+import {
+  claimAdmin,
+  getAdminStatus,
+  adminDeleteLogement,
+  adminListReservations,
+  adminListMessages,
+} from "@/lib/admin.functions";
 import { logementsQuery, formatPrice, type Logement } from "@/lib/data";
 
 export const Route = createFileRoute("/admin")({
@@ -37,6 +43,7 @@ function AdminPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const runClaim = useServerFn(claimAdmin);
+  const runGetAdminStatus = useServerFn(getAdminStatus);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
@@ -55,17 +62,24 @@ function AdminPage() {
 
   useEffect(() => {
     if (!session) return;
-    supabase
-      .from("user_roles")
-      .select("id")
-      .eq("user_id", session.user.id)
-      .eq("role", "admin")
-      .maybeSingle()
-      .then(({ data }) => {
-        setIsAdmin(!!data);
+    let active = true;
+    // Admin status is verified server-side; the client flag is only a UI hint.
+    runGetAdminStatus()
+      .then((res) => {
+        if (!active) return;
+        setIsAdmin(res.isAdmin);
+        setChecking(false);
+      })
+      .catch(() => {
+        if (!active) return;
+        setIsAdmin(false);
         setChecking(false);
       });
-  }, [session]);
+    return () => {
+      active = false;
+    };
+  }, [session, runGetAdminStatus]);
+
 
   const handleClaim = async () => {
     setClaiming(true);
@@ -154,13 +168,15 @@ function LogementsAdmin() {
   const { data: logements = [], isLoading } = useQuery(logementsQuery);
   const [editing, setEditing] = useState<Logement | null>(null);
   const [open, setOpen] = useState(false);
+  const runDeleteLogement = useServerFn(adminDeleteLogement);
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["logements"] });
 
   const remove = async (id: string) => {
-    const { error } = await supabase.from("logements").delete().eq("id", id);
-    if (error) {
-      toast.error(error.message);
+    try {
+      await runDeleteLogement({ data: { id } });
+    } catch {
+      toast.error("Suppression refusée.");
       return;
     }
     toast.success("Logement supprimé.");
@@ -224,14 +240,10 @@ interface Reservation {
 }
 
 function ReservationsAdmin() {
+  const runListReservations = useServerFn(adminListReservations);
   const { data = [], isLoading } = useQuery({
     queryKey: ["admin-reservations"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("reservations").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as Reservation[];
-    },
+    queryFn: async () => (await runListReservations()) as Reservation[],
   });
 
   if (isLoading) return <Loader2 className="h-5 w-5 animate-spin text-gold" />;
@@ -262,14 +274,10 @@ interface Message {
 }
 
 function MessagesAdmin() {
+  const runListMessages = useServerFn(adminListMessages);
   const { data = [], isLoading } = useQuery({
     queryKey: ["admin-messages"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("messages").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as Message[];
-    },
+    queryFn: async () => (await runListMessages()) as Message[],
   });
 
   if (isLoading) return <Loader2 className="h-5 w-5 animate-spin text-gold" />;
