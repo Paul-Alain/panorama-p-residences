@@ -13,6 +13,7 @@ import {
   PenLine,
   KeyRound,
   Send,
+  ShieldCheck,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { PageHeader } from "@/components/layout/page-header";
