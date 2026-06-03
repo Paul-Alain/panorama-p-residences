@@ -21,10 +21,11 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [signupSent, setSignupSent] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/admin" });
+      if (data.session) navigate({ to: "/mon-espace" });
     });
   }, [navigate]);
 
@@ -34,27 +35,40 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
+      if (error.message.toLowerCase().includes("email not confirmed")) {
+        toast.error(
+          "Votre adresse email n'est pas encore confirmée. Veuillez vérifier votre boîte mail.",
+        );
+        return;
+      }
       toast.error(error.message);
       return;
     }
-    navigate({ to: "/admin" });
+    navigate({ to: "/mon-espace" });
   };
 
   const signUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/admin` },
+      options: { emailRedirectTo: `${window.location.origin}/mon-espace` },
     });
     setLoading(false);
     if (error) {
       toast.error(error.message);
       return;
     }
-    toast.success("Compte créé. Vous pouvez vous connecter.");
-    navigate({ to: "/admin" });
+    // When email confirmation is required, Supabase returns a user with no active session.
+    if (data.user && !data.session) {
+      setSignupSent(true);
+      toast.success(
+        "Un email de validation a été envoyé à votre adresse. Veuillez vérifier votre boîte mail.",
+      );
+      return;
+    }
+    navigate({ to: "/mon-espace" });
   };
 
   return (
