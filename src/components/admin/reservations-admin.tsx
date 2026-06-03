@@ -172,6 +172,15 @@ export function ReservationsAdmin() {
         </div>
       )}
 
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={doExportPdf}>
+          <FileDown className="h-4 w-4" /> {ex.pdf}
+        </Button>
+        <Button variant="outline" size="sm" onClick={doExportExcel}>
+          <FileSpreadsheet className="h-4 w-4" /> {ex.excel}
+        </Button>
+      </div>
+
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <div className="relative sm:col-span-2 lg:col-span-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -209,7 +218,7 @@ export function ReservationsAdmin() {
         <p className="text-muted-foreground">{d.reservations.none}</p>
       ) : (
         <div className="space-y-3">
-          {filtered.map((r) => (
+          {pageItems.map((r) => (
             <div key={r.id} className="rounded-xl border border-border/60 bg-card p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -257,6 +266,37 @@ export function ReservationsAdmin() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {filtered.length > 0 && (
+        <div className="flex items-center justify-between gap-3 pt-1 text-sm">
+          <span className="text-muted-foreground">
+            {pg.showing.replace("{count}", String(filtered.length))}
+          </span>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+              >
+                <ChevronLeft className="h-4 w-4" /> {pg.prev}
+              </Button>
+              <span className="text-muted-foreground">
+                {pg.page.replace("{page}", String(page)).replace("{total}", String(totalPages))}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+              >
+                {pg.next} <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>
