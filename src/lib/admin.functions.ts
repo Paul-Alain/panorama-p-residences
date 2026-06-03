@@ -117,7 +117,7 @@ export const adminUpdateMessage = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await assertAdmin(context.supabase, context.userId);
 
-    const updates: Record<string, unknown> = {};
+    const updates: { status?: string; message?: string } = {};
     if (data.status) updates.status = data.status;
 
     if (data.reply !== undefined) {
