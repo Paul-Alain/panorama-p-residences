@@ -54,6 +54,7 @@ const assetMap: Record<string, string> = {
   "appartement-confort": appartementConfort.url,
   "studio-vue-salon": studioVueSalon.url,
   "appartement-vue-salon": appartementVueSalon.url,
+  "studio-salon-led": studioSalonLed.url,
 };
 
 const fallback = residenceFacade.url;
