@@ -26,11 +26,15 @@ export function Hero() {
       />
 
       <div className="mx-auto flex min-h-[88vh] max-w-7xl flex-col justify-center px-4 py-24 sm:px-6 lg:px-8">
-        <img
-          src={logoMark.url}
-          alt="Panorama P Residence"
-          className="absolute top-6 left-4 h-16 w-16 rounded-full object-cover shadow-gold sm:left-6 sm:h-20 sm:w-20 lg:left-8"
-        />
+        <div className="absolute top-4 left-3 sm:top-5 sm:left-5 lg:top-6 lg:left-8">
+          <div className="rounded-full bg-gold/20 p-1.5 shadow-[0_0_30px_rgba(201,168,76,0.45)] backdrop-blur-sm sm:p-2.5">
+            <img
+              src={logoMark.url}
+              alt="Panorama P Residence"
+              className="h-20 w-20 rounded-full border-[3px] border-gold object-cover sm:h-28 sm:w-28 lg:h-32 lg:w-32"
+            />
+          </div>
+        </div>
         <div className="max-w-3xl animate-fade-up">
           <span className="inline-flex items-center gap-2 rounded-full border border-primary-foreground/25 bg-primary-foreground/10 px-4 py-1.5 text-xs font-medium uppercase tracking-[0.18em] text-primary-foreground backdrop-blur">
             <MapPin className="h-3.5 w-3.5 text-gold" />
