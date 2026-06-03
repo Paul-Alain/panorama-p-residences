@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { supabaseAdmin } from '@/integrations/supabase/client.server'
 import { enqueueAppEmail } from '@/lib/email/enqueue.server'
-import { BRAND } from '@/lib/email-templates/brand'
+import { brand } from '@/lib/email-templates/brand'
 
 const BodySchema = z.object({
   email: z.string().email().max(160).optional().or(z.literal('')),
@@ -72,7 +72,7 @@ export const Route = createFileRoute('/api/public/email/reservation-confirmation
         // 2. Always send a copy/alert to the team inbox.
         const teamResult = await enqueueAppEmail({
           templateName: 'reservation-team-alert',
-          recipientEmail: BRAND.reservationsEmail,
+          recipientEmail: brand.reservationsEmail,
           idempotencyKey: `reservation-team-${match.id}`,
           templateData: {
             name: match.name ?? parsed.name,
