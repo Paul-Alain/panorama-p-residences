@@ -1,16 +1,18 @@
 import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Menu, User } from "lucide-react";
+import { Menu, User, ShieldCheck } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useLanguage } from "@/lib/i18n/language-context";
+import { useAdminStatus } from "@/lib/use-admin-status";
 
 export function Header() {
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const { location } = useRouterState();
+  const { isAdmin } = useAdminStatus();
 
   const links = [
     { to: "/", label: t.nav.home },
@@ -48,6 +50,20 @@ export function Header() {
 
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
+          {isAdmin && (
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className="hidden sm:inline-flex text-gold"
+              aria-label={t.nav.admin}
+              title={t.nav.admin}
+            >
+              <Link to="/admin">
+                <ShieldCheck className="h-5 w-5" />
+              </Link>
+            </Button>
+          )}
           <Button
             asChild
             variant="ghost"
@@ -89,6 +105,15 @@ export function Header() {
                 >
                   <User className="h-4 w-4" /> {t.account.nav}
                 </Link>
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setOpen(false)}
+                    className="inline-flex items-center gap-2 rounded-lg px-3 py-2.5 text-base font-medium text-gold transition-colors hover:bg-secondary"
+                  >
+                    <ShieldCheck className="h-4 w-4" /> {t.nav.admin}
+                  </Link>
+                )}
                 <Button asChild variant="gold" className="mt-3">
                   <Link to="/reservation" onClick={() => setOpen(false)}>
                     {t.nav.book}

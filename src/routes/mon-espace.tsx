@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -13,6 +13,7 @@ import {
   PenLine,
   KeyRound,
   Send,
+  ShieldCheck,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { PageHeader } from "@/components/layout/page-header";
@@ -33,6 +34,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/lib/i18n/language-context";
+import { useAdminStatus } from "@/lib/use-admin-status";
 import {
   encodeReview,
   parseReviewMeta,
@@ -66,6 +68,7 @@ export const Route = createFileRoute("/mon-espace")({
 function AccountPage() {
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const { isAdmin } = useAdminStatus();
   const [session, setSession] = useState<Session | null>(null);
   const [checking, setChecking] = useState(true);
 
@@ -107,6 +110,29 @@ function AccountPage() {
           </Button>
         </div>
       </PageHeader>
+
+      {isAdmin && (
+        <div className="mx-auto mt-6 max-w-4xl px-4 sm:px-6">
+          <Link
+            to="/admin"
+            className="flex items-center justify-between gap-4 rounded-2xl border border-gold/40 bg-gold/5 p-5 transition-colors hover:bg-gold/10"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gold/15">
+                <ShieldCheck className="h-5 w-5 text-gold" />
+              </div>
+              <div>
+                <p className="font-display text-base font-semibold">{t.nav.admin}</p>
+                <p className="text-sm text-muted-foreground">{t.account.adminAccess}</p>
+              </div>
+            </div>
+            <Button variant="gold" size="sm" asChild>
+              <span>{t.account.adminCta}</span>
+            </Button>
+          </Link>
+        </div>
+      )}
+
 
       <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
         <Tabs defaultValue="profile">

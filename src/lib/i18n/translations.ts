@@ -12,6 +12,7 @@ const fr = {
     testimonials: "Témoignages",
     contact: "Contact",
     book: "Réserver",
+    admin: "Administration",
   },
   hero: {
     title: "Panorama P – Résidence meublée à Bafoussam",
@@ -354,6 +355,8 @@ const fr = {
     subtitle: "Gérez votre profil et suivez vos demandes.",
     signOut: "Se déconnecter",
     loading: "Chargement…",
+    adminAccess: "Vous disposez d'un accès administrateur.",
+    adminCta: "Ouvrir le tableau de bord",
     tabs: {
       profile: "Profil",
       reservations: "Mes réservations",
@@ -469,6 +472,7 @@ const de: Dict = {
     testimonials: "Bewertungen",
     contact: "Kontakt",
     book: "Buchen",
+    admin: "Verwaltung",
   },
   hero: {
     title: "Panorama P – Möblierte Residenz in Bafoussam",
@@ -810,6 +814,8 @@ const de: Dict = {
     subtitle: "Verwalten Sie Ihr Profil und verfolgen Sie Ihre Anfragen.",
     signOut: "Abmelden",
     loading: "Laden…",
+    adminAccess: "Sie haben Administratorzugriff.",
+    adminCta: "Dashboard öffnen",
     tabs: {
       profile: "Profil",
       reservations: "Meine Buchungen",
@@ -923,6 +929,7 @@ const en: Dict = {
     testimonials: "Reviews",
     contact: "Contact",
     book: "Book",
+    admin: "Admin",
   },
   hero: {
     title: "Panorama P – Furnished Residence in Bafoussam",
@@ -1261,6 +1268,8 @@ const en: Dict = {
     subtitle: "Manage your profile and track your requests.",
     signOut: "Sign out",
     loading: "Loading…",
+    adminAccess: "You have administrator access.",
+    adminCta: "Open dashboard",
     tabs: {
       profile: "Profile",
       reservations: "My reservations",
