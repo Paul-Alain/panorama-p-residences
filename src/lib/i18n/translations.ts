@@ -386,6 +386,13 @@ const de: Dict = {
       approved: "Veröffentlicht",
     },
   },
+  auth: {
+    fullName: "Vollständiger Name",
+    phone: "Telefon (internationales Format)",
+    phonePlaceholder: "+49 151 23456789",
+    nameError: "Bitte geben Sie Ihren vollständigen Namen ein.",
+    phoneError: "Bitte geben Sie eine gültige Telefonnummer im internationalen Format ein (z. B. +49 151 23456789).",
+  },
 };
 
 const en: Dict = {
