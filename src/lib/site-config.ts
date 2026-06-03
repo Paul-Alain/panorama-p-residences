@@ -13,7 +13,7 @@ export const siteConfig = {
   mapLink:
     "https://www.google.com/maps/search/?api=1&query=Stade+municipal+de+Bamendzi,Bafoussam,Cameroun",
   social: {
-    facebook: "https://facebook.com",
+    facebook: "https://www.facebook.com/share/1BuuL3YZz2/",
     instagram: "https://instagram.com",
     whatsapp: "https://wa.me/237655862405",
   },
