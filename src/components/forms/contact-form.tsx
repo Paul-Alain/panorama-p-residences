@@ -86,7 +86,10 @@ export function ContactForm() {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="c-message">{t.contact.message}</Label>
+        <Label htmlFor="c-message">
+          {t.contact.message}
+          <span className="text-destructive"> *</span>
+        </Label>
         <Textarea
           id="c-message"
           rows={5}
