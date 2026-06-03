@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Star,
   Users,
+  PenLine,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { PageHeader } from "@/components/layout/page-header";
@@ -17,9 +18,27 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/lib/i18n/language-context";
+import {
+  encodeReview,
+  parseReviewMeta,
+  stripReviewMeta,
+  PENDING_SORT_ORDER,
+  type ReviewMeta,
+} from "@/lib/data";
+
+const COMPLETED_STATUS = "terminée";
 
 export const Route = createFileRoute("/mon-espace")({
   head: () => ({
