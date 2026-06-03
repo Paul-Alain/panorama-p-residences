@@ -3,12 +3,21 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Plus, Pencil, Trash2, LogOut, ShieldCheck, Home } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, LogOut, ShieldCheck, Home, Send } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,8 +37,15 @@ import {
   adminDeleteLogement,
   adminListReservations,
   adminListMessages,
+  adminUpdateMessage,
 } from "@/lib/admin.functions";
-import { logementsQuery, formatPrice, type Logement } from "@/lib/data";
+import {
+  logementsQuery,
+  formatPrice,
+  parseMessageMeta,
+  stripMessageMeta,
+  type Logement,
+} from "@/lib/data";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Administration – Panorama P" }, { name: "robots", content: "noindex" }] }),
