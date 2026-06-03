@@ -48,6 +48,7 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
       return;
     }
     setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
     const { error } = await supabase.from("reservations").insert({
       name: form.name.trim().slice(0, 120),
       phone: form.phone.trim().slice(0, 40),
@@ -57,6 +58,7 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
       guests: Number(form.guests) || 1,
       logement_type: form.type || null,
       message: form.message.trim().slice(0, 1000) || null,
+      user_id: user?.id ?? null,
     });
     setLoading(false);
     if (error) {

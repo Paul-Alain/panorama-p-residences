@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Menu } from "lucide-react";
+import { Menu, User } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,18 @@ export function Header() {
 
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            className="hidden sm:inline-flex"
+            aria-label={t.account.nav}
+            title={t.account.nav}
+          >
+            <Link to="/mon-espace">
+              <User className="h-5 w-5" />
+            </Link>
+          </Button>
           <Button asChild variant="gold" size="sm" className="hidden sm:inline-flex">
             <Link to="/reservation">{t.nav.book}</Link>
           </Button>
@@ -70,6 +82,13 @@ export function Header() {
                     {link.label}
                   </Link>
                 ))}
+                <Link
+                  to="/mon-espace"
+                  onClick={() => setOpen(false)}
+                  className="mt-1 inline-flex items-center gap-2 rounded-lg px-3 py-2.5 text-base font-medium text-foreground/80 transition-colors hover:bg-secondary hover:text-foreground"
+                >
+                  <User className="h-4 w-4" /> {t.account.nav}
+                </Link>
                 <Button asChild variant="gold" className="mt-3">
                   <Link to="/reservation" onClick={() => setOpen(false)}>
                     {t.nav.book}

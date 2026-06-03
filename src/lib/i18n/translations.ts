@@ -137,6 +137,38 @@ const fr = {
     reservations: "Réservations",
     messages: "Messages",
   },
+  account: {
+    nav: "Mon espace client",
+    title: "Mon espace client",
+    subtitle: "Gérez votre profil et suivez vos demandes.",
+    signOut: "Se déconnecter",
+    loading: "Chargement…",
+    tabs: {
+      profile: "Profil",
+      reservations: "Mes réservations",
+      messages: "Mes messages",
+      reviews: "Mes avis",
+    },
+    profile: {
+      fullName: "Nom complet",
+      phone: "Téléphone",
+      avatar: "Lien de l'avatar (facultatif)",
+      email: "Email",
+      save: "Enregistrer",
+      saving: "Enregistrement…",
+      saved: "Profil mis à jour.",
+      error: "Une erreur est survenue.",
+    },
+    empty: {
+      reservations: "Vous n'avez aucune réservation pour le moment.",
+      messages: "Vous n'avez envoyé aucun message.",
+      reviews: "Vous n'avez publié aucun avis.",
+    },
+    labels: {
+      guests: "pers.",
+      rating: "Note",
+    },
+  },
 };
 
 export type Dict = typeof fr;
@@ -276,6 +308,38 @@ const de: Dict = {
     reservations: "Buchungen",
     messages: "Nachrichten",
   },
+  account: {
+    nav: "Mein Kundenbereich",
+    title: "Mein Kundenbereich",
+    subtitle: "Verwalten Sie Ihr Profil und verfolgen Sie Ihre Anfragen.",
+    signOut: "Abmelden",
+    loading: "Laden…",
+    tabs: {
+      profile: "Profil",
+      reservations: "Meine Buchungen",
+      messages: "Meine Nachrichten",
+      reviews: "Meine Bewertungen",
+    },
+    profile: {
+      fullName: "Vollständiger Name",
+      phone: "Telefon",
+      avatar: "Avatar-Link (optional)",
+      email: "E-Mail",
+      save: "Speichern",
+      saving: "Speichern…",
+      saved: "Profil aktualisiert.",
+      error: "Ein Fehler ist aufgetreten.",
+    },
+    empty: {
+      reservations: "Sie haben noch keine Buchungen.",
+      messages: "Sie haben noch keine Nachricht gesendet.",
+      reviews: "Sie haben noch keine Bewertung veröffentlicht.",
+    },
+    labels: {
+      guests: "Pers.",
+      rating: "Bewertung",
+    },
+  },
 };
 
 const en: Dict = {
@@ -409,6 +473,38 @@ const en: Dict = {
     logements: "Stays",
     reservations: "Bookings",
     messages: "Messages",
+  },
+  account: {
+    nav: "My account",
+    title: "My account",
+    subtitle: "Manage your profile and track your requests.",
+    signOut: "Sign out",
+    loading: "Loading…",
+    tabs: {
+      profile: "Profile",
+      reservations: "My reservations",
+      messages: "My messages",
+      reviews: "My reviews",
+    },
+    profile: {
+      fullName: "Full name",
+      phone: "Phone",
+      avatar: "Avatar link (optional)",
+      email: "Email",
+      save: "Save",
+      saving: "Saving…",
+      saved: "Profile updated.",
+      error: "Something went wrong.",
+    },
+    empty: {
+      reservations: "You have no reservations yet.",
+      messages: "You haven't sent any message.",
+      reviews: "You haven't posted any review.",
+    },
+    labels: {
+      guests: "guests",
+      rating: "Rating",
+    },
   },
 };
 

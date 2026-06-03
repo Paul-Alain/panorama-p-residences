@@ -20,11 +20,13 @@ export function ContactForm() {
     e.preventDefault();
     if (!form.name.trim() || !form.message.trim()) return;
     setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
     const { error } = await supabase.from("messages").insert({
       name: form.name.trim().slice(0, 120),
       phone: form.phone.trim().slice(0, 40) || null,
       email: form.email.trim().slice(0, 160) || null,
       message: form.message.trim().slice(0, 2000),
+      user_id: user?.id ?? null,
     });
     setLoading(false);
     if (error) {
