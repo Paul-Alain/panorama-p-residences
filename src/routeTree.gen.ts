@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as TemoignagesRouteImport } from './routes/temoignages'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
@@ -22,10 +23,23 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AProposRouteImport } from './routes/a-propos'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as AuthResetRouteImport } from './routes/auth.reset'
+import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
+import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
+import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
+import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
+import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiPublicHooksReservationStatusSyncRouteImport } from './routes/api/public/hooks/reservation-status-sync'
+import { Route as ApiPublicEmailReservationConfirmationRouteImport } from './routes/api/public/email/reservation-confirmation'
+import { Route as ApiPublicEmailContactConfirmationRouteImport } from './routes/api/public/email/contact-confirmation'
 
+const UnsubscribeRoute = UnsubscribeRouteImport.update({
+  id: '/unsubscribe',
+  path: '/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TemoignagesRoute = TemoignagesRouteImport.update({
   id: '/temoignages',
   path: '/temoignages',
@@ -91,21 +105,65 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
+  id: '/email/unsubscribe',
+  path: '/email/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthResetRoute = AuthResetRouteImport.update({
   id: '/reset',
   path: '/reset',
   getParentRoute: () => AuthRoute,
 } as any)
+const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
+  id: '/lovable/email/suppression',
+  path: '/lovable/email/suppression',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailTransactionalSendRoute =
+  LovableEmailTransactionalSendRouteImport.update({
+    id: '/lovable/email/transactional/send',
+    path: '/lovable/email/transactional/send',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LovableEmailTransactionalPreviewRoute =
+  LovableEmailTransactionalPreviewRouteImport.update({
+    id: '/lovable/email/transactional/preview',
+    path: '/lovable/email/transactional/preview',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
     path: '/lovable/email/queue/process',
     getParentRoute: () => rootRouteImport,
   } as any)
+const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
+  id: '/lovable/email/auth/webhook',
+  path: '/lovable/email/auth/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
+  id: '/lovable/email/auth/preview',
+  path: '/lovable/email/auth/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksReservationStatusSyncRoute =
   ApiPublicHooksReservationStatusSyncRouteImport.update({
     id: '/api/public/hooks/reservation-status-sync',
     path: '/api/public/hooks/reservation-status-sync',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEmailReservationConfirmationRoute =
+  ApiPublicEmailReservationConfirmationRouteImport.update({
+    id: '/api/public/email/reservation-confirmation',
+    path: '/api/public/email/reservation-confirmation',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEmailContactConfirmationRoute =
+  ApiPublicEmailContactConfirmationRouteImport.update({
+    id: '/api/public/email/contact-confirmation',
+    path: '/api/public/email/contact-confirmation',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -123,9 +181,18 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/temoignages': typeof TemoignagesRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/auth/reset': typeof AuthResetRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/api/public/email/contact-confirmation': typeof ApiPublicEmailContactConfirmationRoute
+  '/api/public/email/reservation-confirmation': typeof ApiPublicEmailReservationConfirmationRoute
   '/api/public/hooks/reservation-status-sync': typeof ApiPublicHooksReservationStatusSyncRoute
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -141,9 +208,18 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/temoignages': typeof TemoignagesRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/auth/reset': typeof AuthResetRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/api/public/email/contact-confirmation': typeof ApiPublicEmailContactConfirmationRoute
+  '/api/public/email/reservation-confirmation': typeof ApiPublicEmailReservationConfirmationRoute
   '/api/public/hooks/reservation-status-sync': typeof ApiPublicHooksReservationStatusSyncRoute
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -160,9 +236,18 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/temoignages': typeof TemoignagesRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/auth/reset': typeof AuthResetRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/api/public/email/contact-confirmation': typeof ApiPublicEmailContactConfirmationRoute
+  '/api/public/email/reservation-confirmation': typeof ApiPublicEmailReservationConfirmationRoute
   '/api/public/hooks/reservation-status-sync': typeof ApiPublicHooksReservationStatusSyncRoute
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -180,9 +265,18 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/temoignages'
+    | '/unsubscribe'
     | '/auth/reset'
+    | '/email/unsubscribe'
+    | '/lovable/email/suppression'
+    | '/api/public/email/contact-confirmation'
+    | '/api/public/email/reservation-confirmation'
     | '/api/public/hooks/reservation-status-sync'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -198,9 +292,18 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/temoignages'
+    | '/unsubscribe'
     | '/auth/reset'
+    | '/email/unsubscribe'
+    | '/lovable/email/suppression'
+    | '/api/public/email/contact-confirmation'
+    | '/api/public/email/reservation-confirmation'
     | '/api/public/hooks/reservation-status-sync'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   id:
     | '__root__'
     | '/'
@@ -216,9 +319,18 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/temoignages'
+    | '/unsubscribe'
     | '/auth/reset'
+    | '/email/unsubscribe'
+    | '/lovable/email/suppression'
+    | '/api/public/email/contact-confirmation'
+    | '/api/public/email/reservation-confirmation'
     | '/api/public/hooks/reservation-status-sync'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -235,12 +347,28 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TemoignagesRoute: typeof TemoignagesRoute
+  UnsubscribeRoute: typeof UnsubscribeRoute
+  EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
+  LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  ApiPublicEmailContactConfirmationRoute: typeof ApiPublicEmailContactConfirmationRoute
+  ApiPublicEmailReservationConfirmationRoute: typeof ApiPublicEmailReservationConfirmationRoute
   ApiPublicHooksReservationStatusSyncRoute: typeof ApiPublicHooksReservationStatusSyncRoute
+  LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
+  LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
+  LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
+  LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/unsubscribe': {
+      id: '/unsubscribe'
+      path: '/unsubscribe'
+      fullPath: '/unsubscribe'
+      preLoaderRoute: typeof UnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/temoignages': {
       id: '/temoignages'
       path: '/temoignages'
@@ -332,12 +460,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/email/unsubscribe': {
+      id: '/email/unsubscribe'
+      path: '/email/unsubscribe'
+      fullPath: '/email/unsubscribe'
+      preLoaderRoute: typeof EmailUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/reset': {
       id: '/auth/reset'
       path: '/reset'
       fullPath: '/auth/reset'
       preLoaderRoute: typeof AuthResetRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/lovable/email/suppression': {
+      id: '/lovable/email/suppression'
+      path: '/lovable/email/suppression'
+      fullPath: '/lovable/email/suppression'
+      preLoaderRoute: typeof LovableEmailSuppressionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/transactional/send': {
+      id: '/lovable/email/transactional/send'
+      path: '/lovable/email/transactional/send'
+      fullPath: '/lovable/email/transactional/send'
+      preLoaderRoute: typeof LovableEmailTransactionalSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
@@ -346,11 +502,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lovable/email/auth/webhook': {
+      id: '/lovable/email/auth/webhook'
+      path: '/lovable/email/auth/webhook'
+      fullPath: '/lovable/email/auth/webhook'
+      preLoaderRoute: typeof LovableEmailAuthWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/auth/preview': {
+      id: '/lovable/email/auth/preview'
+      path: '/lovable/email/auth/preview'
+      fullPath: '/lovable/email/auth/preview'
+      preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/reservation-status-sync': {
       id: '/api/public/hooks/reservation-status-sync'
       path: '/api/public/hooks/reservation-status-sync'
       fullPath: '/api/public/hooks/reservation-status-sync'
       preLoaderRoute: typeof ApiPublicHooksReservationStatusSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/email/reservation-confirmation': {
+      id: '/api/public/email/reservation-confirmation'
+      path: '/api/public/email/reservation-confirmation'
+      fullPath: '/api/public/email/reservation-confirmation'
+      preLoaderRoute: typeof ApiPublicEmailReservationConfirmationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/email/contact-confirmation': {
+      id: '/api/public/email/contact-confirmation'
+      path: '/api/public/email/contact-confirmation'
+      fullPath: '/api/public/email/contact-confirmation'
+      preLoaderRoute: typeof ApiPublicEmailContactConfirmationRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -380,9 +564,20 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TemoignagesRoute: TemoignagesRoute,
+  UnsubscribeRoute: UnsubscribeRoute,
+  EmailUnsubscribeRoute: EmailUnsubscribeRoute,
+  LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  ApiPublicEmailContactConfirmationRoute:
+    ApiPublicEmailContactConfirmationRoute,
+  ApiPublicEmailReservationConfirmationRoute:
+    ApiPublicEmailReservationConfirmationRoute,
   ApiPublicHooksReservationStatusSyncRoute:
     ApiPublicHooksReservationStatusSyncRoute,
+  LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
+  LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
+  LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
+  LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
