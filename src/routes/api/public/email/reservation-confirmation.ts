@@ -2,15 +2,18 @@ import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { supabaseAdmin } from '@/integrations/supabase/client.server'
 import { enqueueAppEmail } from '@/lib/email/enqueue.server'
+import { BRAND } from '@/lib/email-templates/brand'
 
 const BodySchema = z.object({
-  email: z.string().email().max(160),
+  email: z.string().email().max(160).optional().or(z.literal('')),
   name: z.string().min(1).max(120),
+  phone: z.string().max(40).optional(),
   unitLabel: z.string().max(160).optional(),
 })
 
-// Sends the branded reservation-confirmation email. Verifies (service-role)
-// that a matching reservation was created recently before sending.
+// Sends the branded reservation-confirmation email to the guest (when an email
+// was given) and always notifies the team inbox of the new booking. Verifies
+// (service-role) that a matching reservation was created recently.
 export const Route = createFileRoute('/api/public/email/reservation-confirmation')({
   server: {
     handlers: {
@@ -22,34 +25,72 @@ export const Route = createFileRoute('/api/public/email/reservation-confirmation
           return Response.json({ error: 'Invalid input' }, { status: 400 })
         }
 
+        const guestEmail = parsed.email?.trim() || ''
         const since = new Date(Date.now() - 15 * 60 * 1000).toISOString()
-        const { data: match } = await supabaseAdmin
+
+        let query = supabaseAdmin
           .from('reservations')
-          .select('id, arrival_date, departure_date, guests')
-          .eq('email', parsed.email)
+          .select(
+            'id, name, email, phone, arrival_date, departure_date, guests, logement_type, message',
+          )
           .gte('created_at', since)
           .order('created_at', { ascending: false })
           .limit(1)
-          .maybeSingle()
+
+        // Match by email when provided, otherwise fall back to name (+phone).
+        if (guestEmail) {
+          query = query.eq('email', guestEmail)
+        } else {
+          query = query.eq('name', parsed.name)
+          if (parsed.phone) query = query.eq('phone', parsed.phone)
+        }
+
+        const { data: match } = await query.maybeSingle()
 
         if (!match) {
           return Response.json({ success: true, sent: false })
         }
 
-        const result = await enqueueAppEmail({
-          templateName: 'reservation-confirmation',
-          recipientEmail: parsed.email,
-          idempotencyKey: `reservation-${match.id}`,
+        // 1. Guest confirmation (only when the guest supplied an email).
+        let guestSent = false
+        if (guestEmail) {
+          const result = await enqueueAppEmail({
+            templateName: 'reservation-confirmation',
+            recipientEmail: guestEmail,
+            idempotencyKey: `reservation-${match.id}`,
+            templateData: {
+              name: parsed.name,
+              arrival: match.arrival_date ?? '',
+              departure: match.departure_date ?? '',
+              guests: match.guests ?? '',
+              unitLabel: parsed.unitLabel ?? '',
+            },
+          })
+          guestSent = result.success
+        }
+
+        // 2. Always send a copy/alert to the team inbox.
+        const teamResult = await enqueueAppEmail({
+          templateName: 'reservation-team-alert',
+          recipientEmail: BRAND.reservationsEmail,
+          idempotencyKey: `reservation-team-${match.id}`,
           templateData: {
-            name: parsed.name,
+            name: match.name ?? parsed.name,
+            email: match.email ?? guestEmail,
+            phone: match.phone ?? parsed.phone ?? '',
             arrival: match.arrival_date ?? '',
             departure: match.departure_date ?? '',
             guests: match.guests ?? '',
             unitLabel: parsed.unitLabel ?? '',
+            message: match.message ?? '',
           },
         })
 
-        return Response.json({ success: true, sent: result.success })
+        return Response.json({
+          success: true,
+          sent: guestSent,
+          teamNotified: teamResult.success,
+        })
       },
     },
   },
