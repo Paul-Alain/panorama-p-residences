@@ -91,7 +91,7 @@ export const adminListReservations = createServerFn({ method: "GET" })
 export const adminListMessages = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAdmin(context);
+    await assertAdmin(context.supabase, context.userId);
     const { data, error } = await context.supabase
       .from("messages")
       .select("*")
