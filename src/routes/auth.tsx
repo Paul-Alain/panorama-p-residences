@@ -53,11 +53,25 @@ function AuthPage() {
 
   const signUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmedName = fullName.trim();
+    const trimmedPhone = phone.trim();
+    if (trimmedName.length < 2) {
+      toast.error(t.auth.nameError);
+      return;
+    }
+    // International format: leading + then 8 to 15 digits (E.164).
+    if (!/^\+[1-9]\d{7,14}$/.test(trimmedPhone)) {
+      toast.error(t.auth.phoneError);
+      return;
+    }
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/auth` },
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth`,
+        data: { full_name: trimmedName, phone_number: trimmedPhone },
+      },
     });
     setLoading(false);
     if (error) {
