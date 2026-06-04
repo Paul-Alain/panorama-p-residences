@@ -110,6 +110,31 @@ export function DashboardOverview() {
         </Button>
       </div>
 
+      {/* Per-type availability (green / orange / red) */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {(data.typeAvailability ?? []).map((tA) => {
+          const label =
+            tA.type === "chambre" ? "Chambres" : tA.type === "studio" ? "Studios" : "Appartements";
+          const tone =
+            tA.level === "free"
+              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600"
+              : tA.level === "partial"
+                ? "border-amber-500/40 bg-amber-500/10 text-amber-600"
+                : "border-red-500/40 bg-red-500/10 text-red-600";
+          return (
+            <div key={tA.type} className={`rounded-2xl border p-4 shadow-soft ${tone}`}>
+              <p className="text-sm font-medium">{label}</p>
+              <p className="mt-2 font-display text-3xl font-semibold tabular-nums">
+                {tA.available}/{tA.total}
+              </p>
+              <p className="mt-0.5 text-xs opacity-80">
+                {tA.level === "full" ? "Complet" : tA.level === "partial" ? "Partiellement occupé" : "Disponible"}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {kpiCards.map((c) => (
@@ -124,6 +149,26 @@ export function DashboardOverview() {
             <p className="mt-0.5 text-xs text-muted-foreground">{c.label}</p>
           </div>
         ))}
+      </div>
+
+      {/* Next 24h (arrivals / departures) */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <UpcomingColumn
+          title="Arrivées sous 24h"
+          icon={Plane}
+          rows={data.upcomingArrivals ?? []}
+          empty="Aucune arrivée dans les 24 prochaines heures."
+          kind="arrival"
+          onView={openDetail}
+        />
+        <UpcomingColumn
+          title="Départs sous 24h"
+          icon={LogOut}
+          rows={data.upcomingDepartures ?? []}
+          empty="Aucun départ dans les 24 prochaines heures."
+          kind="departure"
+          onView={openDetail}
+        />
       </div>
 
       {/* Urgent actions */}
