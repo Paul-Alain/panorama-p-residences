@@ -165,6 +165,7 @@ Merci de me confirmer la disponibilité et le tarif SVP / Please confirm availab
     form.departureTime,
     form.type,
     form.guests,
+    lang,
   ]);
 
   /* Keep the editable message in sync until the user edits it manually. */
