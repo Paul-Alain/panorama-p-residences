@@ -15,7 +15,6 @@ import {
   Mail,
   AlertTriangle,
   Eye,
-  Plus,
   Wrench,
   Ban,
   Sparkles,
