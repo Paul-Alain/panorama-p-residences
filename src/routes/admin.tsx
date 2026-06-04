@@ -16,6 +16,7 @@ import {
   CreditCard,
   Contact,
   UsersRound,
+  BarChart3,
   Settings,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
