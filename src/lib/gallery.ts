@@ -162,6 +162,23 @@ export const gallerySections: GallerySection[] = [
     images: cuisineUrls.map((a) => ({ url: a.url, alt: cuisineAlt })),
   },
   {
+    id: "video",
+    kind: "video",
+    title: {
+      fr: "Découvrez Panorama P en vidéo",
+      de: "Entdecken Sie Panorama P im Video",
+      en: "Discover Panorama P in video",
+    },
+    cover: videoCover.url,
+    images: [],
+    videos: [
+      { url: video1.url },
+      { url: video2.url },
+      { url: video3.url },
+      { url: video4.url },
+    ],
+  },
+  {
     id: "exterieur",
     title: {
       fr: "Espaces extérieurs agréables",
