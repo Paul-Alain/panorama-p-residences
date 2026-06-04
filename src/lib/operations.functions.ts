@@ -165,8 +165,15 @@ export const opListReservations = createServerFn({ method: "GET" })
     return reservations
       .filter((r) => r.status !== BLOCK_STATUS)
       .map((r) => {
-        const total = effectiveTotal(r, priceOf(r));
+        const billableUnits = bookingUnitsOf(r);
+        const unitPrice = priceOf(r);
+        // Total à payer = nombre d'unités × tarif du logement (auto, non modifiable).
+        const total = billableUnits * unitPrice;
+        const advance = Number(r.advance_amount) || 0;
         const paid = paidMap.get(r.id) ?? 0;
+        const arrivalMs = new Date(
+          `${r.arrival_date}T${(r.arrival_time ?? DEFAULT_CHECKIN_TIME).slice(0, 5)}:00`,
+        ).getTime();
         const departureMs = new Date(
           `${r.departure_date}T${(r.departure_time ?? DEFAULT_CHECKOUT_TIME).slice(0, 5)}:00`,
         ).getTime();
@@ -183,15 +190,22 @@ export const opListReservations = createServerFn({ method: "GET" })
           departure_time: r.departure_time ?? DEFAULT_CHECKOUT_TIME,
           channel: r.channel ?? "website",
           status: r.status,
+          displayStatus: displayReservationStatus(r.status, arrivalMs, departureMs, nowMs),
           payment_status: r.payment_status,
           unitId: r.logement_unit_id,
           unitLabel: r.logement_unit_id ? unitById.get(r.logement_unit_id)?.label ?? "—" : "—",
           logement_type: r.logement_type,
-          units: bookingUnitsOf(r),
+          units: billableUnits,
+          unitPrice,
           total,
+          // "Montant avancé" : champ géré directement sur la réservation.
+          advance,
           paid,
-          balance: Math.max(0, total - paid),
+          balance: Math.max(0, total - advance),
+          // Réservation active = période de départ non encore expirée.
           active: r.status !== "annulée" && departureMs > nowMs,
+          notes: r.notes,
+          message: r.notes,
           created_at: r.created_at ?? r.arrival_date,
         };
       })
