@@ -132,9 +132,9 @@ export const gallerySections: GallerySection[] = [
   {
     id: "salon",
     title: {
-      fr: "Un salon accueillant",
-      de: "Ein einladendes Wohnzimmer",
-      en: "A welcoming living room",
+      fr: "Salons accueillants",
+      de: "Einladende Wohnzimmer",
+      en: "Welcoming living rooms",
     },
     cover: salon1.url,
     images: salonUrls.map((a) => ({ url: a.url, alt: salonAlt })),
