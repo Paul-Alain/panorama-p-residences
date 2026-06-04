@@ -1029,6 +1029,8 @@ const en: Dict = {
   },
   hero: {
     title: "Panorama P – Furnished Residence in Bafoussam",
+    titleMain: "Panorama P",
+    titleSub: "Furnished Residence in Bafoussam",
     subtitle: "Comfortable studios and apartments in a modern, secure setting",
     viewLogements: "View the stays",
     book: "Book now",
