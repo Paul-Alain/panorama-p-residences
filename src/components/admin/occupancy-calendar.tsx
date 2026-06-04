@@ -502,7 +502,7 @@ function ReadOnlyPanel({
 }: {
   r: CalRes;
   c: Record<string, string>;
-  o: Record<string, string>;
+  o: Record<string, any>;
   statusLabels: Record<string, string>;
   currency: string;
   conflict: boolean;
