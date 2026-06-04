@@ -50,6 +50,7 @@ interface ResRow {
   status: string;
   payment_status: string;
   total_amount: number;
+  advance_amount: number;
   logement_unit_id: string | null;
   logement_type: string | null;
   notes: string | null;
