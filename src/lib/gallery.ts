@@ -89,6 +89,16 @@ export const gallerySections: GallerySection[] = [
     images: salonUrls.map((a) => ({ url: a.url, alt: salonAlt })),
   },
   {
+    id: "cuisine",
+    title: {
+      fr: "Une cuisine entièrement équipée",
+      de: "Eine voll ausgestattete Küche",
+      en: "A fully equipped kitchen",
+    },
+    cover: cuisine1.url,
+    images: cuisineUrls.map((a) => ({ url: a.url, alt: cuisineAlt })),
+  },
+  {
     id: "chambre",
     title: {
       fr: "Des chambres confortables",
