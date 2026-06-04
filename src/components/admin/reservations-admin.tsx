@@ -259,14 +259,12 @@ export function ReservationsAdmin() {
 function RowActions({
   r,
   busyId,
-  onView,
   onEdit,
   act,
   runStatus,
 }: {
   r: ResItem;
   busyId: string | null;
-  onView: () => void;
   onEdit: () => void;
   act: (id: string, fn: () => Promise<unknown>, ok: string) => Promise<void>;
   runStatus: (a: { data: { id: string; status: any } }) => Promise<unknown>;
@@ -274,31 +272,48 @@ function RowActions({
   const loading = busyId === r.id;
   return (
     <>
-      <Button size="sm" variant="ghost" onClick={onView} title="Voir détails">
-        <Eye className="h-4 w-4" />
-      </Button>
       <Button size="sm" variant="ghost" onClick={onEdit} title="Modifier">
         <Pencil className="h-4 w-4" />
       </Button>
-      {r.displayStatus === "nouvelle" && (
-        <Button size="sm" variant="outline" disabled={loading} onClick={() => act(r.id, () => runStatus({ data: { id: r.id, status: "confirmée" } }), "Réservation confirmée.")}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Confirmer
-        </Button>
-      )}
-      {r.active && r.displayStatus !== "annulée" && (
-        <Button
-          size="sm"
-          variant="ghost"
-          className="text-destructive hover:text-destructive"
-          disabled={loading}
-          onClick={() => {
-            if (confirm("Annuler cette réservation ?"))
-              act(r.id, () => runStatus({ data: { id: r.id, status: "annulée" } }), "Réservation annulée.");
-          }}
-          title="Annuler"
-        >
-          <XCircle className="h-4 w-4" />
-        </Button>
+      {r.displayStatus === "nouvelle" ? (
+        <>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={loading}
+            onClick={() => act(r.id, () => runStatus({ data: { id: r.id, status: "confirmée" } }), "Réservation acceptée.")}
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Accepter
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-destructive hover:text-destructive"
+            disabled={loading}
+            onClick={() => {
+              if (confirm("Rejeter cette réservation ?"))
+                act(r.id, () => runStatus({ data: { id: r.id, status: "annulée" } }), "Réservation rejetée.");
+            }}
+          >
+            <XCircle className="h-4 w-4" /> Rejeter
+          </Button>
+        </>
+      ) : (
+        r.active && r.displayStatus !== "annulée" && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-destructive hover:text-destructive"
+            disabled={loading}
+            onClick={() => {
+              if (confirm("Annuler cette réservation ?"))
+                act(r.id, () => runStatus({ data: { id: r.id, status: "annulée" } }), "Réservation annulée.");
+            }}
+            title="Annuler"
+          >
+            <XCircle className="h-4 w-4" />
+          </Button>
+        )
       )}
     </>
   );
