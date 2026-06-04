@@ -1213,3 +1213,76 @@ export const opUpdateSettings = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ── Business analytics ────────────────────────────────────────────────────
+export const opGetAnalytics = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ start: DATE, end: DATE }).parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertStaff(context.supabase, context.userId);
+    const sb = context.supabase;
+    const [units, reservations, payRows] = await Promise.all([
+      loadUnits(sb),
+      loadReservations(sb),
+      sb.from("payments").select("amount, created_at, reservation_id"),
+    ]);
+
+    const unitById = new Map(units.map((u) => [u.id, u]));
+    const priceByType = new Map<string, number>();
+    for (const u of units) if (!priceByType.has(u.type)) priceByType.set(u.type, u.price);
+    const priceOf = (r: ResRow) =>
+      (r.logement_unit_id ? unitById.get(r.logement_unit_id)?.price : undefined) ??
+      (r.logement_type ? priceByType.get(r.logement_type) : undefined) ??
+      0;
+
+    const inRange = (d: string) => d >= data.start && d <= data.end;
+    const todayIso = todayLocalIso();
+
+    // Reservations whose arrival falls in the selected period (exclude cancelled/blocks).
+    const periodRes = reservations.filter(
+      (r) => r.status !== BLOCK_STATUS && r.status !== "annulée" && inRange(r.arrival_date),
+    );
+
+    const TYPES = ["chambre", "studio", "appartement"] as const;
+    const typeLabels: Record<string, string> = {
+      chambre: "Chambre",
+      studio: "Studio",
+      appartement: "Appartement",
+    };
+    const revenueByType = TYPES.map((type) => {
+      const rows = periodRes.filter((r) => r.logement_type === type);
+      const expected = rows.reduce((s, r) => s + effectiveTotal(r, priceOf(r)), 0);
+      return { type, label: typeLabels[type], expected, count: rows.length };
+    });
+
+    const expectedRevenue = periodRes.reduce((s, r) => s + effectiveTotal(r, priceOf(r)), 0);
+
+    // Collected = payments recorded within the period.
+    const collectedRevenue = (payRows.data ?? [])
+      .filter((p: any) => inRange((p.created_at ?? "").slice(0, 10)))
+      .reduce((s: number, p: any) => s + Number(p.amount), 0);
+
+    // Projected = expected totals of upcoming (future arrival) reservations in period.
+    const projectedRevenue = periodRes
+      .filter((r) => r.arrival_date >= todayIso && r.status !== "terminée")
+      .reduce((s, r) => s + effectiveTotal(r, priceOf(r)), 0);
+
+    const completedStays = periodRes.filter((r) => r.status === "terminée").length;
+    const upcomingStays = periodRes.filter(
+      (r) => r.arrival_date >= todayIso && r.status !== "terminée",
+    ).length;
+
+    return {
+      start: data.start,
+      end: data.end,
+      revenueByType,
+      expectedRevenue,
+      collectedRevenue,
+      projectedRevenue,
+      completedStays,
+      upcomingStays,
+      totalReservations: periodRes.length,
+    };
+  });
