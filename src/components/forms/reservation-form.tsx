@@ -293,7 +293,7 @@ Merci de me confirmer la disponibilité et le tarif SVP / Please confirm availab
         />
       </div>
 
-      <div class="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="r-arrival">{t.reservation.arrival}<Req /></Label>
           <DateField
