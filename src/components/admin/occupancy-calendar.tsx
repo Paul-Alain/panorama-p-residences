@@ -290,25 +290,7 @@ export function OccupancyCalendar() {
         </Button>
       </div>
 
-      {/* Summary bar */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {summary.rows.map((row) => (
-          <div key={row.label} className="rounded-xl border border-border/60 bg-card p-3 shadow-soft">
-            <p className="text-xs text-muted-foreground">{row.label}</p>
-            <p className="mt-0.5 font-display text-lg font-semibold">
-              {row.occ}/{row.total}{" "}
-              <span className="text-xs font-normal text-muted-foreground">{c.occupied}</span>
-            </p>
-          </div>
-        ))}
-        <div className="rounded-xl border border-gold/40 bg-gold/10 p-3 shadow-soft">
-          <p className="text-xs text-muted-foreground">{c.totalOccupancy}</p>
-          <p className="mt-0.5 font-display text-lg font-semibold text-gold">
-            {summary.occTotal}/{summary.total}{" "}
-            <span className="text-xs font-normal text-muted-foreground">{c.occupied}</span>
-          </p>
-        </div>
-      </div>
+
 
       {/* Filters + navigation */}
       <div className="flex flex-wrap items-center gap-2">
