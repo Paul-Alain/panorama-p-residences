@@ -126,6 +126,7 @@ export type Database = {
           id: string
           label: string
           logement_id: string
+          op_status: string
           sort_order: number
           unit_number: number
           updated_at: string
@@ -136,6 +137,7 @@ export type Database = {
           id?: string
           label: string
           logement_id: string
+          op_status?: string
           sort_order?: number
           unit_number?: number
           updated_at?: string
@@ -146,6 +148,7 @@ export type Database = {
           id?: string
           label?: string
           logement_id?: string
+          op_status?: string
           sort_order?: number
           unit_number?: number
           updated_at?: string
@@ -283,6 +286,8 @@ export type Database = {
       reservations: {
         Row: {
           arrival_date: string
+          checkin_at: string | null
+          checkout_at: string | null
           created_at: string
           departure_date: string
           email: string | null
@@ -292,12 +297,17 @@ export type Database = {
           logement_unit_id: string | null
           message: string | null
           name: string
+          notes: string | null
+          payment_status: string
           phone: string
           status: string
+          total_amount: number
           user_id: string | null
         }
         Insert: {
           arrival_date: string
+          checkin_at?: string | null
+          checkout_at?: string | null
           created_at?: string
           departure_date: string
           email?: string | null
@@ -307,12 +317,17 @@ export type Database = {
           logement_unit_id?: string | null
           message?: string | null
           name: string
+          notes?: string | null
+          payment_status?: string
           phone: string
           status?: string
+          total_amount?: number
           user_id?: string | null
         }
         Update: {
           arrival_date?: string
+          checkin_at?: string | null
+          checkout_at?: string | null
           created_at?: string
           departure_date?: string
           email?: string | null
@@ -322,8 +337,11 @@ export type Database = {
           logement_unit_id?: string | null
           message?: string | null
           name?: string
+          notes?: string | null
+          payment_status?: string
           phone?: string
           status?: string
+          total_amount?: number
           user_id?: string | null
         }
         Relationships: [
@@ -441,6 +459,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_staff: { Args: { _user_id: string }; Returns: boolean }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -460,7 +479,14 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role:
+        | "admin"
+        | "user"
+        | "proprietaire"
+        | "gestionnaire"
+        | "reception"
+        | "menage"
+        | "comptable"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -588,7 +614,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: [
+        "admin",
+        "user",
+        "proprietaire",
+        "gestionnaire",
+        "reception",
+        "menage",
+        "comptable",
+      ],
     },
   },
 } as const
