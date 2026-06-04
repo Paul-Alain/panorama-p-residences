@@ -1090,7 +1090,7 @@ const en: Dict = {
   },
   contact: {
     title: "Contact us",
-    subtitle: "A question? Write to us, we reply quickly.",
+    subtitle: "A question? A complaint? Write to us, we reply quickly.",
     name: "Name",
     phone: "Phone",
     email: "Email",
