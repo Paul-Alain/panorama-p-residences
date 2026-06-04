@@ -3,6 +3,7 @@ import { template as reservationConfirmation } from './reservation-confirmation'
 import { template as reservationTeamAlert } from './reservation-team-alert'
 import { template as contactConfirmation } from './contact-confirmation'
 import { template as adminReply } from './admin-reply'
+import { template as paymentReceipt } from './payment-receipt'
 
 export interface TemplateEntry {
   component: ComponentType<any>
@@ -22,4 +23,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'reservation-team-alert': reservationTeamAlert,
   'contact-confirmation': contactConfirmation,
   'admin-reply': adminReply,
+  'payment-receipt': paymentReceipt,
 }
