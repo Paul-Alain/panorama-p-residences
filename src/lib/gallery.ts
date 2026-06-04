@@ -26,6 +26,10 @@ import salon6 from "@/assets/salon-6.jpg.asset.json";
 import salon7 from "@/assets/salon-7.jpg.asset.json";
 import salon8 from "@/assets/salon-8.jpg.asset.json";
 import salon9 from "@/assets/salon-9.jpg.asset.json";
+import salon10 from "@/assets/salon-10.jpg.asset.json";
+import salon11 from "@/assets/salon-11.jpg.asset.json";
+import salon12 from "@/assets/salon-12.jpg.asset.json";
+import salon13 from "@/assets/salon-13.jpg.asset.json";
 
 export interface GalleryImage {
   url: string;
@@ -58,6 +62,7 @@ const salonAlt: Record<Lang, string> = {
 
 const salonUrls = [
   salon1, salon2, salon3, salon4, salon5, salon6, salon7, salon8, salon9,
+  salon10, salon11, salon12, salon13,
 ];
 
 export const gallerySections: GallerySection[] = [
