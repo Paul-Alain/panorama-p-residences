@@ -133,19 +133,18 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
     const arrival = fmtDate(form.arrival, form.arrivalTime);
     const departure = fmtDate(form.departure, form.departureTime);
     const type = form.type ? TYPE_LABELS_BI[form.type as LogementType] : "—";
-    return `Bonjour Panorama P Residence, je souhaite réserver / Hello Panorama P Residence, I would like to book:
+    const guests = form.guests && Number(form.guests) > 0 ? form.guests : "1";
+    return `Bonjour Panorama-P Residence, j'aimerais réserver / Hello Panorama-P Residence, I would like to book:
 
 • Nom / Full name: ${form.name || "—"}
 • Téléphone / Phone: ${form.phone || "—"}
 • E-mail / Email: ${form.email || "—"}
 • Arrivée / Check-in: ${arrival}
 • Départ / Check-out: ${departure}
-• Logement / Accommodation: ${type}
-• Personnes / Guests: ${form.guests}
-• Commentaires / Comments: ${form.message || "—"}
+• Type de logement / Accommodation type: ${type}
+• Personnes / Guests: ${guests}
 
-Merci de confirmer la disponibilité et le tarif.
-Please confirm availability and price.`;
+Merci de me confirmer la disponibilité et le tarif SVP / Please confirm availability and price.`;
   }, [
     form.name,
     form.phone,
@@ -156,7 +155,6 @@ Please confirm availability and price.`;
     form.departureTime,
     form.type,
     form.guests,
-    form.message,
   ]);
 
   /* Keep the editable message in sync until the user edits it manually. */

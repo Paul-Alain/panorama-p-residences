@@ -16,6 +16,8 @@ const fr = {
   },
   hero: {
     title: "Panorama P – Résidence meublée à Bafoussam",
+    titleMain: "Panorama P",
+    titleSub: "Résidence meublée à Bafoussam",
     subtitle:
       "Studios et appartements confortables dans un cadre moderne et sécurisé",
     viewLogements: "Voir les logements",
@@ -78,7 +80,7 @@ const fr = {
   },
   contact: {
     title: "Contactez-nous",
-    subtitle: "Une question ? Écrivez-nous, nous répondons rapidement.",
+    subtitle: "Une question ? Une réclamation ? Écrivez-nous, nous répondons rapidement.",
     name: "Nom",
     phone: "Téléphone",
     email: "Email",
@@ -95,7 +97,7 @@ const fr = {
   reservation: {
     title: "Demande de réservation",
     subtitle:
-      "Indiquez vos dates et nous vous confirmons la disponibilité rapidement.",
+      "Nous sommes ravis de vous recevoir aux dates que vous nous communiquerez ci-dessous.",
     name: "Nom complet",
     phone: "Téléphone",
     email: "Email",
@@ -522,6 +524,8 @@ const de: Dict = {
   },
   hero: {
     title: "Panorama P – Möblierte Residenz in Bafoussam",
+    titleMain: "Panorama P",
+    titleSub: "Möblierte Residenz in Bafoussam",
     subtitle: "Komfortable Studios und Apartments in modernem, sicherem Umfeld",
     viewLogements: "Unterkünfte ansehen",
     book: "Buchen",
@@ -583,7 +587,7 @@ const de: Dict = {
   },
   contact: {
     title: "Kontaktieren Sie uns",
-    subtitle: "Eine Frage? Schreiben Sie uns, wir antworten schnell.",
+    subtitle: "Eine Frage? Eine Reklamation? Schreiben Sie uns, wir antworten schnell.",
     name: "Name",
     phone: "Telefon",
     email: "E-Mail",
@@ -600,7 +604,7 @@ const de: Dict = {
   reservation: {
     title: "Buchungsanfrage",
     subtitle:
-      "Geben Sie Ihre Daten an und wir bestätigen die Verfügbarkeit umgehend.",
+      "Wir freuen uns, Sie an den unten von Ihnen genannten Daten begrüßen zu dürfen.",
     name: "Vollständiger Name",
     phone: "Telefon",
     email: "E-Mail",
@@ -1025,6 +1029,8 @@ const en: Dict = {
   },
   hero: {
     title: "Panorama P – Furnished Residence in Bafoussam",
+    titleMain: "Panorama P",
+    titleSub: "Furnished Residence in Bafoussam",
     subtitle: "Comfortable studios and apartments in a modern, secure setting",
     viewLogements: "View the stays",
     book: "Book now",
@@ -1084,7 +1090,7 @@ const en: Dict = {
   },
   contact: {
     title: "Contact us",
-    subtitle: "A question? Write to us, we reply quickly.",
+    subtitle: "A question? A complaint? Write to us, we reply quickly.",
     name: "Name",
     phone: "Phone",
     email: "Email",
@@ -1100,7 +1106,7 @@ const en: Dict = {
   },
   reservation: {
     title: "Booking request",
-    subtitle: "Tell us your dates and we will confirm availability quickly.",
+    subtitle: "We look forward to welcoming you on the dates you provide below.",
     name: "Full name",
     phone: "Phone",
     email: "Email",
