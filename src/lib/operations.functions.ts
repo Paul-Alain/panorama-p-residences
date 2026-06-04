@@ -904,6 +904,7 @@ export const opGetReservationDetail = createServerFn({ method: "GET" })
           createdAt: p.created_at,
         }))
         .sort((a: any, b: any) => b.createdAt.localeCompare(a.createdAt)),
+      units: allUnits.map((u) => ({ id: u.id, label: u.label, type: u.type })),
       totals,
     };
   });
