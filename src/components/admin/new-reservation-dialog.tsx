@@ -71,8 +71,11 @@ export function NewReservationDialog({
     if (!name.trim()) return toast.error("Le nom du client est obligatoire.");
     if (!phone.trim()) return toast.error("Le téléphone est obligatoire.");
     if (!unitId) return toast.error("Choisissez une unité physique.");
-    if (!arrival || !departure || departure <= arrival)
-      return toast.error("Dates invalides.");
+    if (!arrival || !departure) return toast.error("Dates invalides.");
+    const arrivalDT = new Date(`${arrival}T${arrivalTime}:00`);
+    const departureDT = new Date(`${departure}T${departureTime}:00`);
+    if (departureDT <= arrivalDT)
+      return toast.error("La date/heure de départ doit suivre l'arrivée.");
     setBusy(true);
     try {
       await runCreate({
@@ -83,6 +86,9 @@ export function NewReservationDialog({
           unitId,
           arrival,
           departure,
+          arrivalTime,
+          departureTime,
+          channel: channel as "website" | "whatsapp" | "phone" | "walkin",
           guests: Number(guests) || 1,
           status: "confirmée",
           notes: notes.trim() || undefined,
