@@ -181,8 +181,8 @@ export function ReservationsAdmin() {
         <p className="text-muted-foreground">Aucune réservation.</p>
       ) : (
         <>
-          {/* Desktop table */}
-          <div className="hidden overflow-x-auto rounded-2xl border border-border/60 lg:block">
+          {/* Data table (rows / columns) — scrolls horizontally on small screens */}
+          <div className="overflow-x-auto rounded-2xl border border-border/60">
             <table className="w-full text-sm">
               <thead className="bg-secondary/60 text-left text-xs uppercase text-muted-foreground">
                 <tr>
@@ -208,7 +208,7 @@ export function ReservationsAdmin() {
                       <span className="font-medium">{r.name}</span>
                       <span className="ml-1 font-mono text-[11px] text-muted-foreground">{r.ref}</span>
                     </td>
-                    <td className="px-3 py-2 text-muted-foreground">{r.phone}</td>
+                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{r.phone}</td>
                     <td className="px-3 py-2 text-muted-foreground">{r.email || "—"}</td>
                     <td className="px-3 py-2">{TYPE_LABELS[r.logement_type ?? ""] ?? "—"}</td>
                     <td className="px-3 py-2 text-center">{r.guests}</td>
@@ -230,37 +230,6 @@ export function ReservationsAdmin() {
                 ))}
               </tbody>
             </table>
-          </div>
-
-          {/* Mobile cards */}
-          <div className="space-y-3 lg:hidden">
-            {pageItems.map((r) => (
-              <div key={r.id} className="rounded-xl border border-border/60 bg-card p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="font-medium">{r.name} <span className="font-mono text-xs text-muted-foreground">{r.ref}</span></p>
-                    <p className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground">
-                      <Phone className="h-3.5 w-3.5" /> {r.phone}
-                    </p>
-                    {r.email && (
-                      <p className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground">
-                        <Mail className="h-3.5 w-3.5" /> {r.email}
-                      </p>
-                    )}
-                  </div>
-                  <Badge variant={statusVariant(r.displayStatus)}>{RES_STATUS_LABELS[r.displayStatus] ?? r.displayStatus}</Badge>
-                </div>
-                <p className="mt-2 text-sm">{TYPE_LABELS[r.logement_type ?? ""] ?? "—"} · {r.guests} pers. · {r.units} unité(s)</p>
-                <p className="text-sm text-muted-foreground">{formatDateFr(r.arrival_date)} {r.arrival_time} → {formatDateFr(r.departure_date)} {r.departure_time}</p>
-                <p className="mt-1 text-sm">
-                  Total {formatMoney(r.total, residence.currency)} · Avancé <span className="text-emerald-600">{formatMoney(r.advance, residence.currency)}</span>
-                  {" · "}Solde <span className="text-gold">{formatMoney(r.balance, residence.currency)}</span>
-                </p>
-                <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-border/50 pt-3">
-                  <RowActions r={r} busyId={busyId} onView={() => setDetailId(r.id)} onEdit={() => setEditing(toEditable(r))} act={act} runStatus={runStatus} />
-                </div>
-              </div>
-            ))}
           </div>
         </>
       )}
