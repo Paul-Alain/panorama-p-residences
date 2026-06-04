@@ -32,16 +32,20 @@ const Email = ({
 }: ReservationConfirmationProps) => (
   <EmailShell preview="Demande de réservation reçue · Reservation request received — Panorama P Residence">
     {/* Français */}
-    <Text style={h1}>Merci, {name} !</Text>
+    <Text style={h1}>Bonjour {name},</Text>
     <Text style={lead}>
-      Nous avons bien reçu votre demande de réservation à Panorama P Residence.
-      Voici le récapitulatif de votre séjour :
+      Nous avons bien reçu votre demande de réservation à la Résidence
+      Panorama P.
+    </Text>
+    <Text style={paragraph}>
+      Votre demande est actuellement en cours d'étude par notre équipe. Nous
+      vous contacterons très prochainement pour confirmation.
     </Text>
 
     <Section style={card}>
       {unitLabel ? (
         <>
-          <Text style={rowLabel}>Logement · Accommodation</Text>
+          <Text style={rowLabel}>Type de logement · Accommodation</Text>
           <Text style={rowValue}>{unitLabel}</Text>
         </>
       ) : null}
@@ -55,8 +59,9 @@ const Email = ({
 
     <Section style={securityNote}>
       <Text style={securityText}>
-        Notre équipe vous contactera très prochainement pour confirmer la
-        disponibilité et finaliser votre réservation.
+        Merci pour votre confiance.
+        <br />
+        Résidence Panorama P — Bafoussam
       </Text>
     </Section>
 
@@ -64,24 +69,31 @@ const Email = ({
 
     {/* English */}
     <Text style={enLabel}>English</Text>
-    <Text style={h1}>Thank you, {name}!</Text>
+    <Text style={h1}>Hello {name},</Text>
     <Text style={paragraph}>
-      We've received your reservation request at Panorama P Residence. Our team
-      will reach out shortly to confirm availability and finalise your booking.
+      We have received your reservation request at Résidence Panorama P. Your
+      request is currently being reviewed by our team. We will contact you very
+      soon to confirm.
+    </Text>
+    <Text style={paragraph}>
+      Thank you for your trust.
+      <br />
+      Résidence Panorama P — Bafoussam
     </Text>
   </EmailShell>
 )
 
 export const template = {
   component: Email,
-  subject: 'Votre demande de réservation · Panorama P Residence',
+  subject:
+    'Demande reçue — en attente de validation · Panorama P Residence',
   displayName: 'Reservation confirmation',
   previewData: {
     name: 'Awa N.',
-    arrival: '2026-07-12',
-    departure: '2026-07-16',
+    arrival: '12 juillet 2026 · 14:00',
+    departure: '16 juillet 2026 · 11:00',
     guests: 2,
-    unitLabel: 'Appartement Confort — Vue jardin',
+    unitLabel: 'Appartement Premium',
   },
 } satisfies TemplateEntry
 
