@@ -360,10 +360,13 @@ export type Database = {
       reservations: {
         Row: {
           arrival_date: string
+          arrival_time: string
+          channel: string
           checkin_at: string | null
           checkout_at: string | null
           created_at: string
           departure_date: string
+          departure_time: string
           email: string | null
           guests: number
           id: string
@@ -380,10 +383,13 @@ export type Database = {
         }
         Insert: {
           arrival_date: string
+          arrival_time?: string
+          channel?: string
           checkin_at?: string | null
           checkout_at?: string | null
           created_at?: string
           departure_date: string
+          departure_time?: string
           email?: string | null
           guests?: number
           id?: string
@@ -400,10 +406,13 @@ export type Database = {
         }
         Update: {
           arrival_date?: string
+          arrival_time?: string
+          channel?: string
           checkin_at?: string | null
           checkout_at?: string | null
           created_at?: string
           departure_date?: string
+          departure_time?: string
           email?: string | null
           guests?: number
           id?: string

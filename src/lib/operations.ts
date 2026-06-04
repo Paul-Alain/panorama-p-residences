@@ -39,6 +39,14 @@ export function canTransition(from: string, to: string): boolean {
 /** Statuses that occupy a physical unit (count against availability). */
 export const ACTIVE_RES_STATUSES = ["confirmée", "checkin"] as const;
 
+// ── Booking channel ────────────────────────────────────────────────────────
+export const CHANNEL_LABELS: Record<string, string> = {
+  website: "Site web",
+  whatsapp: "WhatsApp",
+  phone: "Téléphone",
+  walkin: "Sur place",
+};
+
 // ── Payment ──────────────────────────────────────────────────────────────
 export type PayStatus =
   | "non_paye"
@@ -187,6 +195,64 @@ export function nightsBetween(arrival: string, departure: string): number {
   return Math.max(0, Math.round((d - a) / 86_400_000));
 }
 
+// ── Booking-unit billing rule (replaces the old nights/24h rule) ──────────
+// Default wall-clock times used when a reservation has no explicit time.
+export const DEFAULT_CHECKIN_TIME = "14:00";
+export const DEFAULT_CHECKOUT_TIME = "11:00";
+
+/** Build a Date from a `YYYY-MM-DD` date and an `HH:MM` time (local wall clock). */
+export function toDateTime(date: string, time?: string | null): Date {
+  const t = time && /^\d{2}:\d{2}/.test(time) ? time.slice(0, 5) : "00:00";
+  return new Date(`${date}T${t}:00`);
+}
+
+/**
+ * Number of billable booking units for a stay.
+ *
+ * Rule: 1 unit is acquired at check-in. An additional unit is added each time
+ * a daily 12:00 (noon) checkpoint is reached while the guest is still occupying
+ * the accommodation. The check-in day's own noon never counts — only the noons
+ * of the days that follow the check-in day.
+ *
+ *   10 Jun 09:00 → 11 Jun 11:59 = 1
+ *   10 Jun 09:00 → 11 Jun 12:01 = 2
+ *   10 Jun 20:00 → 12 Jun 13:00 = 3
+ */
+export function bookingUnits(arrival: Date, departure: Date): number {
+  if (
+    !(arrival instanceof Date) ||
+    !(departure instanceof Date) ||
+    Number.isNaN(arrival.getTime()) ||
+    Number.isNaN(departure.getTime()) ||
+    departure <= arrival
+  ) {
+    return 0;
+  }
+  let units = 1;
+  // First checkpoint = noon of the day AFTER the check-in day.
+  const checkpoint = new Date(arrival);
+  checkpoint.setHours(12, 0, 0, 0);
+  checkpoint.setDate(checkpoint.getDate() + 1);
+  while (checkpoint < departure) {
+    units += 1;
+    checkpoint.setDate(checkpoint.getDate() + 1);
+  }
+  return units;
+}
+
+/** Convenience wrapper computing booking units from date + time strings. */
+export function bookingUnitsFrom(
+  arrivalDate: string,
+  arrivalTime: string | null | undefined,
+  departureDate: string,
+  departureTime: string | null | undefined,
+): number {
+  return bookingUnits(
+    toDateTime(arrivalDate, arrivalTime ?? DEFAULT_CHECKIN_TIME),
+    toDateTime(departureDate, departureTime ?? DEFAULT_CHECKOUT_TIME),
+  );
+}
+
 /** Short reference derived from a reservation id (e.g. `RP-8F3A`). */
 export function shortRef(id: string): string {
   return `RP-${id.replace(/-/g, "").slice(0, 4).toUpperCase()}`;
@@ -209,3 +275,27 @@ export const ASSIGNABLE_ROLES = [
   "menage",
   "comptable",
 ] as const;
+
+// ── Role tiers (Owner / Manager / Technician) ────────────────────────────
+export type RoleTier = "owner" | "manager" | "technician" | null;
+
+/** Collapse the granular roles into the three operational tiers. */
+export function roleTier(roles: string[]): RoleTier {
+  if (roles.includes("admin") || roles.includes("proprietaire")) return "owner";
+  if (roles.includes("gestionnaire") || roles.includes("comptable")) return "manager";
+  if (roles.includes("reception") || roles.includes("menage")) return "technician";
+  return null;
+}
+
+/** Tier display labels per language. */
+export const ROLE_TIER_LABELS: Record<"fr" | "en" | "de", Record<Exclude<RoleTier, null>, string>> = {
+  fr: { owner: "Propriétaire", manager: "Gestionnaire", technician: "Technicien" },
+  en: { owner: "Owner", manager: "Manager", technician: "Technician" },
+  de: { owner: "Eigentümer", manager: "Manager", technician: "Techniker" },
+};
+
+/** Whether a tier may perform financial / destructive operations. */
+export function canManageFinance(tier: RoleTier): boolean {
+  return tier === "owner" || tier === "manager";
+}
+

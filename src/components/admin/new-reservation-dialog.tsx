@@ -52,6 +52,9 @@ export function NewReservationDialog({
   const [unitId, setUnitId] = useState<string>("");
   const [arrival, setArrival] = useState("");
   const [departure, setDeparture] = useState("");
+  const [arrivalTime, setArrivalTime] = useState("14:00");
+  const [departureTime, setDepartureTime] = useState("11:00");
+  const [channel, setChannel] = useState("walkin");
   const [guests, setGuests] = useState("1");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);

@@ -12,6 +12,7 @@ import {
   LogIn,
   LogOut,
   Eye,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +30,7 @@ import {
   opCheckIn,
   opCheckOut,
 } from "@/lib/operations.functions";
-import { RES_STATUS_LABELS, PAY_STATUS_LABELS } from "@/lib/operations";
+import { RES_STATUS_LABELS, PAY_STATUS_LABELS, CHANNEL_LABELS } from "@/lib/operations";
 import { formatDateFr, formatMoney } from "@/lib/format";
 import { useResidence } from "@/lib/use-residence";
 import { ReservationDetailDialog } from "./reservation-detail-dialog";
@@ -61,6 +62,7 @@ export function ReservationsAdmin() {
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
+  const [view, setView] = useState<"active" | "all">("active");
   const [page, setPage] = useState(1);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -70,6 +72,7 @@ export function ReservationsAdmin() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return data.filter((r) => {
+      if (view === "active" && !r.active) return false;
       if (q) {
         const hay = `${r.name} ${r.phone} ${r.email ?? ""} ${r.ref} ${r.unitLabel}`.toLowerCase();
         if (!hay.includes(q)) return false;
@@ -77,9 +80,9 @@ export function ReservationsAdmin() {
       if (status !== "all" && r.status !== status) return false;
       return true;
     });
-  }, [data, search, status]);
+  }, [data, search, status, view]);
 
-  useEffect(() => setPage(1), [search, status]);
+  useEffect(() => setPage(1), [search, status, view]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -102,6 +105,22 @@ export function ReservationsAdmin() {
 
   return (
     <div className="space-y-5">
+      <div className="flex gap-2">
+        <Button
+          variant={view === "active" ? "gold" : "outline"}
+          size="sm"
+          onClick={() => setView("active")}
+        >
+          Réservations actives
+        </Button>
+        <Button
+          variant={view === "all" ? "gold" : "outline"}
+          size="sm"
+          onClick={() => setView("all")}
+        >
+          Historique complet
+        </Button>
+      </div>
       <div className="grid gap-2 sm:grid-cols-3">
         <div className="relative sm:col-span-2">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -138,7 +157,10 @@ export function ReservationsAdmin() {
                   <th className="px-3 py-2">Arrivée</th>
                   <th className="px-3 py-2">Départ</th>
                   <th className="px-3 py-2">Pers.</th>
+                  <th className="px-3 py-2">Canal</th>
                   <th className="px-3 py-2">Statut</th>
+                  <th className="px-3 py-2 text-right">Total</th>
+                  <th className="px-3 py-2 text-right">Payé</th>
                   <th className="px-3 py-2">Paiement</th>
                   <th className="px-3 py-2 text-right">Actions</th>
                 </tr>
@@ -150,12 +172,15 @@ export function ReservationsAdmin() {
                     <td className="px-3 py-2 font-medium">{r.name}</td>
                     <td className="px-3 py-2 text-muted-foreground">{r.phone}</td>
                     <td className="px-3 py-2">{r.unitLabel}</td>
-                    <td className="px-3 py-2">{formatDateFr(r.arrival_date)}</td>
-                    <td className="px-3 py-2">{formatDateFr(r.departure_date)}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">{formatDateFr(r.arrival_date)} <span className="text-muted-foreground">{r.arrival_time}</span></td>
+                    <td className="px-3 py-2 whitespace-nowrap">{formatDateFr(r.departure_date)} <span className="text-muted-foreground">{r.departure_time}</span></td>
                     <td className="px-3 py-2 text-center">{r.guests}</td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground">{CHANNEL_LABELS[r.channel] ?? r.channel}</td>
                     <td className="px-3 py-2">
                       <Badge variant={statusVariant(r.status)}>{RES_STATUS_LABELS[r.status] ?? r.status}</Badge>
                     </td>
+                    <td className="px-3 py-2 text-right whitespace-nowrap">{formatMoney(r.total, residence.currency)}</td>
+                    <td className="px-3 py-2 text-right whitespace-nowrap">{formatMoney(r.paid, residence.currency)}</td>
                     <td className="px-3 py-2">
                       <span className="text-xs">{PAY_STATUS_LABELS[r.payment_status] ?? r.payment_status}</span>
                       {r.balance > 0 && <span className="block text-xs text-gold">{formatMoney(r.balance, residence.currency)}</span>}
@@ -184,10 +209,10 @@ export function ReservationsAdmin() {
                   </div>
                   <Badge variant={statusVariant(r.status)}>{RES_STATUS_LABELS[r.status] ?? r.status}</Badge>
                 </div>
-                <p className="mt-2 text-sm">{r.unitLabel} · {r.guests} pers.</p>
-                <p className="text-sm text-muted-foreground">{formatDateFr(r.arrival_date)} → {formatDateFr(r.departure_date)}</p>
+                <p className="mt-2 text-sm">{r.unitLabel} · {r.guests} pers. · {CHANNEL_LABELS[r.channel] ?? r.channel}</p>
+                <p className="text-sm text-muted-foreground">{formatDateFr(r.arrival_date)} {r.arrival_time} → {formatDateFr(r.departure_date)} {r.departure_time}</p>
                 <p className="mt-1 text-sm">
-                  {PAY_STATUS_LABELS[r.payment_status] ?? r.payment_status}
+                  {formatMoney(r.total, residence.currency)} · {PAY_STATUS_LABELS[r.payment_status] ?? r.payment_status}
                   {r.balance > 0 && <span className="text-gold"> · solde {formatMoney(r.balance, residence.currency)}</span>}
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-border/50 pt-3">
@@ -260,6 +285,21 @@ function RowActions({
       {r.status === "checkin" && (
         <Button size="sm" variant="outline" disabled={loading} onClick={() => act(r.id, () => runCheckOut({ data: { id: r.id } }), "Check-out effectué.")}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />} Check-out
+        </Button>
+      )}
+      {r.status !== "annulée" && r.status !== "terminée" && (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-destructive hover:text-destructive"
+          disabled={loading}
+          onClick={() => {
+            if (confirm("Annuler cette réservation ?"))
+              act(r.id, () => runStatus({ data: { id: r.id, status: "annulée" } }), "Réservation annulée.");
+          }}
+          title="Annuler"
+        >
+          <XCircle className="h-4 w-4" />
         </Button>
       )}
     </>

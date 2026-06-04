@@ -11,11 +11,13 @@ import {
 import {
   canTransition,
   derivePaymentStatus,
-  nightsBetween,
+  bookingUnitsFrom,
   computeUnitStatus,
   shortRef,
   RES_STATUS_LABELS,
   PAY_METHOD_LABELS,
+  DEFAULT_CHECKIN_TIME,
+  DEFAULT_CHECKOUT_TIME,
 } from "@/lib/operations";
 import { formatDateFr, formatMoney } from "@/lib/format";
 
@@ -42,12 +44,16 @@ interface ResRow {
   guests: number;
   arrival_date: string;
   departure_date: string;
+  arrival_time: string | null;
+  departure_time: string | null;
+  channel: string | null;
   status: string;
   payment_status: string;
   total_amount: number;
   logement_unit_id: string | null;
   logement_type: string | null;
   notes: string | null;
+  created_at?: string;
 }
 
 function todayLocalIso(): string {
@@ -102,7 +108,7 @@ async function loadReservations(supabase: any): Promise<ResRow[]> {
   const { data, error } = await supabase
     .from("reservations")
     .select(
-      "id, name, phone, email, guests, arrival_date, departure_date, status, payment_status, total_amount, logement_unit_id, logement_type, notes",
+      "id, name, phone, email, guests, arrival_date, departure_date, arrival_time, departure_time, channel, status, payment_status, total_amount, logement_unit_id, logement_type, notes, created_at",
     )
     .order("arrival_date", { ascending: true });
   if (error) throw new Error(error.message);
@@ -119,9 +125,18 @@ async function loadPaymentsMap(supabase: any): Promise<Map<string, number>> {
   return m;
 }
 
+function bookingUnitsOf(r: ResRow): number {
+  return bookingUnitsFrom(
+    r.arrival_date,
+    r.arrival_time ?? DEFAULT_CHECKIN_TIME,
+    r.departure_date,
+    r.departure_time ?? DEFAULT_CHECKOUT_TIME,
+  );
+}
+
 function effectiveTotal(r: ResRow, unitPrice: number): number {
   if (Number(r.total_amount) > 0) return Number(r.total_amount);
-  return nightsBetween(r.arrival_date, r.departure_date) * unitPrice;
+  return bookingUnitsOf(r) * unitPrice;
 }
 
 // ── Full reservations list (enriched) ────────────────────────────────────
@@ -143,11 +158,15 @@ export const opListReservations = createServerFn({ method: "GET" })
       (r.logement_type ? priceByType.get(r.logement_type) : undefined) ??
       0;
 
+    const nowMs = Date.now();
     return reservations
       .filter((r) => r.status !== BLOCK_STATUS)
       .map((r) => {
         const total = effectiveTotal(r, priceOf(r));
         const paid = paidMap.get(r.id) ?? 0;
+        const departureMs = new Date(
+          `${r.departure_date}T${(r.departure_time ?? DEFAULT_CHECKOUT_TIME).slice(0, 5)}:00`,
+        ).getTime();
         return {
           id: r.id,
           ref: shortRef(r.id),
@@ -157,15 +176,20 @@ export const opListReservations = createServerFn({ method: "GET" })
           guests: r.guests,
           arrival_date: r.arrival_date,
           departure_date: r.departure_date,
+          arrival_time: r.arrival_time ?? DEFAULT_CHECKIN_TIME,
+          departure_time: r.departure_time ?? DEFAULT_CHECKOUT_TIME,
+          channel: r.channel ?? "website",
           status: r.status,
           payment_status: r.payment_status,
           unitId: r.logement_unit_id,
           unitLabel: r.logement_unit_id ? unitById.get(r.logement_unit_id)?.label ?? "—" : "—",
           logement_type: r.logement_type,
+          units: bookingUnitsOf(r),
           total,
           paid,
           balance: Math.max(0, total - paid),
-          created_at: (r as any).created_at ?? r.arrival_date,
+          active: r.status !== "annulée" && departureMs > nowMs,
+          created_at: r.created_at ?? r.arrival_date,
         };
       })
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
@@ -255,8 +279,12 @@ export const opGetDashboard = createServerFn({ method: "GET" })
         paymentStatus: r.payment_status,
         unitLabel: r.logement_unit_id ? unitById.get(r.logement_unit_id)?.label ?? "—" : "—",
         unitId: r.logement_unit_id,
+        type: r.logement_type,
         arrival: r.arrival_date,
         departure: r.departure_date,
+        arrivalTime: r.arrival_time ?? DEFAULT_CHECKIN_TIME,
+        departureTime: r.departure_time ?? DEFAULT_CHECKOUT_TIME,
+        units: bookingUnitsOf(r),
         balance: Math.max(0, total - paid),
         total,
         paid,
@@ -360,6 +388,36 @@ export const opGetDashboard = createServerFn({ method: "GET" })
       });
     }
 
+    // Per-type availability (Chambre / Studio / Appartement)
+    const typeAvailability = (["chambre", "studio", "appartement"] as const).map((type) => {
+      const cards = unitCards.filter((c) => c.type === type);
+      const available = cards.filter((c) => c.status === "libre" || c.status === "arrivee").length;
+      const total = cards.length;
+      const ratio = total === 0 ? 0 : available / total;
+      const level = available === 0 ? "full" : ratio >= 1 ? "free" : "partial";
+      return { type, available, total, level };
+    });
+
+    // Upcoming windows (next 24h) by datetime
+    const nowMs = Date.now();
+    const in24h = nowMs + 24 * 60 * 60 * 1000;
+    const toMs = (d: string, t: string | null | undefined, fallback: string) =>
+      new Date(`${d}T${(t ?? fallback).slice(0, 5)}:00`).getTime();
+    const upcomingArrivals = reservations
+      .filter((r) => {
+        if (r.status === "annulée" || r.status === BLOCK_STATUS || r.status === "terminée") return false;
+        const ms = toMs(r.arrival_date, r.arrival_time, DEFAULT_CHECKIN_TIME);
+        return ms >= nowMs && ms <= in24h;
+      })
+      .map(fmtRes);
+    const upcomingDepartures = reservations
+      .filter((r) => {
+        if (r.status === "annulée" || r.status === BLOCK_STATUS) return false;
+        const ms = toMs(r.departure_date, r.departure_time, DEFAULT_CHECKOUT_TIME);
+        return ms >= nowMs && ms <= in24h;
+      })
+      .map(fmtRes);
+
     return {
       today,
       kpis: {
@@ -368,14 +426,18 @@ export const opGetDashboard = createServerFn({ method: "GET" })
         totalUnits,
         arrivals: arrivals.length,
         departures: departures.length,
+        upcomingArrivals: upcomingArrivals.length,
         pendingRequests,
         paymentsToVerify,
         newMessages,
         monthRevenue,
       },
+      typeAvailability,
       urgent,
       arrivals,
       departures,
+      upcomingArrivals,
+      upcomingDepartures,
       units: unitCards,
     };
   });
@@ -560,7 +622,7 @@ export const opSetUnitOpStatus = createServerFn({ method: "POST" })
 async function recomputePaymentStatus(sb: any, reservationId: string): Promise<{ total: number; paid: number; balance: number; status: string }> {
   const { data: r, error } = await sb
     .from("reservations")
-    .select("total_amount, arrival_date, departure_date, logement_unit_id, logement_type")
+    .select("total_amount, arrival_date, departure_date, arrival_time, departure_time, logement_unit_id, logement_type")
     .eq("id", reservationId)
     .single();
   if (error) throw new Error(error.message);
@@ -582,7 +644,13 @@ async function recomputePaymentStatus(sb: any, reservationId: string): Promise<{
       .maybeSingle();
     price = Number((l as any)?.price ?? 0);
   }
-  const total = Number(r.total_amount) > 0 ? Number(r.total_amount) : nightsBetween(r.arrival_date, r.departure_date) * price;
+  const units = bookingUnitsFrom(
+    r.arrival_date,
+    r.arrival_time ?? DEFAULT_CHECKIN_TIME,
+    r.departure_date,
+    r.departure_time ?? DEFAULT_CHECKOUT_TIME,
+  );
+  const total = Number(r.total_amount) > 0 ? Number(r.total_amount) : units * price;
 
   const { data: pays } = await sb.from("payments").select("amount").eq("reservation_id", reservationId);
   const paid = (pays ?? []).reduce((s: number, p: any) => s + Number(p.amount), 0);
@@ -743,6 +811,15 @@ export const opGetReservationDetail = createServerFn({ method: "GET" })
         guests: r.guests,
         arrival_date: r.arrival_date,
         departure_date: r.departure_date,
+        arrival_time: r.arrival_time ?? DEFAULT_CHECKIN_TIME,
+        departure_time: r.departure_time ?? DEFAULT_CHECKOUT_TIME,
+        channel: r.channel ?? "website",
+        units: bookingUnitsFrom(
+          r.arrival_date,
+          r.arrival_time ?? DEFAULT_CHECKIN_TIME,
+          r.departure_date,
+          r.departure_time ?? DEFAULT_CHECKOUT_TIME,
+        ),
         status: r.status,
         payment_status: r.payment_status,
         total_amount: Number(r.total_amount),
@@ -777,11 +854,19 @@ export const opCreateReservation = createServerFn({ method: "POST" })
         unitId: UUID,
         arrival: DATE,
         departure: DATE,
+        arrivalTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+        departureTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+        channel: z.enum(["website", "whatsapp", "phone", "walkin"]).default("walkin"),
         guests: z.number().int().min(1).max(20),
         status: z.enum(["nouvelle", "confirmée"]).default("confirmée"),
         notes: z.string().max(500).optional(),
       })
-      .refine((v) => v.departure > v.arrival, { message: "Dates invalides" })
+      .refine(
+        (v) =>
+          new Date(`${v.departure}T${(v.departureTime ?? DEFAULT_CHECKOUT_TIME)}:00`) >
+          new Date(`${v.arrival}T${(v.arrivalTime ?? DEFAULT_CHECKIN_TIME)}:00`),
+        { message: "La date/heure de départ doit suivre l'arrivée." },
+      )
       .parse(input),
   )
   .handler(async ({ context, data }) => {
@@ -805,6 +890,9 @@ export const opCreateReservation = createServerFn({ method: "POST" })
         logement_type: (unit as any)?.logements?.type ?? null,
         arrival_date: data.arrival,
         departure_date: data.departure,
+        arrival_time: data.arrivalTime ?? DEFAULT_CHECKIN_TIME,
+        departure_time: data.departureTime ?? DEFAULT_CHECKOUT_TIME,
+        channel: data.channel,
         guests: data.guests,
         status: data.status,
         notes: data.notes?.trim() || null,
