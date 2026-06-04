@@ -111,6 +111,7 @@ export function ReservationFormDialog({
     arrivalTime: DEFAULT_ARRIVAL_TIME,
     departureTime: DEFAULT_DEPARTURE_TIME,
     advance: "0",
+    addAdvance: "0",
     notes: "",
   };
   const [form, setForm] = useState(empty);
