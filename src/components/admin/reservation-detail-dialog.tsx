@@ -51,7 +51,7 @@ import { formatDateFr, formatDateTimeFr, formatMoney } from "@/lib/format";
 import { generateReceiptPdf, generateInvoicePdf } from "@/lib/pdf-documents";
 import { useResidence } from "@/lib/use-residence";
 
-const OP_KEYS = ["op-dashboard", "admin-reservations", "op-payments", "op-clients", "admin-occupancy"];
+const OP_KEYS = ["op-dashboard", "admin-reservations", "op-payments", "op-clients", "admin-occupancy", "op-calendar"];
 
 export function ReservationDetailDialog({
   reservationId,
