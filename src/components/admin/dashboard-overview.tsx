@@ -14,7 +14,6 @@ import {
   CreditCard,
   Mail,
   AlertTriangle,
-  CheckCircle2,
   Eye,
   Plus,
   Wrench,
