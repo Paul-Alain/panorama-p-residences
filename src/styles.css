@@ -113,6 +113,22 @@
   --st-bloque-fg: oklch(0.99 0 0);
   --st-nettoyage: oklch(0.62 0.14 300);
   --st-nettoyage-fg: oklch(0.98 0.02 300);
+
+  /* Occupancy calendar palette (Phase 2 — consistent platform-wide) */
+  --cal-free: oklch(0.95 0.05 150);
+  --cal-free-fg: oklch(0.45 0.09 150);
+  --cal-pending: oklch(0.74 0.15 65);
+  --cal-pending-fg: oklch(0.27 0.05 65);
+  --cal-confirmed: oklch(0.58 0.14 250);
+  --cal-confirmed-fg: oklch(0.98 0.01 250);
+  --cal-completed: oklch(0.72 0.015 250);
+  --cal-completed-fg: oklch(0.99 0 0);
+  --cal-maintenance: oklch(0.58 0.2 27);
+  --cal-maintenance-fg: oklch(0.98 0.01 27);
+  --cal-conflict: oklch(0.55 0.22 305);
+  --cal-conflict-fg: oklch(0.98 0.02 305);
+  --cal-cancelled: oklch(0.8 0.01 60);
+  --cal-cancelled-fg: oklch(0.5 0.01 60);
 }
 
 .dark {
@@ -207,6 +223,22 @@
   .st-dot-conflit { background-color: var(--st-conflit); }
   .st-dot-bloque { background-color: var(--st-bloque); }
   .st-dot-nettoyage { background-color: var(--st-nettoyage); }
+
+  /* Occupancy calendar fills */
+  .cal-free { background-color: var(--cal-free); color: var(--cal-free-fg); }
+  .cal-pending { background-color: var(--cal-pending); color: var(--cal-pending-fg); }
+  .cal-confirmed { background-color: var(--cal-confirmed); color: var(--cal-confirmed-fg); }
+  .cal-occupied { background-color: var(--cal-confirmed); color: var(--cal-confirmed-fg); }
+  .cal-completed { background-color: var(--cal-completed); color: var(--cal-completed-fg); }
+  .cal-maintenance { background-color: var(--cal-maintenance); color: var(--cal-maintenance-fg); }
+  .cal-conflict { background-color: var(--cal-conflict); color: var(--cal-conflict-fg); }
+  .cal-cancelled { background-color: var(--cal-cancelled); color: var(--cal-cancelled-fg); }
+  .cal-dot-free { background-color: var(--cal-free-fg); }
+  .cal-dot-pending { background-color: var(--cal-pending); }
+  .cal-dot-confirmed { background-color: var(--cal-confirmed); }
+  .cal-dot-completed { background-color: var(--cal-completed); }
+  .cal-dot-maintenance { background-color: var(--cal-maintenance); }
+  .cal-dot-conflict { background-color: var(--cal-conflict); }
 }
 
 @keyframes fade-up {
