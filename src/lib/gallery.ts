@@ -1,5 +1,7 @@
-// Gallery organised in stacked blocks (one section per category).
-// Each new batch of photos sent by the manager becomes (or extends) a section.
+// Gallery organised in blocks (one card per category).
+// The gallery index shows a card per block; clicking a card opens a
+// dedicated page (/galerie/$blockId) presenting all photos of that block.
+// Each new batch of photos sent by the manager becomes (or extends) a block.
 
 import type { Lang } from "@/lib/i18n/translations";
 
@@ -11,6 +13,9 @@ import chambre5 from "@/assets/chambre-5.jpg.asset.json";
 import chambre6 from "@/assets/chambre-6.jpg.asset.json";
 import chambre7 from "@/assets/chambre-7.jpg.asset.json";
 import chambre8 from "@/assets/chambre-8.jpg.asset.json";
+import chambre9 from "@/assets/chambre-9.jpg.asset.json";
+import chambre10 from "@/assets/chambre-10.jpg.asset.json";
+import chambre11 from "@/assets/chambre-11.jpg.asset.json";
 
 export interface GalleryImage {
   url: string;
@@ -20,8 +25,20 @@ export interface GalleryImage {
 export interface GallerySection {
   id: string;
   title: Record<Lang, string>;
+  cover: string;
   images: GalleryImage[];
 }
+
+const chambreAlt: Record<Lang, string> = {
+  fr: "Chambre confortable – Résidence Panorama P",
+  de: "Komfortables Zimmer – Residenz Panorama P",
+  en: "Comfortable bedroom – Panorama P Residence",
+};
+
+const chambreUrls = [
+  chambre1, chambre2, chambre3, chambre4, chambre5, chambre6,
+  chambre7, chambre8, chambre9, chambre10, chambre11,
+];
 
 export const gallerySections: GallerySection[] = [
   {
@@ -31,16 +48,11 @@ export const gallerySections: GallerySection[] = [
       de: "Komfortable Zimmer",
       en: "Comfortable bedrooms",
     },
-    images: [
-      chambre1, chambre2, chambre3, chambre4,
-      chambre5, chambre6, chambre7, chambre8,
-    ].map((a) => ({
-      url: a.url,
-      alt: {
-        fr: "Chambre confortable – Résidence Panorama P",
-        de: "Komfortables Zimmer – Residenz Panorama P",
-        en: "Comfortable bedroom – Panorama P Residence",
-      },
-    })),
+    cover: chambre2.url,
+    images: chambreUrls.map((a) => ({ url: a.url, alt: chambreAlt })),
   },
 ];
+
+export function getGallerySection(id: string): GallerySection | undefined {
+  return gallerySections.find((s) => s.id === id);
+}
