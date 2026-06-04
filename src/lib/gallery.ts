@@ -31,6 +31,10 @@ import salon11 from "@/assets/salon-11.jpg.asset.json";
 import salon12 from "@/assets/salon-12.jpg.asset.json";
 import salon13 from "@/assets/salon-13.jpg.asset.json";
 
+import cuisine1 from "@/assets/cuisine-1.jpg.asset.json";
+import cuisine2 from "@/assets/cuisine-2.jpg.asset.json";
+import cuisine3 from "@/assets/cuisine-3.jpg.asset.json";
+
 export interface GalleryImage {
   url: string;
   alt: Record<Lang, string>;
@@ -65,6 +69,14 @@ const salonUrls = [
   salon10, salon11, salon12, salon13,
 ];
 
+const cuisineAlt: Record<Lang, string> = {
+  fr: "Cuisine entièrement équipée – Résidence Panorama P",
+  de: "Voll ausgestattete Küche – Residenz Panorama P",
+  en: "Fully equipped kitchen – Panorama P Residence",
+};
+
+const cuisineUrls = [cuisine1, cuisine2, cuisine3];
+
 export const gallerySections: GallerySection[] = [
   {
     id: "salon",
@@ -75,6 +87,16 @@ export const gallerySections: GallerySection[] = [
     },
     cover: salon1.url,
     images: salonUrls.map((a) => ({ url: a.url, alt: salonAlt })),
+  },
+  {
+    id: "cuisine",
+    title: {
+      fr: "Une cuisine entièrement équipée",
+      de: "Eine voll ausgestattete Küche",
+      en: "A fully equipped kitchen",
+    },
+    cover: cuisine1.url,
+    images: cuisineUrls.map((a) => ({ url: a.url, alt: cuisineAlt })),
   },
   {
     id: "chambre",
