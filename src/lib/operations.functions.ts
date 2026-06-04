@@ -268,6 +268,7 @@ export const opGetCalendar = createServerFn({ method: "GET" })
         notes: r.notes,
         total,
         paid,
+        advance: Number(r.advance_amount) || 0,
         balance: Math.max(0, total - paid),
       };
     });
