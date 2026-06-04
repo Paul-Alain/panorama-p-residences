@@ -5,14 +5,11 @@ import { toast } from "sonner";
 import {
   Loader2,
   Search,
-  Phone,
-  Mail,
   Plus,
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
   Pencil,
-  Eye,
   XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,14 +32,13 @@ import {
 } from "@/lib/operations";
 import { formatDateFr, formatMoney } from "@/lib/format";
 import { useResidence } from "@/lib/use-residence";
-import { ReservationDetailDialog } from "./reservation-detail-dialog";
 import {
   ReservationFormDialog,
   type EditableReservation,
 } from "./reservation-form-dialog";
 
 const PAGE_SIZE = 20;
-const KEYS = ["op-dashboard", "admin-reservations", "op-payments", "admin-occupancy"];
+const KEYS = ["op-dashboard", "admin-reservations", "op-payments", "admin-occupancy", "op-calendar"];
 
 const TYPE_LABELS: Record<string, string> = {
   chambre: "Chambre",
@@ -95,7 +91,7 @@ export function ReservationsAdmin() {
   const [view, setView] = useState<"active" | "all">("active");
   const [page, setPage] = useState(1);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [detailId, setDetailId] = useState<string | null>(null);
+  
   const [editing, setEditing] = useState<EditableReservation | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
@@ -223,7 +219,7 @@ export function ReservationsAdmin() {
                     <td className="px-3 py-2 text-right whitespace-nowrap text-gold">{formatMoney(r.balance, residence.currency)}</td>
                     <td className="px-3 py-2">
                       <div className="flex items-center justify-end gap-1">
-                        <RowActions r={r} busyId={busyId} onView={() => setDetailId(r.id)} onEdit={() => setEditing(toEditable(r))} act={act} runStatus={runStatus} />
+                        <RowActions r={r} busyId={busyId} onEdit={() => setEditing(toEditable(r))} act={act} runStatus={runStatus} />
                       </div>
                     </td>
                   </tr>
@@ -249,7 +245,7 @@ export function ReservationsAdmin() {
         </div>
       )}
 
-      <ReservationDetailDialog reservationId={detailId} open={!!detailId} onOpenChange={(v) => !v && setDetailId(null)} />
+      
       <ReservationFormDialog open={createOpen} onOpenChange={setCreateOpen} />
       <ReservationFormDialog
         open={!!editing}
@@ -263,14 +259,12 @@ export function ReservationsAdmin() {
 function RowActions({
   r,
   busyId,
-  onView,
   onEdit,
   act,
   runStatus,
 }: {
   r: ResItem;
   busyId: string | null;
-  onView: () => void;
   onEdit: () => void;
   act: (id: string, fn: () => Promise<unknown>, ok: string) => Promise<void>;
   runStatus: (a: { data: { id: string; status: any } }) => Promise<unknown>;
@@ -278,31 +272,48 @@ function RowActions({
   const loading = busyId === r.id;
   return (
     <>
-      <Button size="sm" variant="ghost" onClick={onView} title="Voir détails">
-        <Eye className="h-4 w-4" />
-      </Button>
       <Button size="sm" variant="ghost" onClick={onEdit} title="Modifier">
         <Pencil className="h-4 w-4" />
       </Button>
-      {r.displayStatus === "nouvelle" && (
-        <Button size="sm" variant="outline" disabled={loading} onClick={() => act(r.id, () => runStatus({ data: { id: r.id, status: "confirmée" } }), "Réservation confirmée.")}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Confirmer
-        </Button>
-      )}
-      {r.active && r.displayStatus !== "annulée" && (
-        <Button
-          size="sm"
-          variant="ghost"
-          className="text-destructive hover:text-destructive"
-          disabled={loading}
-          onClick={() => {
-            if (confirm("Annuler cette réservation ?"))
-              act(r.id, () => runStatus({ data: { id: r.id, status: "annulée" } }), "Réservation annulée.");
-          }}
-          title="Annuler"
-        >
-          <XCircle className="h-4 w-4" />
-        </Button>
+      {r.displayStatus === "nouvelle" ? (
+        <>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={loading}
+            onClick={() => act(r.id, () => runStatus({ data: { id: r.id, status: "confirmée" } }), "Réservation acceptée.")}
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Accepter
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-destructive hover:text-destructive"
+            disabled={loading}
+            onClick={() => {
+              if (confirm("Rejeter cette réservation ?"))
+                act(r.id, () => runStatus({ data: { id: r.id, status: "annulée" } }), "Réservation rejetée.");
+            }}
+          >
+            <XCircle className="h-4 w-4" /> Rejeter
+          </Button>
+        </>
+      ) : (
+        r.active && r.displayStatus !== "annulée" && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-destructive hover:text-destructive"
+            disabled={loading}
+            onClick={() => {
+              if (confirm("Annuler cette réservation ?"))
+                act(r.id, () => runStatus({ data: { id: r.id, status: "annulée" } }), "Réservation annulée.");
+            }}
+            title="Annuler"
+          >
+            <XCircle className="h-4 w-4" />
+          </Button>
+        )
       )}
     </>
   );

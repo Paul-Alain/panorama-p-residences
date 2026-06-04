@@ -45,7 +45,7 @@ const TYPE_LABELS: Record<LogementType, string> = {
 const DEFAULT_ARRIVAL_TIME = "14:00";
 const DEFAULT_DEPARTURE_TIME = "11:00";
 
-const KEYS = ["op-dashboard", "admin-reservations", "op-clients", "admin-occupancy", "op-payments"];
+const KEYS = ["op-dashboard", "admin-reservations", "op-clients", "admin-occupancy", "op-calendar", "op-payments"];
 
 export interface EditableReservation {
   id: string;
@@ -111,6 +111,7 @@ export function ReservationFormDialog({
     arrivalTime: DEFAULT_ARRIVAL_TIME,
     departureTime: DEFAULT_DEPARTURE_TIME,
     advance: "0",
+    addAdvance: "0",
     notes: "",
   };
   const [form, setForm] = useState(empty);
@@ -133,6 +134,7 @@ export function ReservationFormDialog({
         arrivalTime: (reservation.arrival_time ?? DEFAULT_ARRIVAL_TIME).slice(0, 5),
         departureTime: (reservation.departure_time ?? DEFAULT_DEPARTURE_TIME).slice(0, 5),
         advance: String(reservation.advance ?? 0),
+        addAdvance: "0",
         notes: reservation.notes ?? "",
       });
     } else {
@@ -167,7 +169,10 @@ export function ReservationFormDialog({
 
   const unitPrice = form.type ? priceByType[form.type] ?? 0 : 0;
   const total = units * unitPrice;
-  const advanceNum = Number(form.advance) || 0;
+  // Avance déjà enregistrée + nouvelle avance saisie = montant avancé total.
+  const baseAdvance = Number(form.advance) || 0;
+  const addedAdvance = Number(form.addAdvance) || 0;
+  const advanceNum = baseAdvance + addedAdvance;
   const balance = Math.max(0, total - advanceNum);
 
   const submit = async () => {
@@ -330,16 +335,37 @@ export function ReservationFormDialog({
             </p>
           )}
 
-          <div className="space-y-1.5">
-            <Label htmlFor="nr-advance">Montant avancé</Label>
-            <Input
-              id="nr-advance"
-              type="number"
-              min={0}
-              inputMode="numeric"
-              value={form.advance}
-              onChange={(e) => set("advance", e.target.value)}
-            />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="nr-add-advance">Ajouter une avance</Label>
+              <Input
+                id="nr-add-advance"
+                type="number"
+                min={0}
+                inputMode="numeric"
+                value={form.addAdvance}
+                onChange={(e) => set("addAdvance", e.target.value)}
+                placeholder="0"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Montant à encaisser maintenant auprès du client.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="nr-advance">Montant avancé</Label>
+              <Input
+                id="nr-advance"
+                readOnly
+                value={formatMoney(advanceNum, residence.currency)}
+                className="bg-secondary/40 font-semibold"
+                tabIndex={-1}
+              />
+              {addedAdvance > 0 && (
+                <p className="text-[11px] text-muted-foreground">
+                  {formatMoney(baseAdvance, residence.currency)} + {formatMoney(addedAdvance, residence.currency)}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Auto-computed summary (read-only) */}
