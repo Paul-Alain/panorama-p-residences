@@ -147,7 +147,36 @@ export function ReservationDetailDialog({
               {r.unitLabel && <Badge variant="secondary">{r.unitLabel}</Badge>}
             </div>
 
-            {/* Info */}
+            {/* Unit assignment (modifications live here, not in the calendar) */}
+            {data.units && data.units.length > 0 && r.status !== "annulée" && r.status !== "terminée" && (
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground">Unité physique assignée</label>
+                <Select
+                  value={r.unitId ?? undefined}
+                  onValueChange={(v) =>
+                    act(() => runAssign({ data: { reservationId: r.id, unitId: v } }), "Unité assignée.")
+                  }
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Choisir une unité" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[...data.units]
+                      .sort((a, b) => {
+                        const am = r.logement_type && a.type === r.logement_type ? 0 : 1;
+                        const bm = r.logement_type && b.type === r.logement_type ? 0 : 1;
+                        return am - bm;
+                      })
+                      .map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.label}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-1.5 text-sm">
               <p className="flex items-center gap-2">
                 <CalendarDays className="h-4 w-4 text-muted-foreground" />
