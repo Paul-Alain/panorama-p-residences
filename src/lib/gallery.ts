@@ -103,7 +103,9 @@ const exterieurAlt: Record<Lang, string> = {
 
 const exterieurUrls = [
   exterieur1, exterieur2, exterieur3, exterieur4, exterieur5,
-  exterieur6, exterieur7, exterieur8, exterieur9,
+  exterieur6, exterieur7, exterieur8, exterieur9, exterieur10,
+  exterieur11, exterieur12, exterieur13, exterieur14, exterieur15,
+  exterieur16, exterieur17,
 ];
 
 export const gallerySections: GallerySection[] = [
