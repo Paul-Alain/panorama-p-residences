@@ -17,10 +17,55 @@ export type ResStatus =
 export const RES_STATUS_LABELS: Record<string, string> = {
   nouvelle: "En attente de validation",
   confirmée: "Confirmée",
-  checkin: "Client présent",
+  checkin: "En cours de séjour",
+  encours: "En cours de séjour",
   terminée: "Terminée",
   annulée: "Annulée",
   bloqué: "Bloqué",
+};
+
+/** Display statuses surfaced in the manager Reservations table. */
+export type DisplayResStatus =
+  | "nouvelle"
+  | "confirmée"
+  | "encours"
+  | "terminée"
+  | "annulée";
+
+/** Ordered list used for the status filter dropdown. */
+export const DISPLAY_RES_STATUSES: DisplayResStatus[] = [
+  "nouvelle",
+  "confirmée",
+  "encours",
+  "terminée",
+  "annulée",
+];
+
+/**
+ * Derive the status shown to managers from the stored DB status and the stay
+ * window. Confirmed bookings automatically become "En cours de séjour" while
+ * the guest is within the interval, then "Terminée" once departure has passed.
+ * Cancelled and pending stay as-is.
+ */
+export function displayReservationStatus(
+  dbStatus: string,
+  arrivalMs: number,
+  departureMs: number,
+  nowMs: number = Date.now(),
+): DisplayResStatus {
+  if (dbStatus === "annulée") return "annulée";
+  if (dbStatus === "nouvelle") return "nouvelle";
+  // confirmée / checkin / terminée are driven by the clock.
+  if (nowMs >= departureMs) return "terminée";
+  if (nowMs >= arrivalMs) return "encours";
+  return "confirmée";
+}
+
+/** Maximum guests allowed per accommodation type (shared by all forms). */
+export const MAX_GUESTS_BY_TYPE: Record<string, number> = {
+  chambre: 2,
+  studio: 2,
+  appartement: 4,
 };
 
 /** Allowed forward transitions. Anything not listed is rejected server-side. */
