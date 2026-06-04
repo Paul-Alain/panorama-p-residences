@@ -16,6 +16,8 @@ const fr = {
   },
   hero: {
     title: "Panorama P – Résidence meublée à Bafoussam",
+    titleMain: "Panorama P",
+    titleSub: "Résidence meublée à Bafoussam",
     subtitle:
       "Studios et appartements confortables dans un cadre moderne et sécurisé",
     viewLogements: "Voir les logements",
