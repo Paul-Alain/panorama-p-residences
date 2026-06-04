@@ -1,0 +1,1077 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  assertStaff,
+  assertAdminOrOwner,
+  getUserRoles,
+  actorName,
+  logActivity,
+} from "@/lib/staff-guard";
+import {
+  canTransition,
+  derivePaymentStatus,
+  nightsBetween,
+  computeUnitStatus,
+  shortRef,
+  RES_STATUS_LABELS,
+  PAY_METHOD_LABELS,
+} from "@/lib/operations";
+import { formatDateFr, formatMoney } from "@/lib/format";
+
+const UUID = z.string().uuid();
+const DATE = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const BLOCK_STATUS = "bloqué";
+
+// ── Types used across handlers ───────────────────────────────────────────
+interface UnitRow {
+  id: string;
+  label: string;
+  sort_order: number;
+  available: boolean;
+  op_status: string;
+  type: string;
+  category_title: string;
+  price: number;
+}
+interface ResRow {
+  id: string;
+  name: string;
+  phone: string;
+  email: string | null;
+  guests: number;
+  arrival_date: string;
+  departure_date: string;
+  status: string;
+  payment_status: string;
+  total_amount: number;
+  logement_unit_id: string | null;
+  logement_type: string | null;
+  notes: string | null;
+}
+
+function todayLocalIso(): string {
+  const d = new Date();
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 10);
+}
+
+// ── Staff status (UI gate) ───────────────────────────────────────────────
+export const staffGetStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const roles = await getUserRoles(supabase, userId);
+    const staffRoles = [
+      "admin",
+      "proprietaire",
+      "gestionnaire",
+      "reception",
+      "menage",
+      "comptable",
+    ];
+    const isStaff = roles.some((r) => staffRoles.includes(r));
+    return {
+      isStaff,
+      isAdmin: roles.includes("admin") || roles.includes("proprietaire"),
+      roles,
+    };
+  });
+
+// ── Shared loaders (inside handlers only) ────────────────────────────────
+async function loadUnits(supabase: any): Promise<UnitRow[]> {
+  const { data, error } = await supabase
+    .from("logement_units")
+    .select("id, label, sort_order, available, op_status, logements(type, title_fr, price)")
+    .order("sort_order", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((u: any) => ({
+    id: u.id,
+    label: u.label,
+    sort_order: u.sort_order,
+    available: u.available,
+    op_status: u.op_status ?? "actif",
+    type: u.logements?.type ?? "",
+    category_title: u.logements?.title_fr ?? "",
+    price: Number(u.logements?.price ?? 0),
+  }));
+}
+
+async function loadReservations(supabase: any): Promise<ResRow[]> {
+  const { data, error } = await supabase
+    .from("reservations")
+    .select(
+      "id, name, phone, email, guests, arrival_date, departure_date, status, payment_status, total_amount, logement_unit_id, logement_type, notes",
+    )
+    .order("arrival_date", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as ResRow[];
+}
+
+async function loadPaymentsMap(supabase: any): Promise<Map<string, number>> {
+  const { data, error } = await supabase.from("payments").select("reservation_id, amount");
+  if (error) throw new Error(error.message);
+  const m = new Map<string, number>();
+  for (const p of data ?? []) {
+    m.set(p.reservation_id, (m.get(p.reservation_id) ?? 0) + Number(p.amount));
+  }
+  return m;
+}
+
+function effectiveTotal(r: ResRow, unitPrice: number): number {
+  if (Number(r.total_amount) > 0) return Number(r.total_amount);
+  return nightsBetween(r.arrival_date, r.departure_date) * unitPrice;
+}
+
+// ── Dashboard ────────────────────────────────────────────────────────────
+export const opGetDashboard = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertStaff(context.supabase, context.userId);
+    const sb = context.supabase;
+    const today = todayLocalIso();
+
+    const [units, reservations, paidMap, msgRes, payRows] = await Promise.all([
+      loadUnits(sb),
+      loadReservations(sb),
+      loadPaymentsMap(sb),
+      sb.from("messages").select("status"),
+      sb.from("payments").select("amount, created_at"),
+    ]);
+
+    const unitById = new Map(units.map((u) => [u.id, u]));
+    const priceByType = new Map<string, number>();
+    for (const u of units) if (!priceByType.has(u.type)) priceByType.set(u.type, u.price);
+
+    const priceOf = (r: ResRow) =>
+      (r.logement_unit_id ? unitById.get(r.logement_unit_id)?.price : undefined) ??
+      (r.logement_type ? priceByType.get(r.logement_type) : undefined) ??
+      0;
+
+    // group reservations by unit (active only, exclude cancelled/finished)
+    const byUnit = new Map<string, ResRow[]>();
+    for (const r of reservations) {
+      if (!r.logement_unit_id) continue;
+      const arr = byUnit.get(r.logement_unit_id) ?? [];
+      arr.push(r);
+      byUnit.set(r.logement_unit_id, arr);
+    }
+
+    // Unit state cards
+    const unitCards = units.map((u) => {
+      const bookings = (byUnit.get(u.id) ?? []).map((b) => ({
+        arrival_date: b.arrival_date,
+        departure_date: b.departure_date,
+        status: b.status,
+      }));
+      const status = computeUnitStatus(u.op_status, bookings, today);
+      // current or next guest
+      const sorted = (byUnit.get(u.id) ?? [])
+        .filter((b) => b.status !== "annulée" && b.status !== "terminée" && b.status !== BLOCK_STATUS)
+        .sort((a, b) => a.arrival_date.localeCompare(b.arrival_date));
+      const current = sorted.find((b) => b.arrival_date <= today && b.departure_date > today);
+      const next = sorted.find((b) => b.arrival_date > today);
+      const r = current ?? next;
+      return {
+        id: u.id,
+        label: u.label,
+        type: u.type,
+        opStatus: u.op_status,
+        available: u.available,
+        status,
+        guestName: r?.name ?? null,
+        guestPhase: current ? "actuel" : next ? "prochain" : null,
+        period: r ? `${formatDateFr(r.arrival_date)} → ${formatDateFr(r.departure_date)}` : null,
+        paymentStatus: r?.payment_status ?? null,
+        reservationId: r?.id ?? null,
+      };
+    });
+
+    // Occupancy today
+    const occupiedToday = unitCards.filter((c) => c.status === "occupee" || c.status === "depart").length;
+    const totalUnits = units.length;
+    const availableNow = unitCards.filter((c) => c.status === "libre" || c.status === "arrivee").length;
+
+    // Arrivals / departures today
+    const fmtRes = (r: ResRow) => {
+      const total = effectiveTotal(r, priceOf(r));
+      const paid = paidMap.get(r.id) ?? 0;
+      return {
+        id: r.id,
+        ref: shortRef(r.id),
+        name: r.name,
+        phone: r.phone,
+        guests: r.guests,
+        status: r.status,
+        paymentStatus: r.payment_status,
+        unitLabel: r.logement_unit_id ? unitById.get(r.logement_unit_id)?.label ?? "—" : "—",
+        unitId: r.logement_unit_id,
+        arrival: r.arrival_date,
+        departure: r.departure_date,
+        balance: Math.max(0, total - paid),
+        total,
+        paid,
+      };
+    };
+
+    const arrivals = reservations
+      .filter((r) => r.arrival_date === today && r.status !== "annulée" && r.status !== BLOCK_STATUS && r.status !== "terminée")
+      .map(fmtRes);
+    const departures = reservations
+      .filter((r) => r.departure_date === today && r.status !== "annulée" && r.status !== BLOCK_STATUS)
+      .map(fmtRes);
+
+    // KPIs
+    const pendingRequests = reservations.filter((r) => r.status === "nouvelle").length;
+    const newMessages = (msgRes.data ?? []).filter((m: any) => m.status !== "répondu" && m.status !== "traité").length;
+    const paymentsToVerify = reservations.filter((r) => {
+      if (!["confirmée", "checkin"].includes(r.status)) return false;
+      const total = effectiveTotal(r, priceOf(r));
+      const paid = paidMap.get(r.id) ?? 0;
+      return paid < total;
+    }).length;
+
+    const monthPrefix = today.slice(0, 7);
+    const monthRevenue = (payRows.data ?? [])
+      .filter((p: any) => (p.created_at ?? "").slice(0, 7) === monthPrefix)
+      .reduce((s: number, p: any) => s + Number(p.amount), 0);
+
+    // Urgent actions
+    type Urgent = {
+      id: string;
+      level: "haute" | "moyenne" | "basse";
+      label: string;
+      action: "checkin" | "checkout" | "payment" | "confirm" | "unit" | "view";
+      reservationId?: string;
+      unitId?: string;
+    };
+    const urgent: Urgent[] = [];
+
+    // Conflicts: >1 active booking overlapping on a unit
+    for (const u of units) {
+      const active = (byUnit.get(u.id) ?? []).filter(
+        (b) => ["confirmée", "checkin"].includes(b.status),
+      );
+      for (let i = 0; i < active.length; i++) {
+        for (let j = i + 1; j < active.length; j++) {
+          const a = active[i];
+          const b = active[j];
+          if (a.arrival_date < b.departure_date && b.arrival_date < a.departure_date) {
+            urgent.push({
+              id: `conflit-${u.id}-${a.id}-${b.id}`,
+              level: "haute",
+              label: `Conflit de réservation sur ${u.label} : ${a.name} et ${b.name}`,
+              action: "view",
+              unitId: u.id,
+              reservationId: a.id,
+            });
+          }
+        }
+      }
+    }
+
+    for (const a of arrivals) {
+      if (a.paid < a.total) {
+        urgent.push({
+          id: `arr-${a.id}`,
+          level: "haute",
+          label: `Arrivée aujourd'hui sans paiement vérifié : ${a.name} (${a.unitLabel})`,
+          action: "payment",
+          reservationId: a.id,
+        });
+      }
+    }
+    for (const dp of departures) {
+      if (dp.balance > 0) {
+        urgent.push({
+          id: `dep-${dp.id}`,
+          level: "haute",
+          label: `Départ aujourd'hui avec solde restant : ${dp.name} — ${formatMoney(dp.balance)}`,
+          action: "payment",
+          reservationId: dp.id,
+        });
+      }
+    }
+    for (const r of reservations.filter((r) => r.status === "nouvelle")) {
+      urgent.push({
+        id: `dem-${r.id}`,
+        level: "moyenne",
+        label: `Nouvelle demande de réservation : ${r.name}`,
+        action: "confirm",
+        reservationId: r.id,
+      });
+    }
+    for (const u of units.filter((u) => u.op_status === "maintenance")) {
+      urgent.push({
+        id: `mnt-${u.id}`,
+        level: "basse",
+        label: `Unité en maintenance : ${u.label}`,
+        action: "unit",
+        unitId: u.id,
+      });
+    }
+
+    return {
+      today,
+      kpis: {
+        occupancyRate: totalUnits > 0 ? Math.round((occupiedToday / totalUnits) * 100) : 0,
+        availableUnits: availableNow,
+        totalUnits,
+        arrivals: arrivals.length,
+        departures: departures.length,
+        pendingRequests,
+        paymentsToVerify,
+        newMessages,
+        monthRevenue,
+      },
+      urgent,
+      arrivals,
+      departures,
+      units: unitCards,
+    };
+  });
+
+// ── Reservation status transitions ───────────────────────────────────────
+export const opSetReservationStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: UUID,
+        status: z.enum(["nouvelle", "confirmée", "checkin", "terminée", "annulée"]),
+      })
+      .parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertStaff(context.supabase, context.userId);
+    const sb = context.supabase;
+
+    const { data: row, error: e0 } = await sb
+      .from("reservations")
+      .select("status, name, logement_unit_id, arrival_date, departure_date")
+      .eq("id", data.id)
+      .single();
+    if (e0) throw new Error(e0.message);
+
+    if (row.status !== data.status && !canTransition(row.status, data.status)) {
+      // allow cancel from any non-final, otherwise reject
+      if (!(data.status === "annulée" && !["terminée"].includes(row.status))) {
+        throw new Error(
+          `Transition non autorisée : ${RES_STATUS_LABELS[row.status]} → ${RES_STATUS_LABELS[data.status]}`,
+        );
+      }
+    }
+
+    // Confirming requires an assigned unit + no conflict.
+    if (data.status === "confirmée") {
+      if (!row.logement_unit_id) throw new Error("Assignez d'abord une unité physique.");
+      await ensureNoConflict(sb, row.logement_unit_id, row.arrival_date, row.departure_date, data.id);
+    }
+
+    const patch: Record<string, unknown> = { status: data.status };
+    if (data.status === "checkin") patch.checkin_at = new Date().toISOString();
+    if (data.status === "terminée") patch.checkout_at = new Date().toISOString();
+
+    const { error } = await sb.from("reservations").update(patch).eq("id", data.id);
+    if (error) throw new Error(error.message);
+
+    const name = await actorName(sb, context.userId);
+    await logActivity(sb, {
+      userId: context.userId,
+      userName: name,
+      action: "statut_reservation",
+      objectType: "reservation",
+      objectId: data.id,
+      summary: `${row.name} → ${RES_STATUS_LABELS[data.status]}`,
+    });
+    return { ok: true };
+  });
+
+async function ensureNoConflict(
+  sb: any,
+  unitId: string,
+  arrival: string,
+  departure: string,
+  excludeId: string,
+): Promise<void> {
+  const { data, error } = await sb
+    .from("reservations")
+    .select("id, arrival_date, departure_date, status")
+    .eq("logement_unit_id", unitId)
+    .in("status", ["confirmée", "checkin", "bloqué"])
+    .neq("id", excludeId);
+  if (error) throw new Error(error.message);
+  for (const r of data ?? []) {
+    if (arrival < r.departure_date && r.arrival_date < departure) {
+      throw new Error("Conflit : cette unité est déjà réservée sur cette période.");
+    }
+  }
+}
+
+export const opCheckIn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: UUID }).parse(input))
+  .handler(async ({ context, data }) => {
+    await assertStaff(context.supabase, context.userId);
+    const sb = context.supabase;
+    const { data: row, error } = await sb
+      .from("reservations")
+      .select("status, name")
+      .eq("id", data.id)
+      .single();
+    if (error) throw new Error(error.message);
+    if (!["confirmée"].includes(row.status))
+      throw new Error("Le check-in n'est possible que pour une réservation confirmée.");
+    const { error: e2 } = await sb
+      .from("reservations")
+      .update({ status: "checkin", checkin_at: new Date().toISOString() })
+      .eq("id", data.id);
+    if (e2) throw new Error(e2.message);
+    const name = await actorName(sb, context.userId);
+    await logActivity(sb, {
+      userId: context.userId,
+      userName: name,
+      action: "checkin",
+      objectType: "reservation",
+      objectId: data.id,
+      summary: `Check-in : ${row.name}`,
+    });
+    return { ok: true };
+  });
+
+export const opCheckOut = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: UUID }).parse(input))
+  .handler(async ({ context, data }) => {
+    await assertStaff(context.supabase, context.userId);
+    const sb = context.supabase;
+    const { data: row, error } = await sb
+      .from("reservations")
+      .select("status, name, logement_unit_id")
+      .eq("id", data.id)
+      .single();
+    if (error) throw new Error(error.message);
+    if (!["checkin", "confirmée"].includes(row.status))
+      throw new Error("Le check-out n'est possible que pour un client présent.");
+    const { error: e2 } = await sb
+      .from("reservations")
+      .update({ status: "terminée", checkout_at: new Date().toISOString() })
+      .eq("id", data.id);
+    if (e2) throw new Error(e2.message);
+    // Mark unit for cleaning after checkout.
+    if (row.logement_unit_id) {
+      await sb.from("logement_units").update({ op_status: "nettoyage" }).eq("id", row.logement_unit_id);
+    }
+    const name = await actorName(sb, context.userId);
+    await logActivity(sb, {
+      userId: context.userId,
+      userName: name,
+      action: "checkout",
+      objectType: "reservation",
+      objectId: data.id,
+      summary: `Check-out : ${row.name}`,
+    });
+    return { ok: true };
+  });
+
+// ── Unit operational status ──────────────────────────────────────────────
+export const opSetUnitOpStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        unitId: UUID,
+        opStatus: z.enum(["actif", "nettoyage", "maintenance", "bloquee"]),
+      })
+      .parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertStaff(context.supabase, context.userId);
+    const sb = context.supabase;
+    const { error } = await sb
+      .from("logement_units")
+      .update({ op_status: data.opStatus })
+      .eq("id", data.unitId);
+    if (error) throw new Error(error.message);
+    const name = await actorName(sb, context.userId);
+    await logActivity(sb, {
+      userId: context.userId,
+      userName: name,
+      action: "statut_unite",
+      objectType: "unit",
+      objectId: data.unitId,
+      summary: `Unité → ${data.opStatus}`,
+    });
+    return { ok: true };
+  });
+
+// ── Payments ─────────────────────────────────────────────────────────────
+async function recomputePaymentStatus(sb: any, reservationId: string): Promise<{ total: number; paid: number; balance: number; status: string }> {
+  const { data: r, error } = await sb
+    .from("reservations")
+    .select("total_amount, arrival_date, departure_date, logement_unit_id, logement_type")
+    .eq("id", reservationId)
+    .single();
+  if (error) throw new Error(error.message);
+
+  let price = 0;
+  if (r.logement_unit_id) {
+    const { data: u } = await sb
+      .from("logement_units")
+      .select("logements(price)")
+      .eq("id", r.logement_unit_id)
+      .maybeSingle();
+    price = Number((u as any)?.logements?.price ?? 0);
+  } else if (r.logement_type) {
+    const { data: l } = await sb
+      .from("logements")
+      .select("price")
+      .eq("type", r.logement_type)
+      .limit(1)
+      .maybeSingle();
+    price = Number((l as any)?.price ?? 0);
+  }
+  const total = Number(r.total_amount) > 0 ? Number(r.total_amount) : nightsBetween(r.arrival_date, r.departure_date) * price;
+
+  const { data: pays } = await sb.from("payments").select("amount").eq("reservation_id", reservationId);
+  const paid = (pays ?? []).reduce((s: number, p: any) => s + Number(p.amount), 0);
+  const status = derivePaymentStatus(total, paid);
+  await sb.from("reservations").update({ payment_status: status }).eq("id", reservationId);
+  return { total, paid, balance: Math.max(0, total - paid), status };
+}
+
+export const opAddPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        reservationId: UUID,
+        amount: z.number().positive().max(100_000_000),
+        method: z.enum(["especes", "mobile_money", "virement", "carte_externe"]),
+        note: z.string().max(500).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertStaff(context.supabase, context.userId);
+    const sb = context.supabase;
+    const name = await actorName(sb, context.userId);
+
+    const { error } = await sb.from("payments").insert({
+      reservation_id: data.reservationId,
+      amount: data.amount,
+      method: data.method,
+      recorded_by: context.userId,
+      recorded_by_name: name,
+      note: data.note?.trim() || null,
+    });
+    if (error) throw new Error(error.message);
+
+    const totals = await recomputePaymentStatus(sb, data.reservationId);
+
+    // Notify the client (best-effort).
+    const { data: r } = await sb
+      .from("reservations")
+      .select("name, email")
+      .eq("id", data.reservationId)
+      .single();
+    if (r?.email) {
+      try {
+        const { enqueueAppEmail } = await import("@/lib/email/enqueue.server");
+        await enqueueAppEmail({
+          templateName: "payment-receipt",
+          recipientEmail: r.email,
+          idempotencyKey: `payment-${data.reservationId}-${Date.now()}`,
+          templateData: {
+            name: r.name || "cher client",
+            amount: formatMoney(data.amount),
+            date: formatDateFr(new Date()),
+            reference: shortRef(data.reservationId),
+            method: PAY_METHOD_LABELS[data.method],
+            balance: formatMoney(totals.balance),
+          },
+        });
+      } catch (e) {
+        console.error("payment receipt email failed", e);
+      }
+    }
+
+    await logActivity(sb, {
+      userId: context.userId,
+      userName: name,
+      action: "paiement_ajoute",
+      objectType: "reservation",
+      objectId: data.reservationId,
+      summary: `Paiement ${formatMoney(data.amount)} (${PAY_METHOD_LABELS[data.method]}) — ${r?.name ?? ""}`,
+    });
+
+    return { ok: true, ...totals };
+  });
+
+export const opListPayments = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertStaff(context.supabase, context.userId);
+    const sb = context.supabase;
+    const { data, error } = await sb
+      .from("payments")
+      .select("id, reservation_id, amount, method, recorded_by_name, note, created_at, reservations(name)")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((p: any) => ({
+      id: p.id,
+      reservationId: p.reservation_id,
+      ref: shortRef(p.reservation_id),
+      amount: Number(p.amount),
+      method: p.method,
+      recordedBy: p.recorded_by_name ?? "—",
+      note: p.note,
+      createdAt: p.created_at,
+      clientName: p.reservations?.name ?? "—",
+    }));
+  });
+
+export const opSetReservationTotal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ id: UUID, totalAmount: z.number().min(0).max(100_000_000) }).parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertStaff(context.supabase, context.userId);
+    const sb = context.supabase;
+    const { error } = await sb
+      .from("reservations")
+      .update({ total_amount: data.totalAmount })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    await recomputePaymentStatus(sb, data.id);
+    return { ok: true };
+  });
+
+export const opSetPaymentStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: UUID,
+        paymentStatus: z.enum(["non_paye", "acompte", "partiel", "paye", "solde_du"]),
+      })
+      .parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertStaff(context.supabase, context.userId);
+    const { error } = await context.supabase
+      .from("reservations")
+      .update({ payment_status: data.paymentStatus })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ── Reservation detail ───────────────────────────────────────────────────
+export const opGetReservationDetail = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: UUID }).parse(input))
+  .handler(async ({ context, data }) => {
+    await assertStaff(context.supabase, context.userId);
+    const sb = context.supabase;
+    const { data: r, error } = await sb
+      .from("reservations")
+      .select("*, logement_units(label), payments(id, amount, method, recorded_by_name, note, created_at)")
+      .eq("id", data.id)
+      .single();
+    if (error) throw new Error(error.message);
+    const totals = await recomputePaymentStatus(sb, data.id);
+    return {
+      reservation: {
+        id: r.id,
+        ref: shortRef(r.id),
+        name: r.name,
+        phone: r.phone,
+        email: r.email,
+        guests: r.guests,
+        arrival_date: r.arrival_date,
+        departure_date: r.departure_date,
+        status: r.status,
+        payment_status: r.payment_status,
+        total_amount: Number(r.total_amount),
+        notes: r.notes,
+        unitLabel: (r as any).logement_units?.label ?? null,
+        unitId: r.logement_unit_id,
+        logement_type: r.logement_type,
+      },
+      payments: ((r as any).payments ?? [])
+        .map((p: any) => ({
+          id: p.id,
+          amount: Number(p.amount),
+          method: p.method,
+          recordedBy: p.recorded_by_name ?? "—",
+          note: p.note,
+          createdAt: p.created_at,
+        }))
+        .sort((a: any, b: any) => b.createdAt.localeCompare(a.createdAt)),
+      totals,
+    };
+  });
+
+// ── Manager-created reservation + unit assignment ────────────────────────
+export const opCreateReservation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        name: z.string().trim().min(1).max(120),
+        phone: z.string().trim().min(1).max(40),
+        email: z.string().trim().email().max(160).optional().or(z.literal("")),
+        unitId: UUID,
+        arrival: DATE,
+        departure: DATE,
+        guests: z.number().int().min(1).max(20),
+        status: z.enum(["nouvelle", "confirmée"]).default("confirmée"),
+        notes: z.string().max(500).optional(),
+      })
+      .refine((v) => v.departure > v.arrival, { message: "Dates invalides" })
+      .parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertStaff(context.supabase, context.userId);
+    const sb = context.supabase;
+    await ensureNoConflict(sb, data.unitId, data.arrival, data.departure, "00000000-0000-0000-0000-000000000000");
+
+    const { data: unit } = await sb
+      .from("logement_units")
+      .select("label, logements(type)")
+      .eq("id", data.unitId)
+      .single();
+
+    const { data: inserted, error } = await sb
+      .from("reservations")
+      .insert({
+        name: data.name,
+        phone: data.phone,
+        email: data.email || null,
+        logement_unit_id: data.unitId,
+        logement_type: (unit as any)?.logements?.type ?? null,
+        arrival_date: data.arrival,
+        departure_date: data.departure,
+        guests: data.guests,
+        status: data.status,
+        notes: data.notes?.trim() || null,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+
+    const name = await actorName(sb, context.userId);
+    await logActivity(sb, {
+      userId: context.userId,
+      userName: name,
+      action: "reservation_creee",
+      objectType: "reservation",
+      objectId: inserted.id,
+      summary: `Réservation créée : ${data.name} (${(unit as any)?.label ?? ""})`,
+    });
+    return { ok: true, id: inserted.id };
+  });
+
+export const opAssignUnit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ reservationId: UUID, unitId: UUID.nullable() }).parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertStaff(context.supabase, context.userId);
+    const sb = context.supabase;
+    if (data.unitId) {
+      const { data: r } = await sb
+        .from("reservations")
+        .select("arrival_date, departure_date")
+        .eq("id", data.reservationId)
+        .single();
+      if (r) await ensureNoConflict(sb, data.unitId, r.arrival_date, r.departure_date, data.reservationId);
+    }
+    const { error } = await sb
+      .from("reservations")
+      .update({ logement_unit_id: data.unitId })
+      .eq("id", data.reservationId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ── Clients (merge duplicates) ───────────────────────────────────────────
+export const opListClients = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertStaff(context.supabase, context.userId);
+    const sb = context.supabase;
+    const [resv, paidMap] = await Promise.all([loadReservations(sb), loadPaymentsMap(sb)]);
+
+    const norm = (s: string | null) => (s ?? "").trim().toLowerCase();
+    const clients = new Map<
+      string,
+      {
+        key: string;
+        name: string;
+        phone: string;
+        email: string | null;
+        reservations: number;
+        lastStay: string | null;
+        totalSpent: number;
+      }
+    >();
+
+    for (const r of resv) {
+      if (r.status === BLOCK_STATUS) continue;
+      const name = (r.name ?? "").trim();
+      if (!name) continue; // clients without a name are not listed
+      const key = norm(r.email) || norm(r.phone) || norm(name);
+      const paid = paidMap.get(r.id) ?? 0;
+      const existing = clients.get(key);
+      if (existing) {
+        existing.reservations += 1;
+        existing.totalSpent += paid;
+        if (!existing.lastStay || r.departure_date > existing.lastStay) existing.lastStay = r.departure_date;
+        if (!existing.email && r.email) existing.email = r.email;
+      } else {
+        clients.set(key, {
+          key,
+          name,
+          phone: r.phone,
+          email: r.email,
+          reservations: 1,
+          lastStay: r.departure_date,
+          totalSpent: paid,
+        });
+      }
+    }
+    return Array.from(clients.values()).sort((a, b) => b.totalSpent - a.totalSpent);
+  });
+
+export const opGetClientDetail = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ key: z.string().min(1).max(200) }).parse(input))
+  .handler(async ({ context, data }) => {
+    await assertStaff(context.supabase, context.userId);
+    const sb = context.supabase;
+    const norm = (s: string | null) => (s ?? "").trim().toLowerCase();
+    const [resv, paidMap] = await Promise.all([loadReservations(sb), loadPaymentsMap(sb)]);
+
+    const matches = resv.filter((r) => {
+      if (r.status === BLOCK_STATUS) return false;
+      const key = norm(r.email) || norm(r.phone) || norm(r.name);
+      return key === data.key;
+    });
+    const ids = matches.map((m) => m.id);
+
+    const [{ data: pays }, { data: msgs }] = await Promise.all([
+      ids.length
+        ? sb.from("payments").select("id, reservation_id, amount, method, created_at").in("reservation_id", ids)
+        : Promise.resolve({ data: [] as any[] }),
+      sb.from("messages").select("id, name, phone, email, message, status, created_at").order("created_at", { ascending: false }),
+    ]);
+
+    const first = matches[0];
+    const phone = norm(first?.phone);
+    const email = norm(first?.email);
+    const clientMsgs = (msgs ?? []).filter(
+      (m: any) => (email && norm(m.email) === email) || (phone && norm(m.phone) === phone),
+    );
+
+    return {
+      profile: {
+        name: first?.name ?? "—",
+        phone: first?.phone ?? "—",
+        email: first?.email ?? null,
+      },
+      reservations: matches
+        .map((r) => ({
+          id: r.id,
+          ref: shortRef(r.id),
+          arrival: r.arrival_date,
+          departure: r.departure_date,
+          status: r.status,
+          paymentStatus: r.payment_status,
+          guests: r.guests,
+        }))
+        .sort((a, b) => b.arrival.localeCompare(a.arrival)),
+      payments: (pays ?? [])
+        .map((p: any) => ({ id: p.id, amount: Number(p.amount), method: p.method, createdAt: p.created_at }))
+        .sort((a: any, b: any) => b.createdAt.localeCompare(a.createdAt)),
+      messages: clientMsgs.map((m: any) => ({ id: m.id, status: m.status, createdAt: m.created_at })),
+      totalSpent: matches.reduce((s, r) => s + (paidMap.get(r.id) ?? 0), 0),
+    };
+  });
+
+// ── Team & activity ──────────────────────────────────────────────────────
+export const opListTeam = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertStaff(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: roleRows, error } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id, role");
+    if (error) throw new Error(error.message);
+
+    const byUser = new Map<string, string[]>();
+    for (const r of roleRows ?? []) {
+      const arr = byUser.get(r.user_id) ?? [];
+      arr.push(r.role as string);
+      byUser.set(r.user_id, arr);
+    }
+
+    const authMap = new Map<string, { email: string | null; lastSignIn: string | null }>();
+    for (let page = 1; ; page++) {
+      const { data: list, error: e } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
+      if (e) throw new Error(e.message);
+      for (const u of list.users) authMap.set(u.id, { email: u.email ?? null, lastSignIn: u.last_sign_in_at ?? null });
+      if (list.users.length < 1000) break;
+    }
+
+    const ids = Array.from(byUser.keys());
+    const nameMap = new Map<string, string | null>();
+    if (ids.length) {
+      const { data: profs } = await supabaseAdmin.from("profiles").select("id, full_name").in("id", ids);
+      for (const p of profs ?? []) nameMap.set(p.id, p.full_name as string | null);
+    }
+
+    return ids.map((id) => ({
+      id,
+      name: nameMap.get(id) ?? null,
+      email: authMap.get(id)?.email ?? null,
+      lastSignIn: authMap.get(id)?.lastSignIn ?? null,
+      roles: byUser.get(id) ?? [],
+    }));
+  });
+
+export const opSetTeamRole = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        email: z.string().trim().email().max(160),
+        role: z.enum(["proprietaire", "gestionnaire", "reception", "menage", "comptable"]),
+      })
+      .parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdminOrOwner(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Resolve user by email.
+    let targetId: string | null = null;
+    for (let page = 1; ; page++) {
+      const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
+      if (error) throw new Error(error.message);
+      const found = list.users.find((u) => (u.email ?? "").toLowerCase() === data.email.toLowerCase());
+      if (found) {
+        targetId = found.id;
+        break;
+      }
+      if (list.users.length < 1000) break;
+    }
+    if (!targetId) throw new Error("Aucun compte ne correspond à cet e-mail. Le membre doit d'abord créer un compte.");
+
+    const { error } = await supabaseAdmin
+      .from("user_roles")
+      .upsert({ user_id: targetId, role: data.role as any }, { onConflict: "user_id,role", ignoreDuplicates: true });
+    if (error) throw new Error(error.message);
+
+    const name = await actorName(context.supabase, context.userId);
+    await logActivity(context.supabase, {
+      userId: context.userId,
+      userName: name,
+      action: "role_attribue",
+      objectType: "team",
+      objectId: targetId,
+      summary: `${data.email} → ${data.role}`,
+    });
+    return { ok: true };
+  });
+
+export const opRemoveTeamRole = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ userId: UUID, role: z.string().min(1).max(40) }).parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdminOrOwner(context.supabase, context.userId);
+    if (data.role === "admin") throw new Error("Le rôle administrateur ne peut pas être retiré ici.");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("user_roles")
+      .delete()
+      .eq("user_id", data.userId)
+      .eq("role", data.role as any);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const opListActivity = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertStaff(context.supabase, context.userId);
+    const { data, error } = await context.supabase
+      .from("activity_log")
+      .select("id, user_name, action, object_type, summary, created_at")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+// ── Settings ─────────────────────────────────────────────────────────────
+export const opGetSettings = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertStaff(context.supabase, context.userId);
+    const { data, error } = await context.supabase
+      .from("residence_settings")
+      .select("*")
+      .eq("id", true)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data;
+  });
+
+export const opUpdateSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        name: z.string().trim().min(1).max(160),
+        logo_url: z.string().trim().max(500).optional().or(z.literal("")),
+        currency: z.string().trim().min(1).max(20),
+        checkin_time: z.string().trim().max(10),
+        checkout_time: z.string().trim().max(10),
+        deposit_percent: z.number().int().min(0).max(100),
+        cancellation_policy: z.string().max(2000).optional().or(z.literal("")),
+        taxes: z.string().max(500).optional().or(z.literal("")),
+        email_notifications: z.boolean(),
+        language: z.enum(["fr", "en", "de"]),
+      })
+      .parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdminOrOwner(context.supabase, context.userId);
+    const { error } = await context.supabase
+      .from("residence_settings")
+      .update({
+        name: data.name,
+        logo_url: data.logo_url || null,
+        currency: data.currency,
+        checkin_time: data.checkin_time,
+        checkout_time: data.checkout_time,
+        deposit_percent: data.deposit_percent,
+        cancellation_policy: data.cancellation_policy || null,
+        taxes: data.taxes || null,
+        email_notifications: data.email_notifications,
+        language: data.language,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", true);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
