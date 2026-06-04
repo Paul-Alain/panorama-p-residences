@@ -66,7 +66,7 @@ function GalleryBlockPage() {
           </Link>
 
           <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
-            {section.images.map((img, i) => (
+            {section.images.map((img: GalleryImage, i: number) => (
               <Reveal
                 key={`${section.id}-${i}`}
                 delay={(i % 3) * 60}
