@@ -151,35 +151,34 @@ export function computeUnitStatus(
   if (opStatus === "bloquee") return "bloquee";
   if (opStatus === "nettoyage") return "nettoyage";
 
+  // Bookings that still hold the unit (exclude cancelled / completed).
   const active = bookings.filter(
-    (b) =>
-      b.status !== "annulée" &&
-      b.status !== "terminée",
+    (b) => b.status !== "annulée" && b.status !== "terminée",
   );
 
-  // Conflict: two active bookings overlapping today.
-  const overlappingToday = active.filter(
-    (b) => b.arrival_date <= today && b.departure_date > today && b.status !== "bloqué"
-      ? true
-      : b.status === "bloqué" && b.arrival_date <= today && b.departure_date > today,
-  );
-  const realOverlap = active.filter(
+  // Reservations overlapping today (departure day is checkout = free).
+  const overlap = active.filter(
     (b) => b.arrival_date <= today && b.departure_date > today,
   );
-  if (realOverlap.filter((b) => b.status !== "bloqué").length > 1) return "conflit";
+  const realOverlap = overlap.filter((b) => b.status !== "bloqué");
+  const blockedOverlap = overlap.filter((b) => b.status === "bloqué");
 
-  const arrivesToday = active.some((b) => b.arrival_date === today);
-  const departsToday = active.some((b) => b.departure_date === today);
-  const occupied = realOverlap.some((b) => b.status !== "bloqué");
-  const blocked = realOverlap.some((b) => b.status === "bloqué");
+  if (realOverlap.length > 1) return "conflit";
 
-  if (blocked && !occupied) return "bloquee";
-  if (departsToday && !occupied) return "depart";
-  if (occupied) return "occupee";
+  const arrivesToday = active.some(
+    (b) => b.status !== "bloqué" && b.arrival_date === today,
+  );
+  const departsToday = active.some(
+    (b) => b.status !== "bloqué" && b.departure_date === today,
+  );
+
+  if (realOverlap.length === 1) return "occupee";
+  if (blockedOverlap.length > 0) return "bloquee";
+  if (departsToday) return "depart";
   if (arrivesToday) return "arrivee";
-  void overlappingToday;
   return "libre";
 }
+
 
 export function nightsBetween(arrival: string, departure: string): number {
   const a = Date.parse(arrival);
