@@ -156,60 +156,42 @@ function AdminPage() {
 }
 
 function AdminDashboard() {
-  const { t } = useLanguage();
-  const tabs = t.admin.dash.tabs;
+  const tabs: { value: string; label: string; icon: typeof LayoutDashboard }[] = [
+    { value: "overview", label: "Tableau de bord", icon: LayoutDashboard },
+    { value: "reservations", label: "Réservations", icon: CalendarDays },
+    { value: "calendar", label: "Calendrier", icon: CalendarRange },
+    { value: "logements", label: "Logements", icon: BedDouble },
+    { value: "clients", label: "Clients", icon: Contact },
+    { value: "payments", label: "Paiements", icon: CreditCard },
+    { value: "messages", label: "Messages", icon: MessageSquare },
+    { value: "reviews", label: "Avis", icon: Star },
+    { value: "team", label: "Équipe", icon: UsersRound },
+    { value: "settings", label: "Paramètres", icon: Settings },
+  ];
 
   return (
     <Tabs defaultValue="overview">
       <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
         <TabsList className="w-max">
-          <TabsTrigger value="overview" className="gap-1.5">
-            <LayoutDashboard className="h-4 w-4" />
-            <span className="hidden sm:inline">{tabs.overview}</span>
-          </TabsTrigger>
-          <TabsTrigger value="reservations" className="gap-1.5">
-            <CalendarDays className="h-4 w-4" />
-            <span className="hidden sm:inline">{tabs.reservations}</span>
-          </TabsTrigger>
-          <TabsTrigger value="messages" className="gap-1.5">
-            <MessageSquare className="h-4 w-4" />
-            <span className="hidden sm:inline">{tabs.messages}</span>
-          </TabsTrigger>
-          <TabsTrigger value="reviews" className="gap-1.5">
-            <Star className="h-4 w-4" />
-            <span className="hidden sm:inline">{tabs.reviews}</span>
-          </TabsTrigger>
-          <TabsTrigger value="users" className="gap-1.5">
-            <Users className="h-4 w-4" />
-            <span className="hidden sm:inline">{tabs.users}</span>
-          </TabsTrigger>
-          <TabsTrigger value="logements" className="gap-1.5">
-            <BedDouble className="h-4 w-4" />
-            <span className="hidden sm:inline">{tabs.logements}</span>
-          </TabsTrigger>
-          <TabsTrigger value="units" className="gap-1.5">
-            <DoorOpen className="h-4 w-4" />
-            <span className="hidden sm:inline">{tabs.units}</span>
-          </TabsTrigger>
-          <TabsTrigger value="calendar" className="gap-1.5">
-            <CalendarRange className="h-4 w-4" />
-            <span className="hidden sm:inline">{tabs.calendar}</span>
-          </TabsTrigger>
-          <TabsTrigger value="manager" className="gap-1.5">
-            <Activity className="h-4 w-4" />
-            <span className="hidden sm:inline">{tabs.manager}</span>
-          </TabsTrigger>
+          {tabs.map((tab) => (
+            <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5">
+              <tab.icon className="h-4 w-4" />
+              <span className="hidden sm:inline">{tab.label}</span>
+            </TabsTrigger>
+          ))}
         </TabsList>
       </div>
       <TabsContent value="overview" className="mt-6"><DashboardOverview /></TabsContent>
       <TabsContent value="reservations" className="mt-6"><ReservationsAdmin /></TabsContent>
+      <TabsContent value="calendar" className="mt-6"><OccupancyCalendar /></TabsContent>
+      <TabsContent value="logements" className="mt-6"><LogementsOverview /></TabsContent>
+      <TabsContent value="clients" className="mt-6"><ClientsAdmin /></TabsContent>
+      <TabsContent value="payments" className="mt-6"><PaymentsAdmin /></TabsContent>
       <TabsContent value="messages" className="mt-6"><MessagesAdmin /></TabsContent>
       <TabsContent value="reviews" className="mt-6"><ReviewsAdmin /></TabsContent>
-      <TabsContent value="users" className="mt-6"><UsersAdmin /></TabsContent>
-      <TabsContent value="logements" className="mt-6"><LogementsAdmin /></TabsContent>
-      <TabsContent value="units" className="mt-6"><UnitsAdmin /></TabsContent>
-      <TabsContent value="calendar" className="mt-6"><OccupancyCalendar /></TabsContent>
-      <TabsContent value="manager" className="mt-6"><ManagerActivity /></TabsContent>
+      <TabsContent value="team" className="mt-6"><TeamAdmin /></TabsContent>
+      <TabsContent value="settings" className="mt-6"><SettingsAdmin /></TabsContent>
     </Tabs>
   );
 }
+
