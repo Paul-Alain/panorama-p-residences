@@ -250,9 +250,6 @@ export function DashboardOverview() {
                 <Button size="sm" variant="outline" disabled={!u.reservationId} onClick={() => openDetail(u.reservationId)}>
                   <Eye className="h-4 w-4" /> Voir
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => { setPresetUnit(u.id); setNewOpen(true); }}>
-                  <Plus className="h-4 w-4" /> Réserver
-                </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button size="sm" variant="ghost" disabled={busyId === u.id}>
