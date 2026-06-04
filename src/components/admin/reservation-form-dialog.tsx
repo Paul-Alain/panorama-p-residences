@@ -78,6 +78,7 @@ export function ReservationFormDialog({
 }) {
   const qc = useQueryClient();
   const residence = useResidence();
+  const { lang } = useLanguage();
   const runCreate = useServerFn(opCreateReservation);
   const runUpdate = useServerFn(opUpdateReservation);
   const isEdit = !!reservation;
