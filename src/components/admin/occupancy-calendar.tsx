@@ -202,15 +202,15 @@ export function OccupancyCalendar() {
   const statusOk = (r: CalRes) =>
     statusFilter === "all" ? r.status !== "annulée" : r.status === statusFilter;
 
+  // Only three booking colours are surfaced: Pending validation, Confirmed /
+  // Occupied (merged), and Completed. Available is the empty cell background.
   const barClass = (r: CalRes) => {
-    if (conflictIds.has(r.id)) return "cal-conflict";
     switch (r.status) {
       case "nouvelle":
         return "cal-pending";
       case "confirmée":
-        return "cal-confirmed";
       case "checkin":
-        return "cal-occupied";
+        return "cal-confirmed";
       case "terminée":
         return "cal-completed";
       case BLOCK_STATUS:
