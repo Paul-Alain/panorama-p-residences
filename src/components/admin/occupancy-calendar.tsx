@@ -67,6 +67,7 @@ interface CalRes {
   notes: string | null;
   total: number;
   paid: number;
+  advance: number;
   balance: number;
 }
 
