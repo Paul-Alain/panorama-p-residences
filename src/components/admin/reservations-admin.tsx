@@ -91,7 +91,7 @@ export function ReservationsAdmin() {
   const [view, setView] = useState<"active" | "all">("active");
   const [page, setPage] = useState(1);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [detailId, setDetailId] = useState<string | null>(null);
+  
   const [editing, setEditing] = useState<EditableReservation | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
