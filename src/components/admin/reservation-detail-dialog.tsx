@@ -70,6 +70,7 @@ export function ReservationDetailDialog({
   const runStatus = useServerFn(opSetReservationStatus);
   const runPay = useServerFn(opAddPayment);
   const runTotal = useServerFn(opSetReservationTotal);
+  const runAssign = useServerFn(opAssignUnit);
 
   const [busy, setBusy] = useState(false);
   const [amount, setAmount] = useState("");
