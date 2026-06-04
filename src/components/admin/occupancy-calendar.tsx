@@ -413,7 +413,9 @@ export function OccupancyCalendar() {
                         <button
                           key={r.id}
                           type="button"
-                          onClick={() => setSelected(r)}
+                          onClick={() => {
+                            if (r.status !== BLOCK_STATUS) setEditing(calToEditable(r));
+                          }}
                           className={`absolute top-1 bottom-1 flex flex-col justify-center overflow-hidden rounded-md px-1.5 text-left shadow-sm transition hover:brightness-105 ${barClass(
                             r,
                           )}`}
