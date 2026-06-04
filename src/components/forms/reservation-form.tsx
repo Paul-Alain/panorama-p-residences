@@ -117,16 +117,26 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
 
   const dateInvalid = arrivalInPast || departureBeforeArrival;
 
-  /* Bilingual (FR + EN) editable WhatsApp message */
+  /* Bilingual (FR + EN) editable WhatsApp message.
+     Dates/times follow the locale: French = "12 juin 2026 · 14:00" (24h),
+     English = American "June 12, 2026 · 2:00 PM" (12h). */
+  const LOCALE_MAP: Record<string, string> = { fr: "fr-FR", en: "en-US", de: "de-DE" };
   const fmtDate = (d: string, time: string) => {
     if (!d) return "—";
     const dt = toDateTime(d, time);
     if (!dt) return "—";
-    return `${dt.toLocaleDateString("fr-FR", {
+    const loc = LOCALE_MAP[lang] ?? "fr-FR";
+    const datePart = dt.toLocaleDateString(loc, {
       day: "numeric",
       month: "long",
       year: "numeric",
-    })} ${time}`;
+    });
+    const timePart = dt.toLocaleTimeString(loc, {
+      hour: lang === "en" ? "numeric" : "2-digit",
+      minute: "2-digit",
+      hour12: lang === "en",
+    });
+    return `${datePart} · ${timePart}`;
   };
 
   const defaultWaMessage = useMemo(() => {
