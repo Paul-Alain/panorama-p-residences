@@ -117,7 +117,6 @@ export const DateField = forwardRef<HTMLInputElement, DateFieldProps>(
               mode="single"
               selected={selectedDate}
               defaultMonth={selectedDate}
-              locale={LOCALE_MAP[lang] as unknown as undefined}
               onSelect={(d) => {
                 if (!d) return;
                 const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
