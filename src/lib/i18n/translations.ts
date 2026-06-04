@@ -1116,6 +1116,7 @@ const en: Dict = {
       reservationStatus: {
         nouvelle: "Pending",
         confirmée: "Confirmed",
+        checkin: "Occupied",
         terminée: "Completed",
         annulée: "Cancelled",
         bloqué: "Maintenance",
