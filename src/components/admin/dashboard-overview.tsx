@@ -99,12 +99,9 @@ export function DashboardOverview() {
 
   return (
     <div className="space-y-8">
-      {/* Header action */}
+      {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-display text-lg font-semibold">Opérations du jour</h2>
-        <Button variant="gold" size="sm" onClick={() => { setPresetUnit(null); setNewOpen(true); }}>
-          <Plus className="h-4 w-4" /> Nouvelle réservation
-        </Button>
       </div>
 
       {/* Per-type availability (green / orange / red) */}
