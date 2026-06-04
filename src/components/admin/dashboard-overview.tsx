@@ -278,7 +278,6 @@ export function DashboardOverview() {
       </section>
 
       <ReservationDetailDialog reservationId={detailId} open={!!detailId} onOpenChange={(v) => !v && setDetailId(null)} />
-      <NewReservationDialog open={newOpen} onOpenChange={setNewOpen} presetUnitId={presetUnit} />
     </div>
   );
 }
