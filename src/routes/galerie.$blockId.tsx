@@ -4,7 +4,7 @@ import { ArrowLeft, X } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Reveal } from "@/components/ui/reveal";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { getGallerySection, type GalleryImage } from "@/lib/gallery";
+import { getGallerySection, type GalleryImage, type GalleryVideo } from "@/lib/gallery";
 import { useLanguage } from "@/lib/i18n/language-context";
 
 export const Route = createFileRoute("/galerie/$blockId")({
