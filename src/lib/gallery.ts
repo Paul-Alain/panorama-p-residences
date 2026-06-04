@@ -44,6 +44,14 @@ import exterieur6 from "@/assets/exterieur-6.jpg.asset.json";
 import exterieur7 from "@/assets/exterieur-7.jpg.asset.json";
 import exterieur8 from "@/assets/exterieur-8.jpg.asset.json";
 import exterieur9 from "@/assets/exterieur-9.jpg.asset.json";
+import exterieur10 from "@/assets/exterieur-10.jpg.asset.json";
+import exterieur11 from "@/assets/exterieur-11.jpg.asset.json";
+import exterieur12 from "@/assets/exterieur-12.jpg.asset.json";
+import exterieur13 from "@/assets/exterieur-13.jpg.asset.json";
+import exterieur14 from "@/assets/exterieur-14.jpg.asset.json";
+import exterieur15 from "@/assets/exterieur-15.jpg.asset.json";
+import exterieur16 from "@/assets/exterieur-16.jpg.asset.json";
+import exterieur17 from "@/assets/exterieur-17.jpg.asset.json";
 
 export interface GalleryImage {
   url: string;
@@ -95,7 +103,9 @@ const exterieurAlt: Record<Lang, string> = {
 
 const exterieurUrls = [
   exterieur1, exterieur2, exterieur3, exterieur4, exterieur5,
-  exterieur6, exterieur7, exterieur8, exterieur9,
+  exterieur6, exterieur7, exterieur8, exterieur9, exterieur10,
+  exterieur11, exterieur12, exterieur13, exterieur14, exterieur15,
+  exterieur16, exterieur17,
 ];
 
 export const gallerySections: GallerySection[] = [
