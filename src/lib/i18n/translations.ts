@@ -1106,7 +1106,7 @@ const en: Dict = {
   },
   reservation: {
     title: "Booking request",
-    subtitle: "Tell us your dates and we will confirm availability quickly.",
+    subtitle: "We look forward to welcoming you on the dates you provide below.",
     name: "Full name",
     phone: "Phone",
     email: "Email",
