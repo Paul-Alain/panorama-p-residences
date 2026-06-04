@@ -1,0 +1,3 @@
+UPDATE public.logements SET sort_order = 1, equipments = ARRAY['Wi-Fi','Cuisine','Douche moderne','Télévision'] WHERE type = 'chambre';
+UPDATE public.logements SET sort_order = 2, equipments = ARRAY['Wi-Fi','Cuisine','Douche moderne','Télévision'] WHERE type = 'studio';
+UPDATE public.logements SET sort_order = 3, equipments = ARRAY['Wi-Fi','Cuisine','Douche moderne','Télévision'] WHERE type = 'appartement';
