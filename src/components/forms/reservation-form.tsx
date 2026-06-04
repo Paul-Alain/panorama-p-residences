@@ -281,13 +281,12 @@ Merci de me confirmer la disponibilité et le tarif SVP / Please confirm availab
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="r-email">{t.reservation.email}<Req /></Label>
+        <Label htmlFor="r-email">{t.reservation.email}</Label>
         <Input
           id="r-email"
           type="email"
           value={form.email}
           onChange={(e) => set("email", e.target.value)}
-          required
           maxLength={160}
         />
       </div>
