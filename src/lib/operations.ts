@@ -15,7 +15,7 @@ export type ResStatus =
   | "annulée";
 
 export const RES_STATUS_LABELS: Record<string, string> = {
-  nouvelle: "En attente",
+  nouvelle: "En attente de validation",
   confirmée: "Confirmée",
   checkin: "Client présent",
   terminée: "Terminée",

@@ -117,16 +117,26 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
 
   const dateInvalid = arrivalInPast || departureBeforeArrival;
 
-  /* Bilingual (FR + EN) editable WhatsApp message */
+  /* Bilingual (FR + EN) editable WhatsApp message.
+     Dates/times follow the locale: French = "12 juin 2026 · 14:00" (24h),
+     English = American "June 12, 2026 · 2:00 PM" (12h). */
+  const LOCALE_MAP: Record<string, string> = { fr: "fr-FR", en: "en-US", de: "de-DE" };
   const fmtDate = (d: string, time: string) => {
     if (!d) return "—";
     const dt = toDateTime(d, time);
     if (!dt) return "—";
-    return `${dt.toLocaleDateString("fr-FR", {
+    const loc = LOCALE_MAP[lang] ?? "fr-FR";
+    const datePart = dt.toLocaleDateString(loc, {
       day: "numeric",
       month: "long",
       year: "numeric",
-    })} ${time}`;
+    });
+    const timePart = dt.toLocaleTimeString(loc, {
+      hour: lang === "en" ? "numeric" : "2-digit",
+      minute: "2-digit",
+      hour12: lang === "en",
+    });
+    return `${datePart} · ${timePart}`;
   };
 
   const defaultWaMessage = useMemo(() => {
@@ -155,6 +165,7 @@ Merci de me confirmer la disponibilité et le tarif SVP / Please confirm availab
     form.departureTime,
     form.type,
     form.guests,
+    lang,
   ]);
 
   /* Keep the editable message in sync until the user edits it manually. */
@@ -169,7 +180,6 @@ Merci de me confirmer la disponibilité et le tarif SVP / Please confirm availab
     if (
       !form.name.trim() ||
       !form.phone.trim() ||
-      !form.email.trim() ||
       !form.arrival ||
       !form.departure ||
       !form.type
@@ -271,13 +281,12 @@ Merci de me confirmer la disponibilité et le tarif SVP / Please confirm availab
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="r-email">{t.reservation.email}<Req /></Label>
+        <Label htmlFor="r-email">{t.reservation.email}</Label>
         <Input
           id="r-email"
           type="email"
           value={form.email}
           onChange={(e) => set("email", e.target.value)}
-          required
           maxLength={160}
         />
       </div>
@@ -412,9 +421,39 @@ Merci de me confirmer la disponibilité et le tarif SVP / Please confirm availab
         />
       </div>
 
-      <div className="space-y-1.5 rounded-2xl border border-border/60 bg-muted/30 p-3">
+      {/* ── Option 1 : réservation en ligne ──────────────────────────── */}
+      <div className="space-y-3 rounded-2xl border border-border/60 bg-card p-4">
+        <p className="text-sm font-semibold text-foreground">
+          {t.reservation.onlineBlockTitle}
+        </p>
+        <Button
+          type="submit"
+          variant="gold"
+          size="lg"
+          disabled={loading || guestsExceeded || dateInvalid}
+          className="w-full"
+        >
+          <CalendarCheck className="h-5 w-5" />
+          {loading ? t.reservation.submitting : t.reservation.submit}
+        </Button>
+      </div>
+
+      {/* ── Séparateur entre les deux options ─────────────────────────── */}
+      <div className="flex items-center gap-3">
+        <span className="h-px flex-1 bg-border" />
+        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          {t.reservation.or}
+        </span>
+        <span className="h-px flex-1 bg-border" />
+      </div>
+
+      {/* ── Option 2 : réservation via WhatsApp ───────────────────────── */}
+      <div className="space-y-3 rounded-2xl border border-border/60 bg-muted/30 p-4">
+        <p className="text-sm font-semibold text-foreground">
+          {t.reservation.whatsappBlockTitle}
+        </p>
         <Label htmlFor="r-wa" className="text-xs text-muted-foreground">
-          Message WhatsApp (modifiable) · WhatsApp message (editable)
+          {t.reservation.whatsappEditable}
         </Label>
         <Textarea
           id="r-wa"
@@ -426,20 +465,7 @@ Merci de me confirmer la disponibilité et le tarif SVP / Please confirm availab
           }}
           className="font-mono text-xs"
         />
-      </div>
-
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Button
-          type="submit"
-          variant="gold"
-          size="lg"
-          disabled={loading || guestsExceeded || dateInvalid}
-          className="flex-1"
-        >
-          <CalendarCheck className="h-5 w-5" />
-          {loading ? t.reservation.submitting : t.reservation.submit}
-        </Button>
-        <Button asChild variant="outline" size="lg" className="flex-1">
+        <Button asChild variant="outline" size="lg" className="w-full">
           <a href={whatsappLink(waMessage)} target="_blank" rel="noreferrer">
             <MessageCircle className="h-5 w-5" />
             {t.reservation.whatsappCta}

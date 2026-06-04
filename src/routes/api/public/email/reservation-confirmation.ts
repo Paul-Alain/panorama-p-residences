@@ -2,7 +2,6 @@ import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { supabaseAdmin } from '@/integrations/supabase/client.server'
 import { enqueueAppEmail } from '@/lib/email/enqueue.server'
-import { brand } from '@/lib/email-templates/brand'
 
 const BodySchema = z.object({
   email: z.string().email().max(160).optional().or(z.literal('')),
@@ -31,7 +30,7 @@ export const Route = createFileRoute('/api/public/email/reservation-confirmation
         let query = supabaseAdmin
           .from('reservations')
           .select(
-            'id, name, email, phone, arrival_date, departure_date, guests, logement_type, message',
+            'id, name, email, phone, arrival_date, departure_date, arrival_time, departure_time, guests, logement_type, message',
           )
           .gte('created_at', since)
           .order('created_at', { ascending: false })
@@ -51,6 +50,22 @@ export const Route = createFileRoute('/api/public/email/reservation-confirmation
           return Response.json({ success: true, sent: false })
         }
 
+        // French long date + time, e.g. "12 juillet 2026 · 14:00".
+        const fmtFr = (date?: string | null, time?: string | null) => {
+          if (!date) return ''
+          const dt = new Date(`${date}T${(time ?? '00:00').slice(0, 5)}:00`)
+          if (Number.isNaN(dt.getTime())) return date
+          const datePart = dt.toLocaleDateString('fr-FR', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })
+          return time ? `${datePart} · ${time.slice(0, 5)}` : datePart
+        }
+
+        const arrivalFr = fmtFr(match.arrival_date, match.arrival_time)
+        const departureFr = fmtFr(match.departure_date, match.departure_time)
+
         // 1. Guest confirmation (only when the guest supplied an email).
         let guestSent = false
         if (guestEmail) {
@@ -60,8 +75,8 @@ export const Route = createFileRoute('/api/public/email/reservation-confirmation
             idempotencyKey: `reservation-${match.id}`,
             templateData: {
               name: parsed.name,
-              arrival: match.arrival_date ?? '',
-              departure: match.departure_date ?? '',
+              arrival: arrivalFr,
+              departure: departureFr,
               guests: match.guests ?? '',
               unitLabel: parsed.unitLabel ?? '',
             },
@@ -69,17 +84,17 @@ export const Route = createFileRoute('/api/public/email/reservation-confirmation
           guestSent = result.success
         }
 
-        // 2. Always send a copy/alert to the team inbox.
+        // 2. Always notify the residence manager of the new booking.
         const teamResult = await enqueueAppEmail({
           templateName: 'reservation-team-alert',
-          recipientEmail: brand.reservationsEmail,
+          recipientEmail: 'residencespanoramap@gmail.com',
           idempotencyKey: `reservation-team-${match.id}`,
           templateData: {
             name: match.name ?? parsed.name,
             email: match.email ?? guestEmail,
             phone: match.phone ?? parsed.phone ?? '',
-            arrival: match.arrival_date ?? '',
-            departure: match.departure_date ?? '',
+            arrival: arrivalFr,
+            departure: departureFr,
             guests: match.guests ?? '',
             unitLabel: parsed.unitLabel ?? '',
             message: match.message ?? '',
