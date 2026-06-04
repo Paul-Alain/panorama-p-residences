@@ -191,6 +191,22 @@
   .animate-fade-in {
     animation: fade-in 0.9s ease both;
   }
+
+  /* Operational status fills */
+  .st-libre { background-color: var(--st-libre); color: var(--st-libre-fg); }
+  .st-confirme { background-color: var(--st-confirme); color: var(--st-confirme-fg); }
+  .st-present { background-color: var(--st-present); color: var(--st-present-fg); }
+  .st-jour { background-color: var(--st-jour); color: var(--st-jour-fg); }
+  .st-conflit { background-color: var(--st-conflit); color: var(--st-conflit-fg); }
+  .st-bloque { background-color: var(--st-bloque); color: var(--st-bloque-fg); }
+  .st-nettoyage { background-color: var(--st-nettoyage); color: var(--st-nettoyage-fg); }
+  .st-dot-libre { background-color: var(--st-libre-fg); }
+  .st-dot-confirme { background-color: var(--st-confirme); }
+  .st-dot-present { background-color: var(--st-present); }
+  .st-dot-jour { background-color: var(--st-jour); }
+  .st-dot-conflit { background-color: var(--st-conflit); }
+  .st-dot-bloque { background-color: var(--st-bloque); }
+  .st-dot-nettoyage { background-color: var(--st-nettoyage); }
 }
 
 @keyframes fade-up {
