@@ -80,7 +80,7 @@ const fr = {
   },
   contact: {
     title: "Contactez-nous",
-    subtitle: "Une question ? Écrivez-nous, nous répondons rapidement.",
+    subtitle: "Une question ? Une réclamation ? Écrivez-nous, nous répondons rapidement.",
     name: "Nom",
     phone: "Téléphone",
     email: "Email",
