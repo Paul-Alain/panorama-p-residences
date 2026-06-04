@@ -219,7 +219,7 @@ export function ReservationsAdmin() {
                     <td className="px-3 py-2 text-right whitespace-nowrap text-gold">{formatMoney(r.balance, residence.currency)}</td>
                     <td className="px-3 py-2">
                       <div className="flex items-center justify-end gap-1">
-                        <RowActions r={r} busyId={busyId} onView={() => setDetailId(r.id)} onEdit={() => setEditing(toEditable(r))} act={act} runStatus={runStatus} />
+                        <RowActions r={r} busyId={busyId} onEdit={() => setEditing(toEditable(r))} act={act} runStatus={runStatus} />
                       </div>
                     </td>
                   </tr>
