@@ -23,6 +23,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AProposRouteImport } from './routes/a-propos'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as GalerieIndexRouteImport } from './routes/galerie.index'
 import { Route as GalerieBlockIdRouteImport } from './routes/galerie.$blockId'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as AuthResetRouteImport } from './routes/auth.reset'
@@ -105,6 +106,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const GalerieIndexRoute = GalerieIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => GalerieRoute,
 } as any)
 const GalerieBlockIdRoute = GalerieBlockIdRouteImport.update({
   id: '/$blockId',
@@ -191,6 +197,7 @@ export interface FileRoutesByFullPath {
   '/auth/reset': typeof AuthResetRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/galerie/$blockId': typeof GalerieBlockIdRoute
+  '/galerie/': typeof GalerieIndexRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/email/contact-confirmation': typeof ApiPublicEmailContactConfirmationRoute
   '/api/public/email/reservation-confirmation': typeof ApiPublicEmailReservationConfirmationRoute
@@ -207,7 +214,6 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRouteWithChildren
   '/contact': typeof ContactRoute
-  '/galerie': typeof GalerieRouteWithChildren
   '/localisation': typeof LocalisationRoute
   '/logements': typeof LogementsRoute
   '/mon-espace': typeof MonEspaceRoute
@@ -219,6 +225,7 @@ export interface FileRoutesByTo {
   '/auth/reset': typeof AuthResetRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/galerie/$blockId': typeof GalerieBlockIdRoute
+  '/galerie': typeof GalerieIndexRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/email/contact-confirmation': typeof ApiPublicEmailContactConfirmationRoute
   '/api/public/email/reservation-confirmation': typeof ApiPublicEmailReservationConfirmationRoute
@@ -248,6 +255,7 @@ export interface FileRoutesById {
   '/auth/reset': typeof AuthResetRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/galerie/$blockId': typeof GalerieBlockIdRoute
+  '/galerie/': typeof GalerieIndexRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/email/contact-confirmation': typeof ApiPublicEmailContactConfirmationRoute
   '/api/public/email/reservation-confirmation': typeof ApiPublicEmailReservationConfirmationRoute
@@ -278,6 +286,7 @@ export interface FileRouteTypes {
     | '/auth/reset'
     | '/email/unsubscribe'
     | '/galerie/$blockId'
+    | '/galerie/'
     | '/lovable/email/suppression'
     | '/api/public/email/contact-confirmation'
     | '/api/public/email/reservation-confirmation'
@@ -294,7 +303,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/contact'
-    | '/galerie'
     | '/localisation'
     | '/logements'
     | '/mon-espace'
@@ -306,6 +314,7 @@ export interface FileRouteTypes {
     | '/auth/reset'
     | '/email/unsubscribe'
     | '/galerie/$blockId'
+    | '/galerie'
     | '/lovable/email/suppression'
     | '/api/public/email/contact-confirmation'
     | '/api/public/email/reservation-confirmation'
@@ -334,6 +343,7 @@ export interface FileRouteTypes {
     | '/auth/reset'
     | '/email/unsubscribe'
     | '/galerie/$blockId'
+    | '/galerie/'
     | '/lovable/email/suppression'
     | '/api/public/email/contact-confirmation'
     | '/api/public/email/reservation-confirmation'
@@ -472,6 +482,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/galerie/': {
+      id: '/galerie/'
+      path: '/'
+      fullPath: '/galerie/'
+      preLoaderRoute: typeof GalerieIndexRouteImport
+      parentRoute: typeof GalerieRoute
+    }
     '/galerie/$blockId': {
       id: '/galerie/$blockId'
       path: '/$blockId'
@@ -571,10 +588,12 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface GalerieRouteChildren {
   GalerieBlockIdRoute: typeof GalerieBlockIdRoute
+  GalerieIndexRoute: typeof GalerieIndexRoute
 }
 
 const GalerieRouteChildren: GalerieRouteChildren = {
   GalerieBlockIdRoute: GalerieBlockIdRoute,
+  GalerieIndexRoute: GalerieIndexRoute,
 }
 
 const GalerieRouteWithChildren =
@@ -612,3 +631,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
