@@ -21,6 +21,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PhoneInput } from "@/components/forms/phone-input";
+import { DateField } from "@/components/forms/date-field";
+import { TimeField } from "@/components/forms/time-field";
 import { supabase } from "@/integrations/supabase/client";
 import {
   opCreateReservation,
@@ -29,6 +31,7 @@ import {
 import { bookingUnitsFrom, MAX_GUESTS_BY_TYPE } from "@/lib/operations";
 import { formatMoney } from "@/lib/format";
 import { useResidence } from "@/lib/use-residence";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 const TYPE_OPTIONS = ["chambre", "studio", "appartement"] as const;
 type LogementType = (typeof TYPE_OPTIONS)[number];
