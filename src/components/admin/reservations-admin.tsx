@@ -38,7 +38,7 @@ import {
 } from "./reservation-form-dialog";
 
 const PAGE_SIZE = 20;
-const KEYS = ["op-dashboard", "admin-reservations", "op-payments", "admin-occupancy"];
+const KEYS = ["op-dashboard", "admin-reservations", "op-payments", "admin-occupancy", "op-calendar"];
 
 const TYPE_LABELS: Record<string, string> = {
   chambre: "Chambre",
