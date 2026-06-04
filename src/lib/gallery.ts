@@ -62,6 +62,7 @@ const salonAlt: Record<Lang, string> = {
 
 const salonUrls = [
   salon1, salon2, salon3, salon4, salon5, salon6, salon7, salon8, salon9,
+  salon10, salon11, salon12, salon13,
 ];
 
 export const gallerySections: GallerySection[] = [
