@@ -2,7 +2,17 @@ import { useMemo, useState, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Search, Phone, Mail, Plane, Calendar, FileDown, FileSpreadsheet, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Loader2,
+  Search,
+  Phone,
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle2,
+  LogIn,
+  LogOut,
+  Eye,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -13,322 +23,245 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useLanguage } from "@/lib/i18n/language-context";
 import {
-  adminListReservations,
-  adminUpdateReservationStatus,
-} from "@/lib/admin.functions";
-import { exportReservationsPdf, exportReservationsExcel } from "@/lib/admin-export";
+  opListReservations,
+  opSetReservationStatus,
+  opCheckIn,
+  opCheckOut,
+} from "@/lib/operations.functions";
+import { RES_STATUS_LABELS, PAY_STATUS_LABELS } from "@/lib/operations";
+import { formatDateFr, formatMoney } from "@/lib/format";
+import { useResidence } from "@/lib/use-residence";
+import { ReservationDetailDialog } from "./reservation-detail-dialog";
 
 const PAGE_SIZE = 20;
-
-interface Reservation {
-  id: string;
-  name: string;
-  phone: string;
-  email: string | null;
-  arrival_date: string;
-  departure_date: string;
-  guests: number;
-  logement_type: string | null;
-  message: string | null;
-  status: string;
-  created_at: string;
-}
-
-const STATUSES = ["nouvelle", "confirmée", "terminée", "annulée"] as const;
-type ResStatus = (typeof STATUSES)[number];
+const KEYS = ["op-dashboard", "admin-reservations", "op-payments", "admin-occupancy"];
 
 function statusVariant(s: string): "default" | "secondary" | "destructive" | "outline" {
-  if (s === "confirmée") return "default";
+  if (s === "confirmée" || s === "checkin") return "default";
   if (s === "terminée") return "secondary";
   if (s === "annulée") return "destructive";
   return "outline";
 }
 
 export function ReservationsAdmin() {
-  const { t, lang } = useLanguage();
-  const d = t.admin.dash;
   const qc = useQueryClient();
-  const runList = useServerFn(adminListReservations);
-  const runUpdate = useServerFn(adminUpdateReservationStatus);
+  const residence = useResidence();
+  const runList = useServerFn(opListReservations);
+  const runStatus = useServerFn(opSetReservationStatus);
+  const runCheckIn = useServerFn(opCheckIn);
+  const runCheckOut = useServerFn(opCheckOut);
 
   const { data = [], isLoading } = useQuery({
     queryKey: ["admin-reservations"],
-    queryFn: async () => (await runList()) as Reservation[],
-    staleTime: 60_000,
+    queryFn: () => runList(),
+    staleTime: 30_000,
     refetchOnWindowFocus: false,
   });
 
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<string>("all");
-  const [arrivalFrom, setArrivalFrom] = useState("");
-  const [departureTo, setDepartureTo] = useState("");
-  const [savingId, setSavingId] = useState<string | null>(null);
+  const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
 
-  const fmtStatus = (s: string) =>
-    (d.reservationStatus as Record<string, string>)[s] ?? s;
-  const fmtDate = (s: string) => {
-    const dt = new Date(s);
-    return Number.isNaN(dt.getTime()) ? s : dt.toLocaleDateString(lang);
-  };
+  const invalidate = () => Promise.all(KEYS.map((k) => qc.invalidateQueries({ queryKey: [k] })));
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return data.filter((r) => {
       if (q) {
-        const hay = `${r.name} ${r.phone} ${r.email ?? ""}`.toLowerCase();
+        const hay = `${r.name} ${r.phone} ${r.email ?? ""} ${r.ref} ${r.unitLabel}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       if (status !== "all" && r.status !== status) return false;
-      if (arrivalFrom && r.arrival_date < arrivalFrom) return false;
-      if (departureTo && r.departure_date > departureTo) return false;
       return true;
     });
-  }, [data, search, status, arrivalFrom, departureTo]);
+  }, [data, search, status]);
 
-  // Reset to first page whenever filters change.
-  useEffect(() => {
-    setPage(1);
-  }, [search, status, arrivalFrom, departureTo]);
+  useEffect(() => setPage(1), [search, status]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageItems = useMemo(
-    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [filtered, page],
-  );
+  const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const ex = d.exports;
-  const pg = d.pagination;
-  const exportLabels = ex;
-  const doExportPdf = () => {
-    if (filtered.length === 0) return toast.error(ex.empty);
-    exportReservationsPdf(filtered, exportLabels, fmtStatus).catch(() => toast.error(ex.empty));
-  };
-  const doExportExcel = () => {
-    if (filtered.length === 0) return toast.error(ex.empty);
-    exportReservationsExcel(filtered, exportLabels, fmtStatus).catch(() => toast.error(ex.empty));
-  };
-
-
-  const today = new Date().toISOString().slice(0, 10);
-  const upcomingArrivals = useMemo(
-    () =>
-      [...data]
-        .filter((r) => r.arrival_date >= today && r.status !== "annulée")
-        .sort((a, b) => a.arrival_date.localeCompare(b.arrival_date))
-        .slice(0, 5),
-    [data, today],
-  );
-  const upcomingDepartures = useMemo(
-    () =>
-      [...data]
-        .filter((r) => r.departure_date >= today && r.status !== "annulée")
-        .sort((a, b) => a.departure_date.localeCompare(b.departure_date))
-        .slice(0, 5),
-    [data, today],
-  );
-
-  const changeStatus = async (id: string, next: ResStatus) => {
-    setSavingId(id);
+  const act = async (id: string, fn: () => Promise<unknown>, ok: string) => {
+    setBusyId(id);
     try {
-      await runUpdate({ data: { id, status: next } });
-      await qc.invalidateQueries({ queryKey: ["admin-reservations"] });
-      await qc.invalidateQueries({ queryKey: ["admin-stats"] });
-      toast.success(fmtStatus(next));
-    } catch {
-      toast.error("Erreur");
+      await fn();
+      await invalidate();
+      toast.success(ok);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur");
     }
-    setSavingId(null);
+    setBusyId(null);
   };
 
   if (isLoading) return <Loader2 className="h-5 w-5 animate-spin text-gold" />;
-  if (data.length === 0)
-    return <p className="text-muted-foreground">{d.reservations.empty}</p>;
+
+  const STATUSES = ["nouvelle", "confirmée", "checkin", "terminée", "annulée"];
 
   return (
-    <div className="space-y-6">
-      {(upcomingArrivals.length > 0 || upcomingDepartures.length > 0) && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <QuickList
-            icon={<Plane className="h-4 w-4 text-gold" />}
-            title={d.reservations.upcomingArrivals}
-            items={upcomingArrivals.map((r) => ({
-              id: r.id,
-              name: r.name,
-              date: fmtDate(r.arrival_date),
-            }))}
-          />
-          <QuickList
-            icon={<Calendar className="h-4 w-4 text-gold" />}
-            title={d.reservations.upcomingDepartures}
-            items={upcomingDepartures.map((r) => ({
-              id: r.id,
-              name: r.name,
-              date: fmtDate(r.departure_date),
-            }))}
-          />
-        </div>
-      )}
-
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <Button variant="outline" size="sm" onClick={doExportPdf}>
-          <FileDown className="h-4 w-4" /> {ex.pdf}
-        </Button>
-        <Button variant="outline" size="sm" onClick={doExportExcel}>
-          <FileSpreadsheet className="h-4 w-4" /> {ex.excel}
-        </Button>
-      </div>
-
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="relative sm:col-span-2 lg:col-span-1">
+    <div className="space-y-5">
+      <div className="grid gap-2 sm:grid-cols-3">
+        <div className="relative sm:col-span-2">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={d.reservations.search}
-            className="pl-9"
-          />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher (nom, téléphone, unité, réf.)" className="pl-9" />
         </div>
         <Select value={status} onValueChange={setStatus}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{d.reservations.allStatuses}</SelectItem>
+            <SelectItem value="all">Tous les statuts</SelectItem>
             {STATUSES.map((s) => (
               <SelectItem key={s} value={s}>
-                {fmtStatus(s)}
+                {RES_STATUS_LABELS[s]}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">{d.reservations.arrivalFrom}</label>
-          <Input type="date" value={arrivalFrom} onChange={(e) => setArrivalFrom(e.target.value)} />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">{d.reservations.departureTo}</label>
-          <Input type="date" value={departureTo} onChange={(e) => setDepartureTo(e.target.value)} />
-        </div>
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-muted-foreground">{d.reservations.none}</p>
+        <p className="text-muted-foreground">Aucune réservation.</p>
       ) : (
-        <div className="space-y-3">
-          {pageItems.map((r) => (
-            <div key={r.id} className="rounded-xl border border-border/60 bg-card p-4">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="font-medium">{r.name}</p>
-                  <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                    <span className="inline-flex items-center gap-1">
+        <>
+          {/* Desktop table */}
+          <div className="hidden overflow-x-auto rounded-2xl border border-border/60 lg:block">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary/60 text-left text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2">Réf.</th>
+                  <th className="px-3 py-2">Client</th>
+                  <th className="px-3 py-2">Téléphone</th>
+                  <th className="px-3 py-2">Unité</th>
+                  <th className="px-3 py-2">Arrivée</th>
+                  <th className="px-3 py-2">Départ</th>
+                  <th className="px-3 py-2">Pers.</th>
+                  <th className="px-3 py-2">Statut</th>
+                  <th className="px-3 py-2">Paiement</th>
+                  <th className="px-3 py-2 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {pageItems.map((r) => (
+                  <tr key={r.id} className="hover:bg-secondary/30">
+                    <td className="px-3 py-2 font-mono text-xs">{r.ref}</td>
+                    <td className="px-3 py-2 font-medium">{r.name}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{r.phone}</td>
+                    <td className="px-3 py-2">{r.unitLabel}</td>
+                    <td className="px-3 py-2">{formatDateFr(r.arrival_date)}</td>
+                    <td className="px-3 py-2">{formatDateFr(r.departure_date)}</td>
+                    <td className="px-3 py-2 text-center">{r.guests}</td>
+                    <td className="px-3 py-2">
+                      <Badge variant={statusVariant(r.status)}>{RES_STATUS_LABELS[r.status] ?? r.status}</Badge>
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className="text-xs">{PAY_STATUS_LABELS[r.payment_status] ?? r.payment_status}</span>
+                      {r.balance > 0 && <span className="block text-xs text-gold">{formatMoney(r.balance, residence.currency)}</span>}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center justify-end gap-1">
+                        <RowActions r={r} busyId={busyId} onView={() => setDetailId(r.id)} act={act} runStatus={runStatus} runCheckIn={runCheckIn} runCheckOut={runCheckOut} />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="space-y-3 lg:hidden">
+            {pageItems.map((r) => (
+              <div key={r.id} className="rounded-xl border border-border/60 bg-card p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-medium">{r.name} <span className="font-mono text-xs text-muted-foreground">{r.ref}</span></p>
+                    <p className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground">
                       <Phone className="h-3.5 w-3.5" /> {r.phone}
-                    </span>
-                    {r.email && (
-                      <span className="inline-flex items-center gap-1">
-                        <Mail className="h-3.5 w-3.5" /> {r.email}
-                      </span>
-                    )}
-                  </p>
+                    </p>
+                  </div>
+                  <Badge variant={statusVariant(r.status)}>{RES_STATUS_LABELS[r.status] ?? r.status}</Badge>
                 </div>
-                <Badge variant={statusVariant(r.status)}>{fmtStatus(r.status)}</Badge>
+                <p className="mt-2 text-sm">{r.unitLabel} · {r.guests} pers.</p>
+                <p className="text-sm text-muted-foreground">{formatDateFr(r.arrival_date)} → {formatDateFr(r.departure_date)}</p>
+                <p className="mt-1 text-sm">
+                  {PAY_STATUS_LABELS[r.payment_status] ?? r.payment_status}
+                  {r.balance > 0 && <span className="text-gold"> · solde {formatMoney(r.balance, residence.currency)}</span>}
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-border/50 pt-3">
+                  <RowActions r={r} busyId={busyId} onView={() => setDetailId(r.id)} act={act} runStatus={runStatus} runCheckIn={runCheckIn} runCheckOut={runCheckOut} />
+                </div>
               </div>
-              <p className="mt-2 text-sm">
-                <span className="text-muted-foreground">{d.reservations.dates}: </span>
-                {fmtDate(r.arrival_date)} → {fmtDate(r.departure_date)} · {r.guests} {d.reservations.guests}
-              </p>
-              <p className="text-sm">
-                <span className="text-muted-foreground">{d.reservations.accommodation}: </span>
-                {r.logement_type ?? "—"}
-              </p>
-              {r.message && <p className="mt-2 text-sm">{r.message}</p>}
-              <div className="mt-3 flex items-center gap-2 border-t border-border/50 pt-3">
-                <span className="text-xs text-muted-foreground">{d.reservations.setStatus}:</span>
-                <Select
-                  value={r.status}
-                  onValueChange={(v) => changeStatus(r.id, v as ResStatus)}
-                >
-                  <SelectTrigger className="h-8 w-40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STATUSES.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {fmtStatus(s)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {savingId === r.id && <Loader2 className="h-4 w-4 animate-spin text-gold" />}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
+        </>
+      )}
+
+      {filtered.length > PAGE_SIZE && (
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <span className="text-muted-foreground">{filtered.length} réservation(s)</span>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-muted-foreground">{page} / {totalPages}</span>
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
 
-      {filtered.length > 0 && (
-        <div className="flex items-center justify-between gap-3 pt-1 text-sm">
-          <span className="text-muted-foreground">
-            {pg.showing.replace("{count}", String(filtered.length))}
-          </span>
-          {totalPages > 1 && (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-              >
-                <ChevronLeft className="h-4 w-4" /> {pg.prev}
-              </Button>
-              <span className="text-muted-foreground">
-                {pg.page.replace("{page}", String(page)).replace("{total}", String(totalPages))}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-              >
-                {pg.next} <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
+      <ReservationDetailDialog reservationId={detailId} open={!!detailId} onOpenChange={(v) => !v && setDetailId(null)} />
     </div>
   );
 }
 
-function QuickList({
-  icon,
-  title,
-  items,
+interface Row {
+  id: string;
+  status: string;
+}
+
+function RowActions({
+  r,
+  busyId,
+  onView,
+  act,
+  runStatus,
+  runCheckIn,
+  runCheckOut,
 }: {
-  icon: React.ReactNode;
-  title: string;
-  items: { id: string; name: string; date: string }[];
+  r: Row;
+  busyId: string | null;
+  onView: () => void;
+  act: (id: string, fn: () => Promise<unknown>, ok: string) => Promise<void>;
+  runStatus: (a: { data: { id: string; status: any } }) => Promise<unknown>;
+  runCheckIn: (a: { data: { id: string } }) => Promise<unknown>;
+  runCheckOut: (a: { data: { id: string } }) => Promise<unknown>;
 }) {
+  const loading = busyId === r.id;
   return (
-    <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-soft">
-      <p className="flex items-center gap-2 font-medium">
-        {icon} {title}
-      </p>
-      {items.length === 0 ? (
-        <p className="mt-2 text-sm text-muted-foreground">—</p>
-      ) : (
-        <ul className="mt-2 space-y-1.5">
-          {items.map((i) => (
-            <li key={i.id} className="flex items-center justify-between text-sm">
-              <span className="truncate">{i.name}</span>
-              <span className="shrink-0 text-muted-foreground">{i.date}</span>
-            </li>
-          ))}
-        </ul>
+    <>
+      <Button size="sm" variant="ghost" onClick={onView} title="Voir détails">
+        <Eye className="h-4 w-4" />
+      </Button>
+      {r.status === "nouvelle" && (
+        <Button size="sm" variant="outline" disabled={loading} onClick={() => act(r.id, () => runStatus({ data: { id: r.id, status: "confirmée" } }), "Confirmée.")}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Confirmer
+        </Button>
       )}
-    </div>
+      {r.status === "confirmée" && (
+        <Button size="sm" variant="outline" disabled={loading} onClick={() => act(r.id, () => runCheckIn({ data: { id: r.id } }), "Check-in effectué.")}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />} Check-in
+        </Button>
+      )}
+      {r.status === "checkin" && (
+        <Button size="sm" variant="outline" disabled={loading} onClick={() => act(r.id, () => runCheckOut({ data: { id: r.id } }), "Check-out effectué.")}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />} Check-out
+        </Button>
+      )}
+    </>
   );
 }

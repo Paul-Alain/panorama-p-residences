@@ -97,6 +97,22 @@
   --sidebar-accent-foreground: oklch(0.28 0.018 55);
   --sidebar-border: oklch(0.9 0.01 80);
   --sidebar-ring: oklch(0.7 0.094 72);
+
+  /* Operational status palette (calendar + unit grid) */
+  --st-libre: oklch(0.99 0.003 85);
+  --st-libre-fg: oklch(0.45 0.01 60);
+  --st-confirme: oklch(0.62 0.13 250);
+  --st-confirme-fg: oklch(0.98 0.01 250);
+  --st-present: oklch(0.62 0.14 150);
+  --st-present-fg: oklch(0.98 0.02 150);
+  --st-jour: oklch(0.72 0.15 60);
+  --st-jour-fg: oklch(0.25 0.04 60);
+  --st-conflit: oklch(0.58 0.2 27);
+  --st-conflit-fg: oklch(0.98 0.01 27);
+  --st-bloque: oklch(0.68 0.012 60);
+  --st-bloque-fg: oklch(0.99 0 0);
+  --st-nettoyage: oklch(0.62 0.14 300);
+  --st-nettoyage-fg: oklch(0.98 0.02 300);
 }
 
 .dark {
@@ -175,6 +191,22 @@
   .animate-fade-in {
     animation: fade-in 0.9s ease both;
   }
+
+  /* Operational status fills */
+  .st-libre { background-color: var(--st-libre); color: var(--st-libre-fg); }
+  .st-confirme { background-color: var(--st-confirme); color: var(--st-confirme-fg); }
+  .st-present { background-color: var(--st-present); color: var(--st-present-fg); }
+  .st-jour { background-color: var(--st-jour); color: var(--st-jour-fg); }
+  .st-conflit { background-color: var(--st-conflit); color: var(--st-conflit-fg); }
+  .st-bloque { background-color: var(--st-bloque); color: var(--st-bloque-fg); }
+  .st-nettoyage { background-color: var(--st-nettoyage); color: var(--st-nettoyage-fg); }
+  .st-dot-libre { background-color: var(--st-libre-fg); }
+  .st-dot-confirme { background-color: var(--st-confirme); }
+  .st-dot-present { background-color: var(--st-present); }
+  .st-dot-jour { background-color: var(--st-jour); }
+  .st-dot-conflit { background-color: var(--st-conflit); }
+  .st-dot-bloque { background-color: var(--st-bloque); }
+  .st-dot-nettoyage { background-color: var(--st-nettoyage); }
 }
 
 @keyframes fade-up {

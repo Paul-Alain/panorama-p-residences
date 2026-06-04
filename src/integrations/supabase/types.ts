@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_log: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          object_id: string | null
+          object_type: string | null
+          summary: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          object_id?: string | null
+          object_type?: string | null
+          summary?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          object_id?: string | null
+          object_type?: string | null
+          summary?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
       app_config: {
         Row: {
           admin_bootstrapped: boolean
@@ -126,6 +159,7 @@ export type Database = {
           id: string
           label: string
           logement_id: string
+          op_status: string
           sort_order: number
           unit_number: number
           updated_at: string
@@ -136,6 +170,7 @@ export type Database = {
           id?: string
           label: string
           logement_id: string
+          op_status?: string
           sort_order?: number
           unit_number?: number
           updated_at?: string
@@ -146,6 +181,7 @@ export type Database = {
           id?: string
           label?: string
           logement_id?: string
+          op_status?: string
           sort_order?: number
           unit_number?: number
           updated_at?: string
@@ -253,6 +289,47 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          method: string
+          note: string | null
+          recorded_by: string | null
+          recorded_by_name: string | null
+          reservation_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          method?: string
+          note?: string | null
+          recorded_by?: string | null
+          recorded_by_name?: string | null
+          reservation_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          method?: string
+          note?: string | null
+          recorded_by?: string | null
+          recorded_by_name?: string | null
+          reservation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -283,6 +360,8 @@ export type Database = {
       reservations: {
         Row: {
           arrival_date: string
+          checkin_at: string | null
+          checkout_at: string | null
           created_at: string
           departure_date: string
           email: string | null
@@ -292,12 +371,17 @@ export type Database = {
           logement_unit_id: string | null
           message: string | null
           name: string
+          notes: string | null
+          payment_status: string
           phone: string
           status: string
+          total_amount: number
           user_id: string | null
         }
         Insert: {
           arrival_date: string
+          checkin_at?: string | null
+          checkout_at?: string | null
           created_at?: string
           departure_date: string
           email?: string | null
@@ -307,12 +391,17 @@ export type Database = {
           logement_unit_id?: string | null
           message?: string | null
           name: string
+          notes?: string | null
+          payment_status?: string
           phone: string
           status?: string
+          total_amount?: number
           user_id?: string | null
         }
         Update: {
           arrival_date?: string
+          checkin_at?: string | null
+          checkout_at?: string | null
           created_at?: string
           departure_date?: string
           email?: string | null
@@ -322,8 +411,11 @@ export type Database = {
           logement_unit_id?: string | null
           message?: string | null
           name?: string
+          notes?: string | null
+          payment_status?: string
           phone?: string
           status?: string
+          total_amount?: number
           user_id?: string | null
         }
         Relationships: [
@@ -335,6 +427,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      residence_settings: {
+        Row: {
+          cancellation_policy: string | null
+          checkin_time: string
+          checkout_time: string
+          currency: string
+          deposit_percent: number
+          email_notifications: boolean
+          id: boolean
+          language: string
+          logo_url: string | null
+          name: string
+          taxes: string | null
+          updated_at: string
+        }
+        Insert: {
+          cancellation_policy?: string | null
+          checkin_time?: string
+          checkout_time?: string
+          currency?: string
+          deposit_percent?: number
+          email_notifications?: boolean
+          id?: boolean
+          language?: string
+          logo_url?: string | null
+          name?: string
+          taxes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cancellation_policy?: string | null
+          checkin_time?: string
+          checkout_time?: string
+          currency?: string
+          deposit_percent?: number
+          email_notifications?: boolean
+          id?: boolean
+          language?: string
+          logo_url?: string | null
+          name?: string
+          taxes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       suppressed_emails: {
         Row: {
@@ -441,6 +578,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_staff: { Args: { _user_id: string }; Returns: boolean }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -460,7 +598,14 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role:
+        | "admin"
+        | "user"
+        | "proprietaire"
+        | "gestionnaire"
+        | "reception"
+        | "menage"
+        | "comptable"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -588,7 +733,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: [
+        "admin",
+        "user",
+        "proprietaire",
+        "gestionnaire",
+        "reception",
+        "menage",
+        "comptable",
+      ],
     },
   },
 } as const
