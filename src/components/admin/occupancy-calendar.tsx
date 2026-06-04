@@ -220,35 +220,7 @@ export function OccupancyCalendar() {
     }
   };
 
-  // Summary occupancy by type (today)
-  const summary = useMemo(() => {
-    const types = ["chambre", "studio", "appartement"] as const;
-    const labelOf: Record<string, string> = {
-      chambre: c.rooms,
-      studio: c.studios,
-      appartement: c.apartments,
-    };
-    const rows = types
-      .map((type) => {
-        const us = units.filter((u) => u.type === type);
-        if (us.length === 0) return null;
-        const occ = us.filter((u) =>
-          reservations.some(
-            (r) =>
-              r.logement_unit_id === u.id &&
-              ACTIVE.includes(r.status) &&
-              r.status !== "nouvelle" &&
-              r.arrival_date <= today &&
-              r.departure_date > today,
-          ),
-        ).length;
-        return { label: labelOf[type], occ, total: us.length };
-      })
-      .filter(Boolean) as { label: string; occ: number; total: number }[];
-    const occTotal = rows.reduce((s, r) => s + r.occ, 0);
-    const total = rows.reduce((s, r) => s + r.total, 0);
-    return { rows, occTotal, total };
-  }, [units, reservations, today, c]);
+
 
   const fmtDayNum = (iso: string) => {
     const d = new Date(iso + "T00:00:00");
