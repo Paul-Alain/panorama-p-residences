@@ -1028,15 +1028,7 @@ export const opCreateReservation = createServerFn({ method: "POST" })
 // ── Manager edit of an existing reservation ──────────────────────────────
 export const opUpdateReservation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z
-      .object({ id: UUID })
-      .and(reservationFormSchema._def.schema.shape ? reservationFormSchema : reservationFormSchema)
-      .parse(
-        // reservationFormSchema includes refinements; merge id manually below.
-        input,
-      ),
-  )
+  .inputValidator((input: unknown) => reservationUpdateSchema.parse(input))
   .handler(async ({ context, data }) => {
     await assertStaff(context.supabase, context.userId);
     const sb = context.supabase;
