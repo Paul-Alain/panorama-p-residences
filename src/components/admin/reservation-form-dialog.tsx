@@ -335,16 +335,37 @@ export function ReservationFormDialog({
             </p>
           )}
 
-          <div className="space-y-1.5">
-            <Label htmlFor="nr-advance">Montant avancé</Label>
-            <Input
-              id="nr-advance"
-              type="number"
-              min={0}
-              inputMode="numeric"
-              value={form.advance}
-              onChange={(e) => set("advance", e.target.value)}
-            />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="nr-add-advance">Ajouter une avance</Label>
+              <Input
+                id="nr-add-advance"
+                type="number"
+                min={0}
+                inputMode="numeric"
+                value={form.addAdvance}
+                onChange={(e) => set("addAdvance", e.target.value)}
+                placeholder="0"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Montant à encaisser maintenant auprès du client.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="nr-advance">Montant avancé</Label>
+              <Input
+                id="nr-advance"
+                readOnly
+                value={formatMoney(advanceNum, residence.currency)}
+                className="bg-secondary/40 font-semibold"
+                tabIndex={-1}
+              />
+              {addedAdvance > 0 && (
+                <p className="text-[11px] text-muted-foreground">
+                  {formatMoney(baseAdvance, residence.currency)} + {formatMoney(addedAdvance, residence.currency)}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Auto-computed summary (read-only) */}
