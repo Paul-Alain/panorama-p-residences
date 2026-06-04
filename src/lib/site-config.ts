@@ -9,9 +9,9 @@ export const siteConfig = {
     "Bafoussam, à 500 m du stade municipal de Bamendzi vers le carrefour Aladji, première entrée à gauche",
   // Coordonnées GPS exactes de la résidence (repère précis sur la carte)
   coordinates: { lat: 5.478280, lng: 10.427312 },
-  // Carte Google Maps avec un repère exactement sur la résidence
+  // Carte Google Maps avec un repère + libellé exactement sur la résidence
   mapEmbedUrl:
-    "https://www.google.com/maps?q=5.478280,10.427312&z=17&output=embed",
+    "https://www.google.com/maps?q=5.478280,10.427312(R%C3%A9sidence%20Panorama%20P)&z=17&output=embed",
   mapLink:
     "https://www.google.com/maps/search/?api=1&query=5.478280,10.427312",
   social: {

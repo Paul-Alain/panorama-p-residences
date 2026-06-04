@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, ShieldCheck, Sparkles, Mountain, Wifi } from "lucide-react";
+import { ArrowRight, ShieldCheck, Sparkles, Mountain, Wifi, MapPin } from "lucide-react";
 import { Hero } from "@/components/home/hero";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Reveal } from "@/components/ui/reveal";
@@ -185,6 +185,15 @@ function Index() {
               <ArrowRight className="h-5 w-5" />
             </Link>
           </Button>
+          <div className="mt-6">
+            <Link
+              to="/localisation"
+              className="inline-flex items-center gap-2 text-sm text-primary-foreground/80 underline underline-offset-4 transition-colors hover:text-gold"
+            >
+              <MapPin className="h-4 w-4" />
+              {t.nav.location}
+            </Link>
+          </div>
         </div>
       </section>
     </>
