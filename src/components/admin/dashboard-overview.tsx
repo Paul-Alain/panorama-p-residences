@@ -40,7 +40,6 @@ import {
 import { formatMoney } from "@/lib/format";
 import { useResidence } from "@/lib/use-residence";
 import { ReservationDetailDialog } from "./reservation-detail-dialog";
-import { NewReservationDialog } from "./new-reservation-dialog";
 
 const KEYS = ["op-dashboard", "admin-reservations", "op-payments", "admin-occupancy"];
 
