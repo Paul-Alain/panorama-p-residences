@@ -31,15 +31,28 @@ function LocalisationPage() {
 
       <section className="py-16 sm:py-20">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-3 lg:px-8">
-          <div className="overflow-hidden rounded-3xl border border-border/60 shadow-elegant lg:col-span-2">
-            <iframe
-              title="Carte Bafoussam – Panorama P"
-              src={siteConfig.mapEmbedUrl}
-              className="h-[420px] w-full"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              allowFullScreen
-            />
+          <div className="lg:col-span-2">
+            <div className="overflow-hidden rounded-3xl border border-border/60 shadow-elegant">
+              <iframe
+                title="Carte Bafoussam – Panorama P"
+                src={siteConfig.mapEmbedUrl}
+                className="h-[420px] w-full"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                allowFullScreen
+              />
+            </div>
+            <div className="mt-3 flex items-center gap-1.5">
+              <Navigation className="h-4 w-4 text-gold" />
+              <a
+                href={siteConfig.mapLink}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm text-muted-foreground underline underline-offset-4 transition-colors hover:text-gold"
+              >
+                {t.location.openMaps}
+              </a>
+            </div>
           </div>
 
           <div className="flex flex-col justify-center gap-5 rounded-3xl border border-border/60 bg-card p-7 shadow-soft">
