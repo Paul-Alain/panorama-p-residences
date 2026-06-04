@@ -31,6 +31,10 @@ import salon11 from "@/assets/salon-11.jpg.asset.json";
 import salon12 from "@/assets/salon-12.jpg.asset.json";
 import salon13 from "@/assets/salon-13.jpg.asset.json";
 
+import cuisine1 from "@/assets/cuisine-1.jpg.asset.json";
+import cuisine2 from "@/assets/cuisine-2.jpg.asset.json";
+import cuisine3 from "@/assets/cuisine-3.jpg.asset.json";
+
 export interface GalleryImage {
   url: string;
   alt: Record<Lang, string>;
