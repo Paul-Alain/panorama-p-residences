@@ -134,6 +134,7 @@ export function ReservationFormDialog({
         arrivalTime: (reservation.arrival_time ?? DEFAULT_ARRIVAL_TIME).slice(0, 5),
         departureTime: (reservation.departure_time ?? DEFAULT_DEPARTURE_TIME).slice(0, 5),
         advance: String(reservation.advance ?? 0),
+        addAdvance: "0",
         notes: reservation.notes ?? "",
       });
     } else {
