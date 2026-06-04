@@ -180,7 +180,6 @@ Merci de me confirmer la disponibilité et le tarif SVP / Please confirm availab
     if (
       !form.name.trim() ||
       !form.phone.trim() ||
-      !form.email.trim() ||
       !form.arrival ||
       !form.departure ||
       !form.type
