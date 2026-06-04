@@ -866,6 +866,7 @@ export const opGetReservationDetail = createServerFn({ method: "GET" })
       .single();
     if (error) throw new Error(error.message);
     const totals = await recomputePaymentStatus(sb, data.id);
+    const allUnits = await loadUnits(sb);
     return {
       reservation: {
         id: r.id,
