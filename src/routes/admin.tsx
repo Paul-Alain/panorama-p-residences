@@ -35,6 +35,7 @@ import { LogementsOverview } from "@/components/admin/logements-overview";
 import { OccupancyCalendar } from "@/components/admin/occupancy-calendar";
 import { ClientsAdmin } from "@/components/admin/clients-admin";
 import { PaymentsAdmin } from "@/components/admin/payments-admin";
+import { AnalyticsAdmin } from "@/components/admin/analytics-admin";
 import { TeamAdmin } from "@/components/admin/team-admin";
 import { SettingsAdmin } from "@/components/admin/settings-admin";
 import { claimAdmin } from "@/lib/admin.functions";
