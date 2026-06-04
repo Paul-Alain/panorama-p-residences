@@ -34,6 +34,9 @@ import salon13 from "@/assets/salon-13.jpg.asset.json";
 import cuisine1 from "@/assets/cuisine-1.jpg.asset.json";
 import cuisine2 from "@/assets/cuisine-2.jpg.asset.json";
 import cuisine3 from "@/assets/cuisine-3.jpg.asset.json";
+import cuisine4 from "@/assets/cuisine-4.jpg.asset.json";
+import cuisine5 from "@/assets/cuisine-5.jpg.asset.json";
+import cuisine6 from "@/assets/cuisine-6.jpg.asset.json";
 
 import exterieur1 from "@/assets/exterieur-1.jpg.asset.json";
 import exterieur2 from "@/assets/exterieur-2.jpg.asset.json";
@@ -99,7 +102,7 @@ const cuisineAlt: Record<Lang, string> = {
   en: "Fully equipped kitchen – Panorama P Residence",
 };
 
-const cuisineUrls = [cuisine1, cuisine2, cuisine3];
+const cuisineUrls = [cuisine1, cuisine2, cuisine3, cuisine4, cuisine5, cuisine6];
 
 const exterieurAlt: Record<Lang, string> = {
   fr: "Espace extérieur agréable – Résidence Panorama P",
@@ -116,6 +119,16 @@ const exterieurUrls = [
 ];
 
 export const gallerySections: GallerySection[] = [
+  {
+    id: "chambre",
+    title: {
+      fr: "Des chambres confortables",
+      de: "Komfortable Zimmer",
+      en: "Comfortable bedrooms",
+    },
+    cover: chambre2.url,
+    images: chambreUrls.map((a) => ({ url: a.url, alt: chambreAlt })),
+  },
   {
     id: "salon",
     title: {
@@ -145,16 +158,6 @@ export const gallerySections: GallerySection[] = [
     },
     cover: exterieur1.url,
     images: exterieurUrls.map((a) => ({ url: a.url, alt: exterieurAlt })),
-  },
-  {
-    id: "chambre",
-    title: {
-      fr: "Des chambres confortables",
-      de: "Komfortable Zimmer",
-      en: "Comfortable bedrooms",
-    },
-    cover: chambre2.url,
-    images: chambreUrls.map((a) => ({ url: a.url, alt: chambreAlt })),
   },
 ];
 
