@@ -38,6 +38,29 @@ import { opGetCalendar } from "@/lib/operations.functions";
 import { exportMonthlyOccupancyPdf, type MonthlyOccupancyRow } from "@/lib/admin-export";
 import { useResidence } from "@/lib/use-residence";
 import { formatMoney } from "@/lib/format";
+import {
+  ReservationFormDialog,
+  type EditableReservation,
+} from "./reservation-form-dialog";
+
+/** Map a calendar reservation to the shape the edit dialog expects. */
+function calToEditable(r: CalRes): EditableReservation {
+  return {
+    id: r.id,
+    name: r.name,
+    phone: r.phone,
+    email: r.email,
+    logement_type: r.logement_type,
+    guests: r.guests,
+    arrival_date: r.arrival_date,
+    departure_date: r.departure_date,
+    arrival_time: r.arrival_time,
+    departure_time: r.departure_time,
+    channel: r.channel,
+    advance: r.advance,
+    notes: r.notes,
+  };
+}
 
 interface CalUnit {
   id: string;
