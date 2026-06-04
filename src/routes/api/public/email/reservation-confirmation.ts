@@ -2,7 +2,6 @@ import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { supabaseAdmin } from '@/integrations/supabase/client.server'
 import { enqueueAppEmail } from '@/lib/email/enqueue.server'
-import { brand } from '@/lib/email-templates/brand'
 
 const BodySchema = z.object({
   email: z.string().email().max(160).optional().or(z.literal('')),
