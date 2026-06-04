@@ -62,16 +62,28 @@ import exterieur21 from "@/assets/exterieur-21.jpg.asset.json";
 import exterieur22 from "@/assets/exterieur-22.jpg.asset.json";
 import exterieur23 from "@/assets/exterieur-23.jpg.asset.json";
 
+import video1 from "@/assets/video-panorama-1.mp4.asset.json";
+import video2 from "@/assets/video-panorama-2.mp4.asset.json";
+import video3 from "@/assets/video-panorama-3.mp4.asset.json";
+import video4 from "@/assets/video-panorama-4.mp4.asset.json";
+import videoCover from "@/assets/video-cover.jpg.asset.json";
+
 export interface GalleryImage {
   url: string;
   alt: Record<Lang, string>;
+}
+
+export interface GalleryVideo {
+  url: string;
 }
 
 export interface GallerySection {
   id: string;
   title: Record<Lang, string>;
   cover: string;
+  kind?: "image" | "video";
   images: GalleryImage[];
+  videos?: GalleryVideo[];
 }
 
 const chambreAlt: Record<Lang, string> = {
@@ -148,6 +160,23 @@ export const gallerySections: GallerySection[] = [
     },
     cover: cuisine1.url,
     images: cuisineUrls.map((a) => ({ url: a.url, alt: cuisineAlt })),
+  },
+  {
+    id: "video",
+    kind: "video",
+    title: {
+      fr: "Découvrez Panorama P en vidéo",
+      de: "Entdecken Sie Panorama P im Video",
+      en: "Discover Panorama P in video",
+    },
+    cover: videoCover.url,
+    images: [],
+    videos: [
+      { url: video1.url },
+      { url: video2.url },
+      { url: video3.url },
+      { url: video4.url },
+    ],
   },
   {
     id: "exterieur",
