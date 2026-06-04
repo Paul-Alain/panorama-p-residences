@@ -124,6 +124,54 @@ function effectiveTotal(r: ResRow, unitPrice: number): number {
   return nightsBetween(r.arrival_date, r.departure_date) * unitPrice;
 }
 
+// ── Full reservations list (enriched) ────────────────────────────────────
+export const opListReservations = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertStaff(context.supabase, context.userId);
+    const sb = context.supabase;
+    const [units, reservations, paidMap] = await Promise.all([
+      loadUnits(sb),
+      loadReservations(sb),
+      loadPaymentsMap(sb),
+    ]);
+    const unitById = new Map(units.map((u) => [u.id, u]));
+    const priceByType = new Map<string, number>();
+    for (const u of units) if (!priceByType.has(u.type)) priceByType.set(u.type, u.price);
+    const priceOf = (r: ResRow) =>
+      (r.logement_unit_id ? unitById.get(r.logement_unit_id)?.price : undefined) ??
+      (r.logement_type ? priceByType.get(r.logement_type) : undefined) ??
+      0;
+
+    return reservations
+      .filter((r) => r.status !== BLOCK_STATUS)
+      .map((r) => {
+        const total = effectiveTotal(r, priceOf(r));
+        const paid = paidMap.get(r.id) ?? 0;
+        return {
+          id: r.id,
+          ref: shortRef(r.id),
+          name: r.name,
+          phone: r.phone,
+          email: r.email,
+          guests: r.guests,
+          arrival_date: r.arrival_date,
+          departure_date: r.departure_date,
+          status: r.status,
+          payment_status: r.payment_status,
+          unitId: r.logement_unit_id,
+          unitLabel: r.logement_unit_id ? unitById.get(r.logement_unit_id)?.label ?? "—" : "—",
+          logement_type: r.logement_type,
+          total,
+          paid,
+          balance: Math.max(0, total - paid),
+          created_at: (r as any).created_at ?? r.arrival_date,
+        };
+      })
+      .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  });
+
+
 // ── Dashboard ────────────────────────────────────────────────────────────
 export const opGetDashboard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
