@@ -196,6 +196,71 @@ export const opListReservations = createServerFn({ method: "GET" })
   });
 
 
+// ── Occupancy calendar (read-only operational view) ──────────────────────
+// Returns every physical unit plus all reservations (any status, incl.
+// historical & cancelled) enriched with payment figures so the calendar can
+// render occupancy blocks, conflict detection and a read-only detail panel
+// without any further round-trips. Strictly read — no mutations here.
+export const opGetCalendar = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertStaff(context.supabase, context.userId);
+    const sb = context.supabase;
+    const [units, reservations, paidMap] = await Promise.all([
+      loadUnits(sb),
+      loadReservations(sb),
+      loadPaymentsMap(sb),
+    ]);
+    const unitById = new Map(units.map((u) => [u.id, u]));
+    const priceByType = new Map<string, number>();
+    for (const u of units) if (!priceByType.has(u.type)) priceByType.set(u.type, u.price);
+    const priceOf = (r: ResRow) =>
+      (r.logement_unit_id ? unitById.get(r.logement_unit_id)?.price : undefined) ??
+      (r.logement_type ? priceByType.get(r.logement_type) : undefined) ??
+      0;
+
+    const calUnits = units.map((u) => ({
+      id: u.id,
+      label: u.label,
+      type: u.type,
+      op_status: u.op_status,
+      available: u.available,
+    }));
+
+    const calReservations = reservations.map((r) => {
+      const total = effectiveTotal(r, priceOf(r));
+      const paid = paidMap.get(r.id) ?? 0;
+      return {
+        id: r.id,
+        ref: shortRef(r.id),
+        name: r.name,
+        phone: r.phone,
+        email: r.email,
+        guests: r.guests,
+        arrival_date: r.arrival_date,
+        departure_date: r.departure_date,
+        arrival_time: r.arrival_time ?? DEFAULT_CHECKIN_TIME,
+        departure_time: r.departure_time ?? DEFAULT_CHECKOUT_TIME,
+        status: r.status,
+        payment_status: r.payment_status,
+        channel: r.channel ?? "website",
+        logement_unit_id: r.logement_unit_id,
+        unitLabel: r.logement_unit_id ? unitById.get(r.logement_unit_id)?.label ?? null : null,
+        logement_type: r.logement_type,
+        unitType: r.logement_unit_id ? unitById.get(r.logement_unit_id)?.type ?? null : null,
+        notes: r.notes,
+        total,
+        paid,
+        balance: Math.max(0, total - paid),
+      };
+    });
+
+    return { units: calUnits, reservations: calReservations };
+  });
+
+
+
+
 // ── Dashboard ────────────────────────────────────────────────────────────
 export const opGetDashboard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
