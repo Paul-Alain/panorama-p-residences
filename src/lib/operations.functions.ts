@@ -109,7 +109,7 @@ async function loadReservations(supabase: any): Promise<ResRow[]> {
   const { data, error } = await supabase
     .from("reservations")
     .select(
-      "id, name, phone, email, guests, arrival_date, departure_date, arrival_time, departure_time, channel, status, payment_status, total_amount, logement_unit_id, logement_type, notes, created_at",
+      "id, name, phone, email, guests, arrival_date, departure_date, arrival_time, departure_time, channel, status, payment_status, total_amount, advance_amount, logement_unit_id, logement_type, notes, created_at",
     )
     .order("arrival_date", { ascending: true });
   if (error) throw new Error(error.message);
