@@ -524,6 +524,8 @@ const de: Dict = {
   },
   hero: {
     title: "Panorama P – Möblierte Residenz in Bafoussam",
+    titleMain: "Panorama P",
+    titleSub: "Möblierte Residenz in Bafoussam",
     subtitle: "Komfortable Studios und Apartments in modernem, sicherem Umfeld",
     viewLogements: "Unterkünfte ansehen",
     book: "Buchen",
