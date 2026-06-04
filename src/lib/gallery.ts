@@ -87,6 +87,17 @@ const cuisineAlt: Record<Lang, string> = {
 
 const cuisineUrls = [cuisine1, cuisine2, cuisine3];
 
+const exterieurAlt: Record<Lang, string> = {
+  fr: "Espace extérieur agréable – Résidence Panorama P",
+  de: "Angenehmer Außenbereich – Residenz Panorama P",
+  en: "Pleasant outdoor space – Panorama P Residence",
+};
+
+const exterieurUrls = [
+  exterieur1, exterieur2, exterieur3, exterieur4, exterieur5,
+  exterieur6, exterieur7, exterieur8, exterieur9,
+];
+
 export const gallerySections: GallerySection[] = [
   {
     id: "salon",
