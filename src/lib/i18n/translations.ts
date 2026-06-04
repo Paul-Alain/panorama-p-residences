@@ -587,7 +587,7 @@ const de: Dict = {
   },
   contact: {
     title: "Kontaktieren Sie uns",
-    subtitle: "Eine Frage? Schreiben Sie uns, wir antworten schnell.",
+    subtitle: "Eine Frage? Eine Reklamation? Schreiben Sie uns, wir antworten schnell.",
     name: "Name",
     phone: "Telefon",
     email: "E-Mail",
