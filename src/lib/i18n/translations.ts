@@ -97,7 +97,7 @@ const fr = {
   reservation: {
     title: "Demande de réservation",
     subtitle:
-      "Indiquez vos dates et nous vous confirmons la disponibilité rapidement.",
+      "Nous sommes ravis de vous recevoir aux dates que vous nous communiquerez ci-dessous.",
     name: "Nom complet",
     phone: "Téléphone",
     email: "Email",
