@@ -169,7 +169,10 @@ export function ReservationFormDialog({
 
   const unitPrice = form.type ? priceByType[form.type] ?? 0 : 0;
   const total = units * unitPrice;
-  const advanceNum = Number(form.advance) || 0;
+  // Avance déjà enregistrée + nouvelle avance saisie = montant avancé total.
+  const baseAdvance = Number(form.advance) || 0;
+  const addedAdvance = Number(form.addAdvance) || 0;
+  const advanceNum = baseAdvance + addedAdvance;
   const balance = Math.max(0, total - advanceNum);
 
   const submit = async () => {
