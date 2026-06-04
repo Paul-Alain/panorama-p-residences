@@ -120,6 +120,16 @@ const exterieurUrls = [
 
 export const gallerySections: GallerySection[] = [
   {
+    id: "chambre",
+    title: {
+      fr: "Des chambres confortables",
+      de: "Komfortable Zimmer",
+      en: "Comfortable bedrooms",
+    },
+    cover: chambre2.url,
+    images: chambreUrls.map((a) => ({ url: a.url, alt: chambreAlt })),
+  },
+  {
     id: "salon",
     title: {
       fr: "Un salon accueillant",
@@ -148,16 +158,6 @@ export const gallerySections: GallerySection[] = [
     },
     cover: exterieur1.url,
     images: exterieurUrls.map((a) => ({ url: a.url, alt: exterieurAlt })),
-  },
-  {
-    id: "chambre",
-    title: {
-      fr: "Des chambres confortables",
-      de: "Komfortable Zimmer",
-      en: "Comfortable bedrooms",
-    },
-    cover: chambre2.url,
-    images: chambreUrls.map((a) => ({ url: a.url, alt: chambreAlt })),
   },
 ];
 
