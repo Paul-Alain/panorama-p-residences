@@ -177,6 +177,7 @@ function AdminDashboard() {
     { value: "logements", label: "Logements", icon: BedDouble },
     { value: "clients", label: "Clients", icon: Contact },
     { value: "payments", label: "Paiements", icon: CreditCard },
+    { value: "analytics", label: "Analyses", icon: BarChart3 },
     { value: "messages", label: "Messages", icon: MessageSquare },
     { value: "reviews", label: "Avis", icon: Star },
     { value: "team", label: "Équipe", icon: UsersRound },
