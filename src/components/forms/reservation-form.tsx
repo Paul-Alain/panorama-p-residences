@@ -13,6 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PhoneInput } from "@/components/forms/phone-input";
+import { DateField } from "@/components/forms/date-field";
+import { TimeField } from "@/components/forms/time-field";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { whatsappLink } from "@/lib/site-config";
