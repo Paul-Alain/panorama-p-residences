@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Images } from "lucide-react";
+import { ArrowRight, Images, Play } from "lucide-react";
 import { Reveal } from "@/components/ui/reveal";
 import { gallerySections } from "@/lib/gallery";
 import { useLanguage } from "@/lib/i18n/language-context";
