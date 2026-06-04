@@ -45,7 +45,7 @@ const TYPE_LABELS: Record<LogementType, string> = {
 const DEFAULT_ARRIVAL_TIME = "14:00";
 const DEFAULT_DEPARTURE_TIME = "11:00";
 
-const KEYS = ["op-dashboard", "admin-reservations", "op-clients", "admin-occupancy", "op-payments"];
+const KEYS = ["op-dashboard", "admin-reservations", "op-clients", "admin-occupancy", "op-calendar", "op-payments"];
 
 export interface EditableReservation {
   id: string;
