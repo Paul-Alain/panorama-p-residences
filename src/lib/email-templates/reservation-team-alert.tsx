@@ -37,29 +37,24 @@ const Email = ({
   <EmailShell preview={`Nouvelle réservation · New booking — ${name}`}>
     <Text style={h1}>Nouvelle demande de réservation</Text>
     <Text style={lead}>
-      Une nouvelle demande de réservation vient d'être enregistrée sur le site.
-      Voici les détails du voyageur :
+      Nouvelle demande de réservation reçue sur le site Panorama P.
     </Text>
 
     <Section style={card}>
-      <Text style={rowLabel}>Nom · Name</Text>
+      <Text style={rowLabel}>Client · Name</Text>
       <Text style={rowValue}>{name || '—'}</Text>
       <Text style={rowLabel}>Téléphone · Phone</Text>
       <Text style={rowValue}>{phone || '—'}</Text>
       <Text style={rowLabel}>Email</Text>
       <Text style={rowValue}>{email || '—'}</Text>
-      {unitLabel ? (
-        <>
-          <Text style={rowLabel}>Logement · Accommodation</Text>
-          <Text style={rowValue}>{unitLabel}</Text>
-        </>
-      ) : null}
+      <Text style={rowLabel}>Type de logement · Accommodation type</Text>
+      <Text style={rowValue}>{unitLabel || '—'}</Text>
+      <Text style={rowLabel}>Nombre de personnes · Guests</Text>
+      <Text style={rowValue}>{guests || '—'}</Text>
       <Text style={rowLabel}>Arrivée · Check-in</Text>
       <Text style={rowValue}>{arrival || '—'}</Text>
       <Text style={rowLabel}>Départ · Check-out</Text>
       <Text style={rowValue}>{departure || '—'}</Text>
-      <Text style={rowLabel}>Voyageurs · Guests</Text>
-      <Text style={rowValue}>{guests || '—'}</Text>
       {message ? (
         <>
           <Text style={rowLabel}>Message</Text>
@@ -72,9 +67,8 @@ const Email = ({
 
     <Section style={securityNote}>
       <Text style={securityText}>
-        Contactez le voyageur pour confirmer la disponibilité et finaliser la
-        réservation. · Reach out to the guest to confirm availability and
-        finalise the booking.
+        Action requise : Validation de la réservation. · Action required:
+        confirm the booking.
       </Text>
     </Section>
   </EmailShell>
