@@ -541,7 +541,7 @@ export const opSetReservationStatus = createServerFn({ method: "POST" })
 
     const { data: row, error: e0 } = await sb
       .from("reservations")
-      .select("status, name, logement_unit_id, arrival_date, departure_date")
+      .select("status, name, logement_unit_id, arrival_date, departure_date, departure_time")
       .eq("id", data.id)
       .single();
     if (e0) throw new Error(e0.message);
@@ -555,9 +555,20 @@ export const opSetReservationStatus = createServerFn({ method: "POST" })
       }
     }
 
-    // Confirming requires an assigned unit + no conflict.
-    if (data.status === "confirmée") {
-      if (!row.logement_unit_id) throw new Error("Assignez d'abord une unité physique.");
+    // Cancellation is only allowed while the departure date/time has not passed.
+    if (data.status === "annulée") {
+      const departureMs = new Date(
+        `${row.departure_date}T${(row.departure_time ?? DEFAULT_CHECKOUT_TIME).slice(0, 5)}:00`,
+      ).getTime();
+      if (Date.now() > departureMs) {
+        throw new Error(
+          "Impossible d'annuler : la date de départ est déjà dépassée.",
+        );
+      }
+    }
+
+    // Confirming only needs a conflict check when a physical unit is assigned.
+    if (data.status === "confirmée" && row.logement_unit_id) {
       await ensureNoConflict(sb, row.logement_unit_id, row.arrival_date, row.departure_date, data.id);
     }
 
