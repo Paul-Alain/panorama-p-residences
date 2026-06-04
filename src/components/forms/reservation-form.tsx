@@ -421,9 +421,39 @@ Merci de me confirmer la disponibilité et le tarif SVP / Please confirm availab
         />
       </div>
 
-      <div className="space-y-1.5 rounded-2xl border border-border/60 bg-muted/30 p-3">
+      {/* ── Option 1 : réservation en ligne ──────────────────────────── */}
+      <div className="space-y-3 rounded-2xl border border-border/60 bg-card p-4">
+        <p className="text-sm font-semibold text-foreground">
+          {t.reservation.onlineBlockTitle}
+        </p>
+        <Button
+          type="submit"
+          variant="gold"
+          size="lg"
+          disabled={loading || guestsExceeded || dateInvalid}
+          className="w-full"
+        >
+          <CalendarCheck className="h-5 w-5" />
+          {loading ? t.reservation.submitting : t.reservation.submit}
+        </Button>
+      </div>
+
+      {/* ── Séparateur entre les deux options ─────────────────────────── */}
+      <div className="flex items-center gap-3">
+        <span className="h-px flex-1 bg-border" />
+        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          {t.reservation.or}
+        </span>
+        <span className="h-px flex-1 bg-border" />
+      </div>
+
+      {/* ── Option 2 : réservation via WhatsApp ───────────────────────── */}
+      <div className="space-y-3 rounded-2xl border border-border/60 bg-muted/30 p-4">
+        <p className="text-sm font-semibold text-foreground">
+          {t.reservation.whatsappBlockTitle}
+        </p>
         <Label htmlFor="r-wa" className="text-xs text-muted-foreground">
-          Message WhatsApp (modifiable) · WhatsApp message (editable)
+          {t.reservation.whatsappEditable}
         </Label>
         <Textarea
           id="r-wa"
@@ -435,20 +465,7 @@ Merci de me confirmer la disponibilité et le tarif SVP / Please confirm availab
           }}
           className="font-mono text-xs"
         />
-      </div>
-
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Button
-          type="submit"
-          variant="gold"
-          size="lg"
-          disabled={loading || guestsExceeded || dateInvalid}
-          className="flex-1"
-        >
-          <CalendarCheck className="h-5 w-5" />
-          {loading ? t.reservation.submitting : t.reservation.submit}
-        </Button>
-        <Button asChild variant="outline" size="lg" className="flex-1">
+        <Button asChild variant="outline" size="lg" className="w-full">
           <a href={whatsappLink(waMessage)} target="_blank" rel="noreferrer">
             <MessageCircle className="h-5 w-5" />
             {t.reservation.whatsappCta}
