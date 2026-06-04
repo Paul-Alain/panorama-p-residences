@@ -315,7 +315,7 @@ export function ReservationDetailDialog({
             {data.payments.length > 0 && (
               <div className="space-y-1.5">
                 <p className="text-sm font-medium">Historique des paiements</p>
-                {data.payments.map((p) => (
+                {data.payments.map((p: { id: string; amount: number; method: string; createdAt: string }) => (
                   <div key={p.id} className="flex items-center justify-between rounded-lg border border-border/50 px-3 py-2 text-sm">
                     <span>{formatMoney(p.amount, residence.currency)} · {PAY_METHOD_LABELS[p.method] ?? p.method}</span>
                     <span className="text-xs text-muted-foreground">{formatDateTimeFr(p.createdAt)}</span>
