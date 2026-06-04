@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, ShieldCheck, Sparkles, Mountain, Wifi, MapPin } from "lucide-react";
+import { ArrowRight, ShieldCheck, Sparkles, Mountain, Wifi } from "lucide-react";
 import { Hero } from "@/components/home/hero";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Reveal } from "@/components/ui/reveal";
