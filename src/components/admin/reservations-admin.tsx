@@ -32,7 +32,6 @@ import {
 } from "@/lib/operations";
 import { formatDateFr, formatMoney } from "@/lib/format";
 import { useResidence } from "@/lib/use-residence";
-import { ReservationDetailDialog } from "./reservation-detail-dialog";
 import {
   ReservationFormDialog,
   type EditableReservation,
