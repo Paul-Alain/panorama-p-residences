@@ -6,11 +6,12 @@ import {
   Loader2,
   Search,
   Phone,
+  Mail,
+  Plus,
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
-  LogIn,
-  LogOut,
+  Pencil,
   Eye,
   XCircle,
 } from "lucide-react";
@@ -27,22 +28,53 @@ import {
 import {
   opListReservations,
   opSetReservationStatus,
-  opCheckIn,
-  opCheckOut,
 } from "@/lib/operations.functions";
-import { RES_STATUS_LABELS, PAY_STATUS_LABELS, CHANNEL_LABELS } from "@/lib/operations";
+import {
+  RES_STATUS_LABELS,
+  DISPLAY_RES_STATUSES,
+} from "@/lib/operations";
 import { formatDateFr, formatMoney } from "@/lib/format";
 import { useResidence } from "@/lib/use-residence";
 import { ReservationDetailDialog } from "./reservation-detail-dialog";
+import {
+  ReservationFormDialog,
+  type EditableReservation,
+} from "./reservation-form-dialog";
 
 const PAGE_SIZE = 20;
 const KEYS = ["op-dashboard", "admin-reservations", "op-payments", "admin-occupancy"];
 
+const TYPE_LABELS: Record<string, string> = {
+  chambre: "Chambre",
+  studio: "Studio",
+  appartement: "Appartement",
+};
+
+type ResItem = Awaited<ReturnType<typeof opListReservations>>[number];
+
 function statusVariant(s: string): "default" | "secondary" | "destructive" | "outline" {
-  if (s === "confirmée" || s === "checkin") return "default";
+  if (s === "confirmée" || s === "encours") return "default";
   if (s === "terminée") return "secondary";
   if (s === "annulée") return "destructive";
   return "outline";
+}
+
+function toEditable(r: ResItem): EditableReservation {
+  return {
+    id: r.id,
+    name: r.name,
+    phone: r.phone,
+    email: r.email,
+    logement_type: r.logement_type,
+    guests: r.guests,
+    arrival_date: r.arrival_date,
+    departure_date: r.departure_date,
+    arrival_time: r.arrival_time,
+    departure_time: r.departure_time,
+    channel: r.channel,
+    advance: r.advance,
+    notes: r.notes ?? null,
+  };
 }
 
 export function ReservationsAdmin() {
@@ -50,8 +82,6 @@ export function ReservationsAdmin() {
   const residence = useResidence();
   const runList = useServerFn(opListReservations);
   const runStatus = useServerFn(opSetReservationStatus);
-  const runCheckIn = useServerFn(opCheckIn);
-  const runCheckOut = useServerFn(opCheckOut);
 
   const { data = [], isLoading } = useQuery({
     queryKey: ["admin-reservations"],
@@ -66,6 +96,8 @@ export function ReservationsAdmin() {
   const [page, setPage] = useState(1);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<EditableReservation | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const invalidate = () => Promise.all(KEYS.map((k) => qc.invalidateQueries({ queryKey: [k] })));
 
@@ -74,10 +106,10 @@ export function ReservationsAdmin() {
     return data.filter((r) => {
       if (view === "active" && !r.active) return false;
       if (q) {
-        const hay = `${r.name} ${r.phone} ${r.email ?? ""} ${r.ref} ${r.unitLabel}`.toLowerCase();
+        const hay = `${r.name} ${r.phone} ${r.email ?? ""} ${r.ref}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
-      if (status !== "all" && r.status !== status) return false;
+      if (status !== "all" && r.displayStatus !== status) return false;
       return true;
     });
   }, [data, search, status, view]);
@@ -101,30 +133,34 @@ export function ReservationsAdmin() {
 
   if (isLoading) return <Loader2 className="h-5 w-5 animate-spin text-gold" />;
 
-  const STATUSES = ["nouvelle", "confirmée", "checkin", "terminée", "annulée"];
-
   return (
     <div className="space-y-5">
-      <div className="flex gap-2">
-        <Button
-          variant={view === "active" ? "gold" : "outline"}
-          size="sm"
-          onClick={() => setView("active")}
-        >
-          Réservations actives
-        </Button>
-        <Button
-          variant={view === "all" ? "gold" : "outline"}
-          size="sm"
-          onClick={() => setView("all")}
-        >
-          Historique complet
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex gap-2">
+          <Button
+            variant={view === "active" ? "gold" : "outline"}
+            size="sm"
+            onClick={() => setView("active")}
+          >
+            Réservations actives
+          </Button>
+          <Button
+            variant={view === "all" ? "gold" : "outline"}
+            size="sm"
+            onClick={() => setView("all")}
+          >
+            Historique complet
+          </Button>
+        </div>
+        <Button variant="gold" size="sm" onClick={() => setCreateOpen(true)}>
+          <Plus className="h-4 w-4" /> Nouvelle réservation
         </Button>
       </div>
+
       <div className="grid gap-2 sm:grid-cols-3">
         <div className="relative sm:col-span-2">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher (nom, téléphone, unité, réf.)" className="pl-9" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher (nom, téléphone, e-mail, réf.)" className="pl-9" />
         </div>
         <Select value={status} onValueChange={setStatus}>
           <SelectTrigger>
@@ -132,7 +168,7 @@ export function ReservationsAdmin() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tous les statuts</SelectItem>
-            {STATUSES.map((s) => (
+            {DISPLAY_RES_STATUSES.map((s) => (
               <SelectItem key={s} value={s}>
                 {RES_STATUS_LABELS[s]}
               </SelectItem>
@@ -150,44 +186,44 @@ export function ReservationsAdmin() {
             <table className="w-full text-sm">
               <thead className="bg-secondary/60 text-left text-xs uppercase text-muted-foreground">
                 <tr>
-                  <th className="px-3 py-2">Réf.</th>
                   <th className="px-3 py-2">Client</th>
                   <th className="px-3 py-2">Téléphone</th>
-                  <th className="px-3 py-2">Unité</th>
+                  <th className="px-3 py-2">E-mail</th>
+                  <th className="px-3 py-2">Type</th>
+                  <th className="px-3 py-2">Pers.</th>
                   <th className="px-3 py-2">Arrivée</th>
                   <th className="px-3 py-2">Départ</th>
-                  <th className="px-3 py-2">Pers.</th>
-                  <th className="px-3 py-2">Canal</th>
+                  <th className="px-3 py-2 text-center">Unités</th>
                   <th className="px-3 py-2">Statut</th>
-                  <th className="px-3 py-2 text-right">Total</th>
-                  <th className="px-3 py-2 text-right">Payé</th>
-                  <th className="px-3 py-2">Paiement</th>
+                  <th className="px-3 py-2 text-right">Total à payer</th>
+                  <th className="px-3 py-2 text-right">Avancé</th>
+                  <th className="px-3 py-2 text-right">Solde</th>
                   <th className="px-3 py-2 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
                 {pageItems.map((r) => (
                   <tr key={r.id} className="hover:bg-secondary/30">
-                    <td className="px-3 py-2 font-mono text-xs">{r.ref}</td>
-                    <td className="px-3 py-2 font-medium">{r.name}</td>
+                    <td className="px-3 py-2">
+                      <span className="font-medium">{r.name}</span>
+                      <span className="ml-1 font-mono text-[11px] text-muted-foreground">{r.ref}</span>
+                    </td>
                     <td className="px-3 py-2 text-muted-foreground">{r.phone}</td>
-                    <td className="px-3 py-2">{r.unitLabel}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{r.email || "—"}</td>
+                    <td className="px-3 py-2">{TYPE_LABELS[r.logement_type ?? ""] ?? "—"}</td>
+                    <td className="px-3 py-2 text-center">{r.guests}</td>
                     <td className="px-3 py-2 whitespace-nowrap">{formatDateFr(r.arrival_date)} <span className="text-muted-foreground">{r.arrival_time}</span></td>
                     <td className="px-3 py-2 whitespace-nowrap">{formatDateFr(r.departure_date)} <span className="text-muted-foreground">{r.departure_time}</span></td>
-                    <td className="px-3 py-2 text-center">{r.guests}</td>
-                    <td className="px-3 py-2 text-xs text-muted-foreground">{CHANNEL_LABELS[r.channel] ?? r.channel}</td>
+                    <td className="px-3 py-2 text-center font-medium">{r.units}</td>
                     <td className="px-3 py-2">
-                      <Badge variant={statusVariant(r.status)}>{RES_STATUS_LABELS[r.status] ?? r.status}</Badge>
+                      <Badge variant={statusVariant(r.displayStatus)}>{RES_STATUS_LABELS[r.displayStatus] ?? r.displayStatus}</Badge>
                     </td>
                     <td className="px-3 py-2 text-right whitespace-nowrap">{formatMoney(r.total, residence.currency)}</td>
-                    <td className="px-3 py-2 text-right whitespace-nowrap">{formatMoney(r.paid, residence.currency)}</td>
-                    <td className="px-3 py-2">
-                      <span className="text-xs">{PAY_STATUS_LABELS[r.payment_status] ?? r.payment_status}</span>
-                      {r.balance > 0 && <span className="block text-xs text-gold">{formatMoney(r.balance, residence.currency)}</span>}
-                    </td>
+                    <td className="px-3 py-2 text-right whitespace-nowrap text-emerald-600">{formatMoney(r.advance, residence.currency)}</td>
+                    <td className="px-3 py-2 text-right whitespace-nowrap text-gold">{formatMoney(r.balance, residence.currency)}</td>
                     <td className="px-3 py-2">
                       <div className="flex items-center justify-end gap-1">
-                        <RowActions r={r} busyId={busyId} onView={() => setDetailId(r.id)} act={act} runStatus={runStatus} runCheckIn={runCheckIn} runCheckOut={runCheckOut} />
+                        <RowActions r={r} busyId={busyId} onView={() => setDetailId(r.id)} onEdit={() => setEditing(toEditable(r))} act={act} runStatus={runStatus} />
                       </div>
                     </td>
                   </tr>
@@ -206,17 +242,22 @@ export function ReservationsAdmin() {
                     <p className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground">
                       <Phone className="h-3.5 w-3.5" /> {r.phone}
                     </p>
+                    {r.email && (
+                      <p className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground">
+                        <Mail className="h-3.5 w-3.5" /> {r.email}
+                      </p>
+                    )}
                   </div>
-                  <Badge variant={statusVariant(r.status)}>{RES_STATUS_LABELS[r.status] ?? r.status}</Badge>
+                  <Badge variant={statusVariant(r.displayStatus)}>{RES_STATUS_LABELS[r.displayStatus] ?? r.displayStatus}</Badge>
                 </div>
-                <p className="mt-2 text-sm">{r.unitLabel} · {r.guests} pers. · {CHANNEL_LABELS[r.channel] ?? r.channel}</p>
+                <p className="mt-2 text-sm">{TYPE_LABELS[r.logement_type ?? ""] ?? "—"} · {r.guests} pers. · {r.units} unité(s)</p>
                 <p className="text-sm text-muted-foreground">{formatDateFr(r.arrival_date)} {r.arrival_time} → {formatDateFr(r.departure_date)} {r.departure_time}</p>
                 <p className="mt-1 text-sm">
-                  {formatMoney(r.total, residence.currency)} · {PAY_STATUS_LABELS[r.payment_status] ?? r.payment_status}
-                  {r.balance > 0 && <span className="text-gold"> · solde {formatMoney(r.balance, residence.currency)}</span>}
+                  Total {formatMoney(r.total, residence.currency)} · Avancé <span className="text-emerald-600">{formatMoney(r.advance, residence.currency)}</span>
+                  {" · "}Solde <span className="text-gold">{formatMoney(r.balance, residence.currency)}</span>
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-border/50 pt-3">
-                  <RowActions r={r} busyId={busyId} onView={() => setDetailId(r.id)} act={act} runStatus={runStatus} runCheckIn={runCheckIn} runCheckOut={runCheckOut} />
+                  <RowActions r={r} busyId={busyId} onView={() => setDetailId(r.id)} onEdit={() => setEditing(toEditable(r))} act={act} runStatus={runStatus} />
                 </div>
               </div>
             ))}
@@ -240,31 +281,30 @@ export function ReservationsAdmin() {
       )}
 
       <ReservationDetailDialog reservationId={detailId} open={!!detailId} onOpenChange={(v) => !v && setDetailId(null)} />
+      <ReservationFormDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <ReservationFormDialog
+        open={!!editing}
+        onOpenChange={(v) => !v && setEditing(null)}
+        reservation={editing}
+      />
     </div>
   );
-}
-
-interface Row {
-  id: string;
-  status: string;
 }
 
 function RowActions({
   r,
   busyId,
   onView,
+  onEdit,
   act,
   runStatus,
-  runCheckIn,
-  runCheckOut,
 }: {
-  r: Row;
+  r: ResItem;
   busyId: string | null;
   onView: () => void;
+  onEdit: () => void;
   act: (id: string, fn: () => Promise<unknown>, ok: string) => Promise<void>;
   runStatus: (a: { data: { id: string; status: any } }) => Promise<unknown>;
-  runCheckIn: (a: { data: { id: string } }) => Promise<unknown>;
-  runCheckOut: (a: { data: { id: string } }) => Promise<unknown>;
 }) {
   const loading = busyId === r.id;
   return (
@@ -272,22 +312,15 @@ function RowActions({
       <Button size="sm" variant="ghost" onClick={onView} title="Voir détails">
         <Eye className="h-4 w-4" />
       </Button>
-      {r.status === "nouvelle" && (
-        <Button size="sm" variant="outline" disabled={loading} onClick={() => act(r.id, () => runStatus({ data: { id: r.id, status: "confirmée" } }), "Confirmée.")}>
+      <Button size="sm" variant="ghost" onClick={onEdit} title="Modifier">
+        <Pencil className="h-4 w-4" />
+      </Button>
+      {r.displayStatus === "nouvelle" && (
+        <Button size="sm" variant="outline" disabled={loading} onClick={() => act(r.id, () => runStatus({ data: { id: r.id, status: "confirmée" } }), "Réservation confirmée.")}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Confirmer
         </Button>
       )}
-      {r.status === "confirmée" && (
-        <Button size="sm" variant="outline" disabled={loading} onClick={() => act(r.id, () => runCheckIn({ data: { id: r.id } }), "Check-in effectué.")}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />} Check-in
-        </Button>
-      )}
-      {r.status === "checkin" && (
-        <Button size="sm" variant="outline" disabled={loading} onClick={() => act(r.id, () => runCheckOut({ data: { id: r.id } }), "Check-out effectué.")}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />} Check-out
-        </Button>
-      )}
-      {r.status !== "annulée" && r.status !== "terminée" && (
+      {r.active && r.displayStatus !== "annulée" && (
         <Button
           size="sm"
           variant="ghost"
