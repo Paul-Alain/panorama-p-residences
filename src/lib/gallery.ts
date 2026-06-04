@@ -52,6 +52,12 @@ import exterieur14 from "@/assets/exterieur-14.jpg.asset.json";
 import exterieur15 from "@/assets/exterieur-15.jpg.asset.json";
 import exterieur16 from "@/assets/exterieur-16.jpg.asset.json";
 import exterieur17 from "@/assets/exterieur-17.jpg.asset.json";
+import exterieur18 from "@/assets/exterieur-18.jpg.asset.json";
+import exterieur19 from "@/assets/exterieur-19.jpg.asset.json";
+import exterieur20 from "@/assets/exterieur-20.jpg.asset.json";
+import exterieur21 from "@/assets/exterieur-21.jpg.asset.json";
+import exterieur22 from "@/assets/exterieur-22.jpg.asset.json";
+import exterieur23 from "@/assets/exterieur-23.jpg.asset.json";
 
 export interface GalleryImage {
   url: string;
@@ -105,7 +111,8 @@ const exterieurUrls = [
   exterieur1, exterieur2, exterieur3, exterieur4, exterieur5,
   exterieur6, exterieur7, exterieur8, exterieur9, exterieur10,
   exterieur11, exterieur12, exterieur13, exterieur14, exterieur15,
-  exterieur16, exterieur17,
+  exterieur16, exterieur17, exterieur18, exterieur19, exterieur20,
+  exterieur21, exterieur22, exterieur23,
 ];
 
 export const gallerySections: GallerySection[] = [
