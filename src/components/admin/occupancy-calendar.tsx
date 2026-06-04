@@ -443,22 +443,12 @@ export function OccupancyCalendar() {
         </div>
       )}
 
-      {/* Read-only detail panel */}
-      <Dialog open={!!selected} onOpenChange={(v) => !v && setSelected(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
-          {selected && (
-            <ReadOnlyPanel
-              r={selected}
-              c={c}
-              o={o}
-              statusLabels={statusLabels}
-              currency={residence.currency}
-              conflict={conflictIds.has(selected.id)}
-              fmtLong={fmtLong}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Editable reservation dialog (same info as the Reservations tab) */}
+      <ReservationFormDialog
+        open={!!editing}
+        onOpenChange={(v) => !v && setEditing(null)}
+        reservation={editing}
+      />
     </div>
   );
 }
