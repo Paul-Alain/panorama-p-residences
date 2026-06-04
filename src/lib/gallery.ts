@@ -120,6 +120,16 @@ export const gallerySections: GallerySection[] = [
     images: cuisineUrls.map((a) => ({ url: a.url, alt: cuisineAlt })),
   },
   {
+    id: "exterieur",
+    title: {
+      fr: "Des espaces extérieurs agréables",
+      de: "Angenehme Außenbereiche",
+      en: "Pleasant outdoor spaces",
+    },
+    cover: exterieur1.url,
+    images: exterieurUrls.map((a) => ({ url: a.url, alt: exterieurAlt })),
+  },
+  {
     id: "chambre",
     title: {
       fr: "Des chambres confortables",
