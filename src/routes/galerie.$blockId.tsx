@@ -69,7 +69,7 @@ function GalleryBlockPage() {
 
           {isVideo ? (
             <div className="grid gap-5 sm:grid-cols-2">
-              {(section.videos ?? []).map((vid, i) => (
+              {(section.videos ?? []).map((vid: GalleryVideo, i: number) => (
                 <Reveal key={`${section.id}-${i}`} delay={(i % 2) * 80}>
                   <video
                     src={vid.url}
