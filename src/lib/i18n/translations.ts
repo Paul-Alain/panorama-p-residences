@@ -604,7 +604,7 @@ const de: Dict = {
   reservation: {
     title: "Buchungsanfrage",
     subtitle:
-      "Geben Sie Ihre Daten an und wir bestätigen die Verfügbarkeit umgehend.",
+      "Wir freuen uns, Sie an den unten von Ihnen genannten Daten begrüßen zu dürfen.",
     name: "Vollständiger Name",
     phone: "Telefon",
     email: "E-Mail",
