@@ -74,7 +74,7 @@ function AdminPage() {
     runGetAdminStatus()
       .then((res) => {
         if (!active) return;
-        setIsAdmin(res.isAdmin);
+        setIsAdmin(res.isStaff);
         setChecking(false);
       })
       .catch(() => {
