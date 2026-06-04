@@ -50,7 +50,7 @@ function AdminPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const runClaim = useServerFn(claimAdmin);
-  const runGetAdminStatus = useServerFn(getAdminStatus);
+  const runGetAdminStatus = useServerFn(staffGetStatus);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
