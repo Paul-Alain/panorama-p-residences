@@ -142,9 +142,9 @@ export const gallerySections: GallerySection[] = [
   {
     id: "cuisine",
     title: {
-      fr: "Une cuisine entièrement équipée",
-      de: "Eine voll ausgestattete Küche",
-      en: "A fully equipped kitchen",
+      fr: "Cuisines entièrement équipées",
+      de: "Voll ausgestattete Küchen",
+      en: "Fully equipped kitchens",
     },
     cover: cuisine1.url,
     images: cuisineUrls.map((a) => ({ url: a.url, alt: cuisineAlt })),
