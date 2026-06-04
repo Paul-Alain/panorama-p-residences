@@ -13,6 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PhoneInput } from "@/components/forms/phone-input";
+import { DateField } from "@/components/forms/date-field";
+import { TimeField } from "@/components/forms/time-field";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { whatsappLink } from "@/lib/site-config";
@@ -294,26 +296,24 @@ Merci de me confirmer la disponibilité et le tarif SVP / Please confirm availab
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="r-arrival">{t.reservation.arrival}<Req /></Label>
-          <Input
+          <DateField
             id="r-arrival"
-            type="date"
+            lang={lang}
             value={form.arrival}
-            onChange={(e) => set("arrival", e.target.value)}
+            onChange={(v) => set("arrival", v)}
             required
-            aria-invalid={arrivalInPast}
-            className={arrivalInPast ? "border-destructive ring-destructive" : ""}
+            invalid={arrivalInPast}
           />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="r-arrival-time">{t.reservation.arrivalTime}<Req /></Label>
-          <Input
+          <TimeField
             id="r-arrival-time"
-            type="time"
+            lang={lang}
             value={form.arrivalTime}
-            onChange={(e) => set("arrivalTime", e.target.value)}
+            onChange={(v) => set("arrivalTime", v)}
             required
-            aria-invalid={arrivalInPast}
-            className={arrivalInPast ? "border-destructive ring-destructive" : ""}
+            invalid={arrivalInPast}
           />
         </div>
       </div>
@@ -327,26 +327,24 @@ Merci de me confirmer la disponibilité et le tarif SVP / Please confirm availab
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="r-departure">{t.reservation.departure}<Req /></Label>
-          <Input
+          <DateField
             id="r-departure"
-            type="date"
+            lang={lang}
             value={form.departure}
-            onChange={(e) => set("departure", e.target.value)}
+            onChange={(v) => set("departure", v)}
             required
-            aria-invalid={departureBeforeArrival}
-            className={departureBeforeArrival ? "border-destructive ring-destructive" : ""}
+            invalid={departureBeforeArrival}
           />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="r-departure-time">{t.reservation.departureTime}<Req /></Label>
-          <Input
+          <TimeField
             id="r-departure-time"
-            type="time"
+            lang={lang}
             value={form.departureTime}
-            onChange={(e) => set("departureTime", e.target.value)}
+            onChange={(v) => set("departureTime", v)}
             required
-            aria-invalid={departureBeforeArrival}
-            className={departureBeforeArrival ? "border-destructive ring-destructive" : ""}
+            invalid={departureBeforeArrival}
           />
         </div>
       </div>

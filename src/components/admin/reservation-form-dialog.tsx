@@ -21,6 +21,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PhoneInput } from "@/components/forms/phone-input";
+import { DateField } from "@/components/forms/date-field";
+import { TimeField } from "@/components/forms/time-field";
 import { supabase } from "@/integrations/supabase/client";
 import {
   opCreateReservation,
@@ -29,6 +31,7 @@ import {
 import { bookingUnitsFrom, MAX_GUESTS_BY_TYPE } from "@/lib/operations";
 import { formatMoney } from "@/lib/format";
 import { useResidence } from "@/lib/use-residence";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 const TYPE_OPTIONS = ["chambre", "studio", "appartement"] as const;
 type LogementType = (typeof TYPE_OPTIONS)[number];
@@ -75,6 +78,7 @@ export function ReservationFormDialog({
 }) {
   const qc = useQueryClient();
   const residence = useResidence();
+  const { lang } = useLanguage();
   const runCreate = useServerFn(opCreateReservation);
   const runUpdate = useServerFn(opUpdateReservation);
   const isEdit = !!reservation;
@@ -289,35 +293,33 @@ export function ReservationFormDialog({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="nr-arrival">Date d'arrivée<Req /></Label>
-              <Input id="nr-arrival" type="date" value={form.arrival} onChange={(e) => set("arrival", e.target.value)} />
+              <DateField id="nr-arrival" lang={lang} value={form.arrival} onChange={(v) => set("arrival", v)} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="nr-arrival-time">Heure d'arrivée<Req /></Label>
-              <Input id="nr-arrival-time" type="time" value={form.arrivalTime} onChange={(e) => set("arrivalTime", e.target.value)} />
+              <TimeField id="nr-arrival-time" lang={lang} value={form.arrivalTime} onChange={(v) => set("arrivalTime", v)} />
             </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="nr-departure">Date de départ<Req /></Label>
-              <Input
+              <DateField
                 id="nr-departure"
-                type="date"
+                lang={lang}
                 value={form.departure}
-                onChange={(e) => set("departure", e.target.value)}
-                aria-invalid={departureBeforeArrival}
-                className={departureBeforeArrival ? "border-destructive" : ""}
+                onChange={(v) => set("departure", v)}
+                invalid={departureBeforeArrival}
               />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="nr-departure-time">Heure de départ<Req /></Label>
-              <Input
+              <TimeField
                 id="nr-departure-time"
-                type="time"
+                lang={lang}
                 value={form.departureTime}
-                onChange={(e) => set("departureTime", e.target.value)}
-                aria-invalid={departureBeforeArrival}
-                className={departureBeforeArrival ? "border-destructive" : ""}
+                onChange={(v) => set("departureTime", v)}
+                invalid={departureBeforeArrival}
               />
             </div>
           </div>

@@ -38,6 +38,29 @@ import { opGetCalendar } from "@/lib/operations.functions";
 import { exportMonthlyOccupancyPdf, type MonthlyOccupancyRow } from "@/lib/admin-export";
 import { useResidence } from "@/lib/use-residence";
 import { formatMoney } from "@/lib/format";
+import {
+  ReservationFormDialog,
+  type EditableReservation,
+} from "./reservation-form-dialog";
+
+/** Map a calendar reservation to the shape the edit dialog expects. */
+function calToEditable(r: CalRes): EditableReservation {
+  return {
+    id: r.id,
+    name: r.name,
+    phone: r.phone,
+    email: r.email,
+    logement_type: r.logement_type,
+    guests: r.guests,
+    arrival_date: r.arrival_date,
+    departure_date: r.departure_date,
+    arrival_time: r.arrival_time,
+    departure_time: r.departure_time,
+    channel: r.channel,
+    advance: r.advance,
+    notes: r.notes,
+  };
+}
 
 interface CalUnit {
   id: string;
@@ -67,6 +90,7 @@ interface CalRes {
   notes: string | null;
   total: number;
   paid: number;
+  advance: number;
   balance: number;
 }
 
@@ -102,7 +126,7 @@ export function OccupancyCalendar() {
   const [start, setStart] = useState(today);
   const [unitFilter, setUnitFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [selected, setSelected] = useState<CalRes | null>(null);
+  const [editing, setEditing] = useState<EditableReservation | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["op-calendar"],
@@ -178,15 +202,15 @@ export function OccupancyCalendar() {
   const statusOk = (r: CalRes) =>
     statusFilter === "all" ? r.status !== "annulée" : r.status === statusFilter;
 
+  // Only three booking colours are surfaced: Pending validation, Confirmed /
+  // Occupied (merged), and Completed. Available is the empty cell background.
   const barClass = (r: CalRes) => {
-    if (conflictIds.has(r.id)) return "cal-conflict";
     switch (r.status) {
       case "nouvelle":
         return "cal-pending";
       case "confirmée":
-        return "cal-confirmed";
       case "checkin":
-        return "cal-occupied";
+        return "cal-confirmed";
       case "terminée":
         return "cal-completed";
       case BLOCK_STATUS:
@@ -196,35 +220,7 @@ export function OccupancyCalendar() {
     }
   };
 
-  // Summary occupancy by type (today)
-  const summary = useMemo(() => {
-    const types = ["chambre", "studio", "appartement"] as const;
-    const labelOf: Record<string, string> = {
-      chambre: c.rooms,
-      studio: c.studios,
-      appartement: c.apartments,
-    };
-    const rows = types
-      .map((type) => {
-        const us = units.filter((u) => u.type === type);
-        if (us.length === 0) return null;
-        const occ = us.filter((u) =>
-          reservations.some(
-            (r) =>
-              r.logement_unit_id === u.id &&
-              ACTIVE.includes(r.status) &&
-              r.status !== "nouvelle" &&
-              r.arrival_date <= today &&
-              r.departure_date > today,
-          ),
-        ).length;
-        return { label: labelOf[type], occ, total: us.length };
-      })
-      .filter(Boolean) as { label: string; occ: number; total: number }[];
-    const occTotal = rows.reduce((s, r) => s + r.occ, 0);
-    const total = rows.reduce((s, r) => s + r.total, 0);
-    return { rows, occTotal, total };
-  }, [units, reservations, today, c]);
+
 
   const fmtDayNum = (iso: string) => {
     const d = new Date(iso + "T00:00:00");
@@ -294,25 +290,7 @@ export function OccupancyCalendar() {
         </Button>
       </div>
 
-      {/* Summary bar */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {summary.rows.map((row) => (
-          <div key={row.label} className="rounded-xl border border-border/60 bg-card p-3 shadow-soft">
-            <p className="text-xs text-muted-foreground">{row.label}</p>
-            <p className="mt-0.5 font-display text-lg font-semibold">
-              {row.occ}/{row.total}{" "}
-              <span className="text-xs font-normal text-muted-foreground">{c.occupied}</span>
-            </p>
-          </div>
-        ))}
-        <div className="rounded-xl border border-gold/40 bg-gold/10 p-3 shadow-soft">
-          <p className="text-xs text-muted-foreground">{c.totalOccupancy}</p>
-          <p className="mt-0.5 font-display text-lg font-semibold text-gold">
-            {summary.occTotal}/{summary.total}{" "}
-            <span className="text-xs font-normal text-muted-foreground">{c.occupied}</span>
-          </p>
-        </div>
-      </div>
+
 
       {/* Filters + navigation */}
       <div className="flex flex-wrap items-center gap-2">
@@ -358,8 +336,6 @@ export function OccupancyCalendar() {
         <LegendDot cls="cal-dot-free" label={c.legendFree} />
         <LegendDot cls="cal-dot-pending" label={c.legendPending} />
         <LegendDot cls="cal-dot-confirmed" label={c.legendConfirmed} />
-        <LegendDot cls="cal-dot-maintenance" label={c.legendMaintenance} />
-        <LegendDot cls="cal-dot-conflict" label={c.legendConflict} />
         <LegendDot cls="cal-dot-completed" label={c.legendCompleted} />
       </div>
 
@@ -435,7 +411,9 @@ export function OccupancyCalendar() {
                         <button
                           key={r.id}
                           type="button"
-                          onClick={() => setSelected(r)}
+                          onClick={() => {
+                            if (r.status !== BLOCK_STATUS) setEditing(calToEditable(r));
+                          }}
                           className={`absolute top-1 bottom-1 flex flex-col justify-center overflow-hidden rounded-md px-1.5 text-left shadow-sm transition hover:brightness-105 ${barClass(
                             r,
                           )}`}
@@ -463,22 +441,12 @@ export function OccupancyCalendar() {
         </div>
       )}
 
-      {/* Read-only detail panel */}
-      <Dialog open={!!selected} onOpenChange={(v) => !v && setSelected(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
-          {selected && (
-            <ReadOnlyPanel
-              r={selected}
-              c={c}
-              o={o}
-              statusLabels={statusLabels}
-              currency={residence.currency}
-              conflict={conflictIds.has(selected.id)}
-              fmtLong={fmtLong}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Editable reservation dialog (same info as the Reservations tab) */}
+      <ReservationFormDialog
+        open={!!editing}
+        onOpenChange={(v) => !v && setEditing(null)}
+        reservation={editing}
+      />
     </div>
   );
 }
