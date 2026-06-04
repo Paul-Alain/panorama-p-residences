@@ -336,8 +336,6 @@ export function OccupancyCalendar() {
         <LegendDot cls="cal-dot-free" label={c.legendFree} />
         <LegendDot cls="cal-dot-pending" label={c.legendPending} />
         <LegendDot cls="cal-dot-confirmed" label={c.legendConfirmed} />
-        <LegendDot cls="cal-dot-maintenance" label={c.legendMaintenance} />
-        <LegendDot cls="cal-dot-conflict" label={c.legendConflict} />
         <LegendDot cls="cal-dot-completed" label={c.legendCompleted} />
       </div>
 
