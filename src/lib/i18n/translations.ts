@@ -197,6 +197,7 @@ const fr = {
       reservationStatus: {
         nouvelle: "En attente",
         confirmée: "Confirmée",
+        checkin: "Occupé",
         terminée: "Terminée",
         annulée: "Annulée",
         bloqué: "Maintenance",
