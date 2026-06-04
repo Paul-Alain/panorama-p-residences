@@ -11,7 +11,6 @@ import {
   CalendarDays,
   MessageSquare,
   Star,
-  Users,
   BedDouble,
   CalendarRange,
   CreditCard,
