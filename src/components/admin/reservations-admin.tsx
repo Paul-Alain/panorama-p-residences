@@ -5,14 +5,11 @@ import { toast } from "sonner";
 import {
   Loader2,
   Search,
-  Phone,
-  Mail,
   Plus,
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
   Pencil,
-  Eye,
   XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
