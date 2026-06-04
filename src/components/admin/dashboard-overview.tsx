@@ -15,7 +15,6 @@ import {
   Mail,
   AlertTriangle,
   Eye,
-  Plus,
   Wrench,
   Ban,
   Sparkles,
@@ -40,7 +39,6 @@ import {
 import { formatMoney } from "@/lib/format";
 import { useResidence } from "@/lib/use-residence";
 import { ReservationDetailDialog } from "./reservation-detail-dialog";
-import { NewReservationDialog } from "./new-reservation-dialog";
 
 const KEYS = ["op-dashboard", "admin-reservations", "op-payments", "admin-occupancy"];
 
@@ -53,8 +51,6 @@ export function DashboardOverview() {
   const runUnitStatus = useServerFn(opSetUnitOpStatus);
 
   const [detailId, setDetailId] = useState<string | null>(null);
-  const [newOpen, setNewOpen] = useState(false);
-  const [presetUnit, setPresetUnit] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -102,12 +98,9 @@ export function DashboardOverview() {
 
   return (
     <div className="space-y-8">
-      {/* Header action */}
+      {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-display text-lg font-semibold">Opérations du jour</h2>
-        <Button variant="gold" size="sm" onClick={() => { setPresetUnit(null); setNewOpen(true); }}>
-          <Plus className="h-4 w-4" /> Nouvelle réservation
-        </Button>
       </div>
 
       {/* Per-type availability (green / orange / red) */}
@@ -256,9 +249,6 @@ export function DashboardOverview() {
                 <Button size="sm" variant="outline" disabled={!u.reservationId} onClick={() => openDetail(u.reservationId)}>
                   <Eye className="h-4 w-4" /> Voir
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => { setPresetUnit(u.id); setNewOpen(true); }}>
-                  <Plus className="h-4 w-4" /> Réserver
-                </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button size="sm" variant="ghost" disabled={busyId === u.id}>
@@ -287,7 +277,6 @@ export function DashboardOverview() {
       </section>
 
       <ReservationDetailDialog reservationId={detailId} open={!!detailId} onOpenChange={(v) => !v && setDetailId(null)} />
-      <NewReservationDialog open={newOpen} onOpenChange={setNewOpen} presetUnitId={presetUnit} />
     </div>
   );
 }

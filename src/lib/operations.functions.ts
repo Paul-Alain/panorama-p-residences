@@ -13,6 +13,8 @@ import {
   derivePaymentStatus,
   bookingUnitsFrom,
   computeUnitStatus,
+  displayReservationStatus,
+  MAX_GUESTS_BY_TYPE,
   shortRef,
   RES_STATUS_LABELS,
   PAY_METHOD_LABELS,
@@ -50,6 +52,7 @@ interface ResRow {
   status: string;
   payment_status: string;
   total_amount: number;
+  advance_amount: number;
   logement_unit_id: string | null;
   logement_type: string | null;
   notes: string | null;
@@ -108,7 +111,7 @@ async function loadReservations(supabase: any): Promise<ResRow[]> {
   const { data, error } = await supabase
     .from("reservations")
     .select(
-      "id, name, phone, email, guests, arrival_date, departure_date, arrival_time, departure_time, channel, status, payment_status, total_amount, logement_unit_id, logement_type, notes, created_at",
+      "id, name, phone, email, guests, arrival_date, departure_date, arrival_time, departure_time, channel, status, payment_status, total_amount, advance_amount, logement_unit_id, logement_type, notes, created_at",
     )
     .order("arrival_date", { ascending: true });
   if (error) throw new Error(error.message);
@@ -162,8 +165,15 @@ export const opListReservations = createServerFn({ method: "GET" })
     return reservations
       .filter((r) => r.status !== BLOCK_STATUS)
       .map((r) => {
-        const total = effectiveTotal(r, priceOf(r));
+        const billableUnits = bookingUnitsOf(r);
+        const unitPrice = priceOf(r);
+        // Total à payer = nombre d'unités × tarif du logement (auto, non modifiable).
+        const total = billableUnits * unitPrice;
+        const advance = Number(r.advance_amount) || 0;
         const paid = paidMap.get(r.id) ?? 0;
+        const arrivalMs = new Date(
+          `${r.arrival_date}T${(r.arrival_time ?? DEFAULT_CHECKIN_TIME).slice(0, 5)}:00`,
+        ).getTime();
         const departureMs = new Date(
           `${r.departure_date}T${(r.departure_time ?? DEFAULT_CHECKOUT_TIME).slice(0, 5)}:00`,
         ).getTime();
@@ -180,15 +190,22 @@ export const opListReservations = createServerFn({ method: "GET" })
           departure_time: r.departure_time ?? DEFAULT_CHECKOUT_TIME,
           channel: r.channel ?? "website",
           status: r.status,
+          displayStatus: displayReservationStatus(r.status, arrivalMs, departureMs, nowMs),
           payment_status: r.payment_status,
           unitId: r.logement_unit_id,
           unitLabel: r.logement_unit_id ? unitById.get(r.logement_unit_id)?.label ?? "—" : "—",
           logement_type: r.logement_type,
-          units: bookingUnitsOf(r),
+          units: billableUnits,
+          unitPrice,
           total,
+          // "Montant avancé" : champ géré directement sur la réservation.
+          advance,
           paid,
-          balance: Math.max(0, total - paid),
+          balance: Math.max(0, total - advance),
+          // Réservation active = période de départ non encore expirée.
           active: r.status !== "annulée" && departureMs > nowMs,
+          notes: r.notes,
+          message: r.notes,
           created_at: r.created_at ?? r.arrival_date,
         };
       })
@@ -524,7 +541,7 @@ export const opSetReservationStatus = createServerFn({ method: "POST" })
 
     const { data: row, error: e0 } = await sb
       .from("reservations")
-      .select("status, name, logement_unit_id, arrival_date, departure_date")
+      .select("status, name, logement_unit_id, arrival_date, departure_date, departure_time")
       .eq("id", data.id)
       .single();
     if (e0) throw new Error(e0.message);
@@ -538,9 +555,20 @@ export const opSetReservationStatus = createServerFn({ method: "POST" })
       }
     }
 
-    // Confirming requires an assigned unit + no conflict.
-    if (data.status === "confirmée") {
-      if (!row.logement_unit_id) throw new Error("Assignez d'abord une unité physique.");
+    // Cancellation is only allowed while the departure date/time has not passed.
+    if (data.status === "annulée") {
+      const departureMs = new Date(
+        `${row.departure_date}T${(row.departure_time ?? DEFAULT_CHECKOUT_TIME).slice(0, 5)}:00`,
+      ).getTime();
+      if (Date.now() > departureMs) {
+        throw new Error(
+          "Impossible d'annuler : la date de départ est déjà dépassée.",
+        );
+      }
+    }
+
+    // Confirming only needs a conflict check when a physical unit is assigned.
+    if (data.status === "confirmée" && row.logement_unit_id) {
       await ensureNoConflict(sb, row.logement_unit_id, row.arrival_date, row.departure_date, data.id);
     }
 
@@ -909,43 +937,59 @@ export const opGetReservationDetail = createServerFn({ method: "GET" })
     };
   });
 
-// ── Manager-created reservation + unit assignment ────────────────────────
+// ── Manager-created reservation (mirrors the public site form) ────────────
+const LOGEMENT_TYPE = z.enum(["chambre", "studio", "appartement"]);
+
+const reservationFormBase = z.object({
+  name: z.string().trim().min(1).max(120),
+  phone: z.string().trim().min(1).max(40),
+  email: z.string().trim().email().max(160).optional().or(z.literal("")),
+  logementType: LOGEMENT_TYPE,
+  arrival: DATE,
+  departure: DATE,
+  arrivalTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  departureTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  channel: z.enum(["website", "whatsapp", "phone", "walkin"]).default("walkin"),
+  guests: z.number().int().min(1).max(20),
+  advance: z.number().min(0).max(100_000_000).default(0),
+  notes: z.string().max(1000).optional(),
+});
+
+const departureAfterArrival = (v: {
+  arrival: string;
+  departure: string;
+  arrivalTime?: string;
+  departureTime?: string;
+}) =>
+  new Date(`${v.departure}T${(v.departureTime ?? DEFAULT_CHECKOUT_TIME)}:00`) >
+  new Date(`${v.arrival}T${(v.arrivalTime ?? DEFAULT_CHECKIN_TIME)}:00`);
+
+const guestsWithinCapacity = (v: { logementType: string; guests: number }) =>
+  v.guests <= (MAX_GUESTS_BY_TYPE[v.logementType] ?? 20);
+
+const reservationFormSchema = reservationFormBase
+  .refine(departureAfterArrival, {
+    message: "La date/heure de départ doit suivre l'arrivée.",
+  })
+  .refine(guestsWithinCapacity, {
+    message: "Le nombre de personnes dépasse la capacité maximale de ce logement.",
+  });
+
+const reservationUpdateSchema = reservationFormBase
+  .extend({ id: UUID })
+  .refine(departureAfterArrival, {
+    message: "La date/heure de départ doit suivre l'arrivée.",
+  })
+  .refine(guestsWithinCapacity, {
+    message: "Le nombre de personnes dépasse la capacité maximale de ce logement.",
+  });
+
 export const opCreateReservation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z
-      .object({
-        name: z.string().trim().min(1).max(120),
-        phone: z.string().trim().min(1).max(40),
-        email: z.string().trim().email().max(160).optional().or(z.literal("")),
-        unitId: UUID,
-        arrival: DATE,
-        departure: DATE,
-        arrivalTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-        departureTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-        channel: z.enum(["website", "whatsapp", "phone", "walkin"]).default("walkin"),
-        guests: z.number().int().min(1).max(20),
-        status: z.enum(["nouvelle", "confirmée"]).default("confirmée"),
-        notes: z.string().max(500).optional(),
-      })
-      .refine(
-        (v) =>
-          new Date(`${v.departure}T${(v.departureTime ?? DEFAULT_CHECKOUT_TIME)}:00`) >
-          new Date(`${v.arrival}T${(v.arrivalTime ?? DEFAULT_CHECKIN_TIME)}:00`),
-        { message: "La date/heure de départ doit suivre l'arrivée." },
-      )
-      .parse(input),
-  )
+  .inputValidator((input: unknown) => reservationFormSchema.parse(input))
   .handler(async ({ context, data }) => {
     await assertStaff(context.supabase, context.userId);
     const sb = context.supabase;
-    await ensureNoConflict(sb, data.unitId, data.arrival, data.departure, "00000000-0000-0000-0000-000000000000");
-
-    const { data: unit } = await sb
-      .from("logement_units")
-      .select("label, logements(type)")
-      .eq("id", data.unitId)
-      .single();
 
     const { data: inserted, error } = await sb
       .from("reservations")
@@ -953,15 +997,16 @@ export const opCreateReservation = createServerFn({ method: "POST" })
         name: data.name,
         phone: data.phone,
         email: data.email || null,
-        logement_unit_id: data.unitId,
-        logement_type: (unit as any)?.logements?.type ?? null,
+        logement_unit_id: null,
+        logement_type: data.logementType,
         arrival_date: data.arrival,
         departure_date: data.departure,
         arrival_time: data.arrivalTime ?? DEFAULT_CHECKIN_TIME,
         departure_time: data.departureTime ?? DEFAULT_CHECKOUT_TIME,
         channel: data.channel,
         guests: data.guests,
-        status: data.status,
+        status: "confirmée",
+        advance_amount: data.advance,
         notes: data.notes?.trim() || null,
       })
       .select("id")
@@ -975,10 +1020,50 @@ export const opCreateReservation = createServerFn({ method: "POST" })
       action: "reservation_creee",
       objectType: "reservation",
       objectId: inserted.id,
-      summary: `Réservation créée : ${data.name} (${(unit as any)?.label ?? ""})`,
+      summary: `Réservation créée : ${data.name} (${data.logementType})`,
     });
     return { ok: true, id: inserted.id };
   });
+
+// ── Manager edit of an existing reservation ──────────────────────────────
+export const opUpdateReservation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => reservationUpdateSchema.parse(input))
+  .handler(async ({ context, data }) => {
+    await assertStaff(context.supabase, context.userId);
+    const sb = context.supabase;
+
+    const { error } = await sb
+      .from("reservations")
+      .update({
+        name: data.name,
+        phone: data.phone,
+        email: data.email || null,
+        logement_type: data.logementType,
+        arrival_date: data.arrival,
+        departure_date: data.departure,
+        arrival_time: data.arrivalTime ?? DEFAULT_CHECKIN_TIME,
+        departure_time: data.departureTime ?? DEFAULT_CHECKOUT_TIME,
+        channel: data.channel,
+        guests: data.guests,
+        advance_amount: data.advance,
+        notes: data.notes?.trim() || null,
+      })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+
+    const name = await actorName(sb, context.userId);
+    await logActivity(sb, {
+      userId: context.userId,
+      userName: name,
+      action: "reservation_modifiee",
+      objectType: "reservation",
+      objectId: data.id,
+      summary: `Réservation modifiée : ${data.name}`,
+    });
+    return { ok: true, id: data.id };
+  });
+
 
 export const opAssignUnit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

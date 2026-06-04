@@ -359,6 +359,7 @@ export type Database = {
       }
       reservations: {
         Row: {
+          advance_amount: number
           arrival_date: string
           arrival_time: string
           channel: string
@@ -382,6 +383,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          advance_amount?: number
           arrival_date: string
           arrival_time?: string
           channel?: string
@@ -405,6 +407,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          advance_amount?: number
           arrival_date?: string
           arrival_time?: string
           channel?: string

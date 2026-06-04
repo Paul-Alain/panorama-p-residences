@@ -17,10 +17,55 @@ export type ResStatus =
 export const RES_STATUS_LABELS: Record<string, string> = {
   nouvelle: "En attente de validation",
   confirmée: "Confirmée",
-  checkin: "Client présent",
+  checkin: "En cours de séjour",
+  encours: "En cours de séjour",
   terminée: "Terminée",
   annulée: "Annulée",
   bloqué: "Bloqué",
+};
+
+/** Display statuses surfaced in the manager Reservations table. */
+export type DisplayResStatus =
+  | "nouvelle"
+  | "confirmée"
+  | "encours"
+  | "terminée"
+  | "annulée";
+
+/** Ordered list used for the status filter dropdown. */
+export const DISPLAY_RES_STATUSES: DisplayResStatus[] = [
+  "nouvelle",
+  "confirmée",
+  "encours",
+  "terminée",
+  "annulée",
+];
+
+/**
+ * Derive the status shown to managers from the stored DB status and the stay
+ * window. Confirmed bookings automatically become "En cours de séjour" while
+ * the guest is within the interval, then "Terminée" once departure has passed.
+ * Cancelled and pending stay as-is.
+ */
+export function displayReservationStatus(
+  dbStatus: string,
+  arrivalMs: number,
+  departureMs: number,
+  nowMs: number = Date.now(),
+): DisplayResStatus {
+  if (dbStatus === "annulée") return "annulée";
+  if (dbStatus === "nouvelle") return "nouvelle";
+  // confirmée / checkin / terminée are driven by the clock.
+  if (nowMs >= departureMs) return "terminée";
+  if (nowMs >= arrivalMs) return "encours";
+  return "confirmée";
+}
+
+/** Maximum guests allowed per accommodation type (shared by all forms). */
+export const MAX_GUESTS_BY_TYPE: Record<string, number> = {
+  chambre: 2,
+  studio: 2,
+  appartement: 4,
 };
 
 /** Allowed forward transitions. Anything not listed is rejected server-side. */
@@ -209,14 +254,14 @@ export function toDateTime(date: string, time?: string | null): Date {
 /**
  * Number of billable booking units for a stay.
  *
- * Rule: 1 unit is acquired at check-in. An additional unit is added each time
- * a daily 12:00 (noon) checkpoint is reached while the guest is still occupying
- * the accommodation. The check-in day's own noon never counts — only the noons
- * of the days that follow the check-in day.
+ * Rule (noon-crossing): the stay always costs at least 1 unit. One additional
+ * unit is billed for **each** time the daily 12:00 (noon) checkpoint falls
+ * strictly inside the [arrival, departure[ interval. The result is therefore
+ * `max(1, number of noons crossed)`.
  *
- *   10 Jun 09:00 → 11 Jun 11:59 = 1
- *   10 Jun 09:00 → 11 Jun 12:01 = 2
- *   10 Jun 20:00 → 12 Jun 13:00 = 3
+ *   10 Jun 10:00 → 11 Jun 14:00 = 2  (crosses 10 Jun 12:00 and 11 Jun 12:00)
+ *   10 Jun 13:00 → 10 Jun 18:00 = 1  (no noon crossed → minimum 1)
+ *   10 Jun 09:00 → 10 Jun 13:00 = 1  (crosses one noon)
  */
 export function bookingUnits(arrival: Date, departure: Date): number {
   if (
@@ -228,16 +273,16 @@ export function bookingUnits(arrival: Date, departure: Date): number {
   ) {
     return 0;
   }
-  let units = 1;
-  // First checkpoint = noon of the day AFTER the check-in day.
-  const checkpoint = new Date(arrival);
-  checkpoint.setHours(12, 0, 0, 0);
-  checkpoint.setDate(checkpoint.getDate() + 1);
-  while (checkpoint < departure) {
-    units += 1;
-    checkpoint.setDate(checkpoint.getDate() + 1);
+  let crossings = 0;
+  // First noon strictly after the arrival instant.
+  const noon = new Date(arrival);
+  noon.setHours(12, 0, 0, 0);
+  if (noon <= arrival) noon.setDate(noon.getDate() + 1);
+  while (noon < departure) {
+    crossings += 1;
+    noon.setDate(noon.getDate() + 1);
   }
-  return units;
+  return Math.max(1, crossings);
 }
 
 /** Convenience wrapper computing booking units from date + time strings. */
