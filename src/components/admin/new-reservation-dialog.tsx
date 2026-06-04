@@ -135,13 +135,37 @@ export function NewReservationDialog({
               <Input type="date" value={arrival} onChange={(e) => setArrival(e.target.value)} />
             </div>
             <div>
+              <label className="text-xs text-muted-foreground">Heure d'arrivée</label>
+              <Input type="time" value={arrivalTime} onChange={(e) => setArrivalTime(e.target.value)} />
+            </div>
+            <div>
               <label className="text-xs text-muted-foreground">Départ</label>
               <Input type="date" value={departure} onChange={(e) => setDeparture(e.target.value)} />
             </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Heure de départ</label>
+              <Input type="time" value={departureTime} onChange={(e) => setDepartureTime(e.target.value)} />
+            </div>
           </div>
-          <div>
-            <label className="text-xs text-muted-foreground">Personne(s)</label>
-            <Input type="number" min={1} value={guests} onChange={(e) => setGuests(e.target.value)} />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-muted-foreground">Personne(s)</label>
+              <Input type="number" min={1} value={guests} onChange={(e) => setGuests(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Canal</label>
+              <Select value={channel} onValueChange={setChannel}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="walkin">Sur place</SelectItem>
+                  <SelectItem value="phone">Téléphone</SelectItem>
+                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                  <SelectItem value="website">Site web</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <Input placeholder="Notes (facultatif)" value={notes} onChange={(e) => setNotes(e.target.value)} />
           <Button variant="gold" className="w-full" disabled={busy} onClick={submit}>
