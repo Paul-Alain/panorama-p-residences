@@ -13,9 +13,11 @@ import {
   Star,
   Users,
   BedDouble,
-  Activity,
-  DoorOpen,
   CalendarRange,
+  CreditCard,
+  Contact,
+  UsersRound,
+  Settings,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { Logo } from "@/components/brand/logo";
@@ -27,13 +29,14 @@ import { DashboardOverview } from "@/components/admin/dashboard-overview";
 import { ReservationsAdmin } from "@/components/admin/reservations-admin";
 import { MessagesAdmin } from "@/components/admin/messages-admin";
 import { ReviewsAdmin } from "@/components/admin/reviews-admin";
-import { UsersAdmin } from "@/components/admin/users-admin";
-import { LogementsAdmin } from "@/components/admin/logements-admin";
-import { ManagerActivity } from "@/components/admin/manager-activity";
-import { UnitsAdmin } from "@/components/admin/units-admin";
+import { LogementsOverview } from "@/components/admin/logements-overview";
 import { OccupancyCalendar } from "@/components/admin/occupancy-calendar";
-import { useLanguage } from "@/lib/i18n/language-context";
-import { claimAdmin, getAdminStatus } from "@/lib/admin.functions";
+import { ClientsAdmin } from "@/components/admin/clients-admin";
+import { PaymentsAdmin } from "@/components/admin/payments-admin";
+import { TeamAdmin } from "@/components/admin/team-admin";
+import { SettingsAdmin } from "@/components/admin/settings-admin";
+import { claimAdmin } from "@/lib/admin.functions";
+import { staffGetStatus } from "@/lib/operations.functions";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Administration – Panorama P" }, { name: "robots", content: "noindex" }] }),
