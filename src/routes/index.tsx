@@ -185,6 +185,15 @@ function Index() {
               <ArrowRight className="h-5 w-5" />
             </Link>
           </Button>
+          <div className="mt-6">
+            <Link
+              to="/localisation"
+              className="inline-flex items-center gap-2 text-sm text-primary-foreground/80 underline underline-offset-4 transition-colors hover:text-gold"
+            >
+              <MapPin className="h-4 w-4" />
+              {t.nav.location}
+            </Link>
+          </div>
         </div>
       </section>
     </>
