@@ -41,8 +41,13 @@ export function Hero() {
             {t.hero.badge}
           </span>
 
-          <h1 className="mt-6 font-display text-4xl font-semibold leading-[1.05] text-balance text-primary-foreground sm:text-6xl lg:text-7xl">
-            {t.hero.title}
+          <h1 className="mt-6 font-display font-semibold leading-[1.05] text-balance text-primary-foreground">
+            <span className="block text-4xl sm:text-6xl lg:text-7xl">
+              {t.hero.titleMain}
+            </span>
+            <span className="mt-2 block text-xl font-medium sm:text-2xl lg:text-3xl text-primary-foreground/90">
+              {t.hero.titleSub}
+            </span>
           </h1>
 
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-primary-foreground/85">
