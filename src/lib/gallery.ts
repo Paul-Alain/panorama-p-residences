@@ -35,6 +35,16 @@ import cuisine1 from "@/assets/cuisine-1.jpg.asset.json";
 import cuisine2 from "@/assets/cuisine-2.jpg.asset.json";
 import cuisine3 from "@/assets/cuisine-3.jpg.asset.json";
 
+import exterieur1 from "@/assets/exterieur-1.jpg.asset.json";
+import exterieur2 from "@/assets/exterieur-2.jpg.asset.json";
+import exterieur3 from "@/assets/exterieur-3.jpg.asset.json";
+import exterieur4 from "@/assets/exterieur-4.jpg.asset.json";
+import exterieur5 from "@/assets/exterieur-5.jpg.asset.json";
+import exterieur6 from "@/assets/exterieur-6.jpg.asset.json";
+import exterieur7 from "@/assets/exterieur-7.jpg.asset.json";
+import exterieur8 from "@/assets/exterieur-8.jpg.asset.json";
+import exterieur9 from "@/assets/exterieur-9.jpg.asset.json";
+
 export interface GalleryImage {
   url: string;
   alt: Record<Lang, string>;
