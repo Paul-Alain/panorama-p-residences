@@ -366,3 +366,61 @@ function TodayColumn({
     </div>
   );
 }
+
+interface UpcomingRow {
+  id: string;
+  name: string;
+  unitLabel: string;
+  guests: number;
+  arrival: string;
+  departure: string;
+  arrivalTime: string;
+  departureTime: string;
+}
+
+function UpcomingColumn({
+  title,
+  icon: Icon,
+  rows,
+  empty,
+  kind,
+  onView,
+}: {
+  title: string;
+  icon: LucideIcon;
+  rows: UpcomingRow[];
+  empty: string;
+  kind: "arrival" | "departure";
+  onView: (id: string) => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-soft">
+      <p className="flex items-center gap-2 font-medium">
+        <Icon className="h-4 w-4 text-gold" /> {title}
+      </p>
+      {rows.length === 0 ? (
+        <p className="mt-3 text-sm text-muted-foreground">{empty}</p>
+      ) : (
+        <ul className="mt-3 space-y-2">
+          {rows.map((r) => (
+            <li key={r.id} className="flex items-center justify-between gap-2 rounded-xl border border-border/50 p-3">
+              <div className="min-w-0">
+                <button className="font-medium hover:text-gold" onClick={() => onView(r.id)}>
+                  {r.name}
+                </button>
+                <p className="text-xs text-muted-foreground">
+                  {r.unitLabel} · {r.guests} pers. ·{" "}
+                  {kind === "arrival" ? r.arrivalTime : r.departureTime}
+                </p>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => onView(r.id)}>
+                <Eye className="h-4 w-4" /> Ouvrir
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
