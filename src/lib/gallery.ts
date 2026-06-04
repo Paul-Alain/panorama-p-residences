@@ -122,7 +122,7 @@ export const gallerySections: GallerySection[] = [
   {
     id: "chambre",
     title: {
-      fr: "Des chambres confortables",
+      fr: "Chambres confortables",
       de: "Komfortable Zimmer",
       en: "Comfortable bedrooms",
     },
@@ -132,9 +132,9 @@ export const gallerySections: GallerySection[] = [
   {
     id: "salon",
     title: {
-      fr: "Un salon accueillant",
-      de: "Ein einladendes Wohnzimmer",
-      en: "A welcoming living room",
+      fr: "Salons accueillants",
+      de: "Einladende Wohnzimmer",
+      en: "Welcoming living rooms",
     },
     cover: salon1.url,
     images: salonUrls.map((a) => ({ url: a.url, alt: salonAlt })),
@@ -142,9 +142,9 @@ export const gallerySections: GallerySection[] = [
   {
     id: "cuisine",
     title: {
-      fr: "Une cuisine entièrement équipée",
-      de: "Eine voll ausgestattete Küche",
-      en: "A fully equipped kitchen",
+      fr: "Cuisines entièrement équipées",
+      de: "Voll ausgestattete Küchen",
+      en: "Fully equipped kitchens",
     },
     cover: cuisine1.url,
     images: cuisineUrls.map((a) => ({ url: a.url, alt: cuisineAlt })),
@@ -152,7 +152,7 @@ export const gallerySections: GallerySection[] = [
   {
     id: "exterieur",
     title: {
-      fr: "Des espaces extérieurs agréables",
+      fr: "Espaces extérieurs agréables",
       de: "Angenehme Außenbereiche",
       en: "Pleasant outdoor spaces",
     },
