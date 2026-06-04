@@ -937,43 +937,40 @@ export const opGetReservationDetail = createServerFn({ method: "GET" })
     };
   });
 
-// ── Manager-created reservation + unit assignment ────────────────────────
+// ── Manager-created reservation (mirrors the public site form) ────────────
+const LOGEMENT_TYPE = z.enum(["chambre", "studio", "appartement"]);
+
+const reservationFormSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120),
+    phone: z.string().trim().min(1).max(40),
+    email: z.string().trim().email().max(160).optional().or(z.literal("")),
+    logementType: LOGEMENT_TYPE,
+    arrival: DATE,
+    departure: DATE,
+    arrivalTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+    departureTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+    channel: z.enum(["website", "whatsapp", "phone", "walkin"]).default("walkin"),
+    guests: z.number().int().min(1).max(20),
+    advance: z.number().min(0).max(100_000_000).default(0),
+    notes: z.string().max(1000).optional(),
+  })
+  .refine(
+    (v) =>
+      new Date(`${v.departure}T${(v.departureTime ?? DEFAULT_CHECKOUT_TIME)}:00`) >
+      new Date(`${v.arrival}T${(v.arrivalTime ?? DEFAULT_CHECKIN_TIME)}:00`),
+    { message: "La date/heure de départ doit suivre l'arrivée." },
+  )
+  .refine((v) => v.guests <= (MAX_GUESTS_BY_TYPE[v.logementType] ?? 20), {
+    message: "Le nombre de personnes dépasse la capacité maximale de ce logement.",
+  });
+
 export const opCreateReservation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z
-      .object({
-        name: z.string().trim().min(1).max(120),
-        phone: z.string().trim().min(1).max(40),
-        email: z.string().trim().email().max(160).optional().or(z.literal("")),
-        unitId: UUID,
-        arrival: DATE,
-        departure: DATE,
-        arrivalTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-        departureTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-        channel: z.enum(["website", "whatsapp", "phone", "walkin"]).default("walkin"),
-        guests: z.number().int().min(1).max(20),
-        status: z.enum(["nouvelle", "confirmée"]).default("confirmée"),
-        notes: z.string().max(500).optional(),
-      })
-      .refine(
-        (v) =>
-          new Date(`${v.departure}T${(v.departureTime ?? DEFAULT_CHECKOUT_TIME)}:00`) >
-          new Date(`${v.arrival}T${(v.arrivalTime ?? DEFAULT_CHECKIN_TIME)}:00`),
-        { message: "La date/heure de départ doit suivre l'arrivée." },
-      )
-      .parse(input),
-  )
+  .inputValidator((input: unknown) => reservationFormSchema.parse(input))
   .handler(async ({ context, data }) => {
     await assertStaff(context.supabase, context.userId);
     const sb = context.supabase;
-    await ensureNoConflict(sb, data.unitId, data.arrival, data.departure, "00000000-0000-0000-0000-000000000000");
-
-    const { data: unit } = await sb
-      .from("logement_units")
-      .select("label, logements(type)")
-      .eq("id", data.unitId)
-      .single();
 
     const { data: inserted, error } = await sb
       .from("reservations")
@@ -981,15 +978,16 @@ export const opCreateReservation = createServerFn({ method: "POST" })
         name: data.name,
         phone: data.phone,
         email: data.email || null,
-        logement_unit_id: data.unitId,
-        logement_type: (unit as any)?.logements?.type ?? null,
+        logement_unit_id: null,
+        logement_type: data.logementType,
         arrival_date: data.arrival,
         departure_date: data.departure,
         arrival_time: data.arrivalTime ?? DEFAULT_CHECKIN_TIME,
         departure_time: data.departureTime ?? DEFAULT_CHECKOUT_TIME,
         channel: data.channel,
         guests: data.guests,
-        status: data.status,
+        status: "confirmée",
+        advance_amount: data.advance,
         notes: data.notes?.trim() || null,
       })
       .select("id")
@@ -1003,10 +1001,58 @@ export const opCreateReservation = createServerFn({ method: "POST" })
       action: "reservation_creee",
       objectType: "reservation",
       objectId: inserted.id,
-      summary: `Réservation créée : ${data.name} (${(unit as any)?.label ?? ""})`,
+      summary: `Réservation créée : ${data.name} (${data.logementType})`,
     });
     return { ok: true, id: inserted.id };
   });
+
+// ── Manager edit of an existing reservation ──────────────────────────────
+export const opUpdateReservation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({ id: UUID })
+      .and(reservationFormSchema._def.schema.shape ? reservationFormSchema : reservationFormSchema)
+      .parse(
+        // reservationFormSchema includes refinements; merge id manually below.
+        input,
+      ),
+  )
+  .handler(async ({ context, data }) => {
+    await assertStaff(context.supabase, context.userId);
+    const sb = context.supabase;
+
+    const { error } = await sb
+      .from("reservations")
+      .update({
+        name: data.name,
+        phone: data.phone,
+        email: data.email || null,
+        logement_type: data.logementType,
+        arrival_date: data.arrival,
+        departure_date: data.departure,
+        arrival_time: data.arrivalTime ?? DEFAULT_CHECKIN_TIME,
+        departure_time: data.departureTime ?? DEFAULT_CHECKOUT_TIME,
+        channel: data.channel,
+        guests: data.guests,
+        advance_amount: data.advance,
+        notes: data.notes?.trim() || null,
+      })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+
+    const name = await actorName(sb, context.userId);
+    await logActivity(sb, {
+      userId: context.userId,
+      userName: name,
+      action: "reservation_modifiee",
+      objectType: "reservation",
+      objectId: data.id,
+      summary: `Réservation modifiée : ${data.name}`,
+    });
+    return { ok: true, id: data.id };
+  });
+
 
 export const opAssignUnit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
