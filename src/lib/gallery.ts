@@ -69,6 +69,14 @@ const salonUrls = [
   salon10, salon11, salon12, salon13,
 ];
 
+const cuisineAlt: Record<Lang, string> = {
+  fr: "Cuisine entièrement équipée – Résidence Panorama P",
+  de: "Voll ausgestattete Küche – Residenz Panorama P",
+  en: "Fully equipped kitchen – Panorama P Residence",
+};
+
+const cuisineUrls = [cuisine1, cuisine2, cuisine3];
+
 export const gallerySections: GallerySection[] = [
   {
     id: "salon",
