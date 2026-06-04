@@ -23,8 +23,6 @@ import { cn } from "@/lib/utils";
  * `<input type="date">`), so guests always see the expected format.
  */
 
-const LOCALE_MAP: Record<string, string> = { fr: "fr-FR", en: "en-GB", de: "de-DE" };
-
 function placeholderFor(lang: string): string {
   if (lang === "en") return "DD/MM/YYYY";
   if (lang === "de") return "TT.MM.JJJJ";
