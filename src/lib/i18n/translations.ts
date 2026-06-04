@@ -659,6 +659,7 @@ const de: Dict = {
       reservationStatus: {
         nouvelle: "Ausstehend",
         confirmée: "Bestätigt",
+        checkin: "Belegt",
         terminée: "Abgeschlossen",
         annulée: "Storniert",
         bloqué: "Wartung",
