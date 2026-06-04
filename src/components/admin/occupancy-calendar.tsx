@@ -126,7 +126,7 @@ export function OccupancyCalendar() {
   const [start, setStart] = useState(today);
   const [unitFilter, setUnitFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [selected, setSelected] = useState<CalRes | null>(null);
+  const [editing, setEditing] = useState<EditableReservation | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["op-calendar"],
