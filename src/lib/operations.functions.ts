@@ -369,7 +369,9 @@ export const opSetReservationStatus = createServerFn({ method: "POST" })
       await ensureNoConflict(sb, row.logement_unit_id, row.arrival_date, row.departure_date, data.id);
     }
 
-    const patch: Record<string, unknown> = { status: data.status };
+    const patch: { status: string; checkin_at?: string; checkout_at?: string } = {
+      status: data.status,
+    };
     if (data.status === "checkin") patch.checkin_at = new Date().toISOString();
     if (data.status === "terminée") patch.checkout_at = new Date().toISOString();
 
