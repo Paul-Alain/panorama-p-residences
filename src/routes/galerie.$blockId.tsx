@@ -51,6 +51,8 @@ function GalleryBlockPage() {
   const { lang } = useLanguage();
   const [active, setActive] = useState<string | null>(null);
 
+  const isVideo = section.kind === "video";
+
   return (
     <>
       <PageHeader title={section.title[lang]} />
@@ -65,31 +67,48 @@ function GalleryBlockPage() {
             Retour à la galerie
           </Link>
 
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
-            {section.images.map((img: GalleryImage, i: number) => (
-              <Reveal
-                key={`${section.id}-${i}`}
-                delay={(i % 3) * 60}
-                className={i % 5 === 0 ? "sm:col-span-2 sm:row-span-2" : ""}
-              >
-                <button
-                  onClick={() => setActive(img.url)}
-                  className="group relative block h-full w-full overflow-hidden rounded-2xl"
-                >
-                  <img
-                    src={img.url}
-                    alt={img.alt[lang]}
-                    loading="lazy"
-                    width={1280}
-                    height={960}
-                    className="aspect-[4/3] h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          {isVideo ? (
+            <div className="grid gap-5 sm:grid-cols-2">
+              {(section.videos ?? []).map((vid, i) => (
+                <Reveal key={`${section.id}-${i}`} delay={(i % 2) * 80}>
+                  <video
+                    src={vid.url}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    className="aspect-[9/16] w-full rounded-2xl bg-black object-cover shadow-elegant sm:aspect-video"
                   />
-                </button>
-              </Reveal>
-            ))}
-          </div>
+                </Reveal>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
+              {section.images.map((img: GalleryImage, i: number) => (
+                <Reveal
+                  key={`${section.id}-${i}`}
+                  delay={(i % 3) * 60}
+                  className={i % 5 === 0 ? "sm:col-span-2 sm:row-span-2" : ""}
+                >
+                  <button
+                    onClick={() => setActive(img.url)}
+                    className="group relative block h-full w-full overflow-hidden rounded-2xl"
+                  >
+                    <img
+                      src={img.url}
+                      alt={img.alt[lang]}
+                      loading="lazy"
+                      width={1280}
+                      height={960}
+                      className="aspect-[4/3] h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  </button>
+                </Reveal>
+              ))}
+            </div>
+          )}
         </div>
       </section>
+
 
       <Dialog open={active !== null} onOpenChange={(o) => !o && setActive(null)}>
         <DialogContent className="max-w-4xl border-0 bg-transparent p-0 shadow-none [&>button]:hidden">
