@@ -46,10 +46,6 @@ export function Footer() {
         <div>
           <h4 className="font-display text-lg font-semibold">{t.footer.contact}</h4>
           <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
-            <li className="flex items-start gap-2.5">
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
-              <span>{siteConfig.address}</span>
-            </li>
             <li className="flex items-center gap-2.5">
               <Phone className="h-4 w-4 shrink-0 text-gold" />
               <a href={whatsappLink()} className="hover:text-gold">
@@ -61,6 +57,16 @@ export function Footer() {
               <a href={`mailto:${siteConfig.email}`} className="hover:text-gold">
                 {siteConfig.email}
               </a>
+            </li>
+            <li className="flex items-start gap-2.5">
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+              <span>{siteConfig.address}</span>
+            </li>
+            <li className="flex items-center gap-2.5">
+              <Navigation className="h-4 w-4 shrink-0 text-gold" />
+              <Link to="/localisation" className="hover:text-gold">
+                {t.nav.location}
+              </Link>
             </li>
           </ul>
         </div>
