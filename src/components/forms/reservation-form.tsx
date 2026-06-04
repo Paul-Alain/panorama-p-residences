@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AlertCircle, CalendarCheck, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,17 +26,25 @@ const MAX_GUESTS: Record<LogementType, number> = {
   appartement: 4,
 };
 
+const DEFAULT_ARRIVAL_TIME = "14:00";
+const DEFAULT_DEPARTURE_TIME = "11:00";
+
 /** Small red asterisk marking a required field. */
 function Req() {
   return <span className="text-destructive"> *</span>;
 }
 
-/** Start of today in local time for date comparisons. */
-function startOfToday() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
+/** Build a Date from `YYYY-MM-DD` + `HH:MM`. */
+function toDateTime(date: string, time: string) {
+  if (!date) return null;
+  return new Date(`${date}T${time || "00:00"}:00`);
 }
+
+const TYPE_LABELS_BI: Record<LogementType, string> = {
+  chambre: "Chambre / Room",
+  studio: "Studio / Studio",
+  appartement: "Appartement / Apartment",
+};
 
 export function ReservationForm({ defaultType = "" }: { defaultType?: string }) {
   const { t, lang } = useLanguage();
@@ -47,6 +55,8 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
     email: "",
     arrival: "",
     departure: "",
+    arrivalTime: DEFAULT_ARRIVAL_TIME,
+    departureTime: DEFAULT_DEPARTURE_TIME,
     type: "",
     guests: "1",
     message: "",
@@ -97,80 +107,64 @@ export function ReservationForm({ defaultType = "" }: { defaultType?: string }) 
   const typeLabel = (type: string) =>
     t.reservation.typeOptions[type as LogementType] ?? type;
 
-  /* Date validation */
-  const today = startOfToday();
-  const arrivalDate = form.arrival ? new Date(form.arrival) : null;
-  const departureDate = form.departure ? new Date(form.departure) : null;
+  /* Datetime validation (date + time) */
+  const arrivalDT = toDateTime(form.arrival, form.arrivalTime);
+  const departureDT = toDateTime(form.departure, form.departureTime);
 
-  const arrivalInPast = arrivalDate !== null && arrivalDate < today;
+  const arrivalInPast = arrivalDT !== null && arrivalDT.getTime() < Date.now();
   const departureBeforeArrival =
-    departureDate !== null && arrivalDate !== null && departureDate <= arrivalDate;
+    departureDT !== null && arrivalDT !== null && departureDT <= arrivalDT;
 
   const dateInvalid = arrivalInPast || departureBeforeArrival;
 
-  /* WhatsApp pre-filled message in the user's current language */
-  const waMessage = useMemo(() => {
-    const arrival = form.arrival
-      ? new Date(form.arrival).toLocaleDateString(lang, {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        })
-      : "";
-    const departure = form.departure
-      ? new Date(form.departure).toLocaleDateString(lang, {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        })
-      : "";
-    const type = form.type ? typeLabel(form.type) : "";
-    const guests = form.guests;
+  /* Bilingual (FR + EN) editable WhatsApp message */
+  const fmtDate = (d: string, time: string) => {
+    if (!d) return "—";
+    const dt = toDateTime(d, time);
+    if (!dt) return "—";
+    return `${dt.toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    })} ${time}`;
+  };
 
-    if (lang === "fr") {
-      return `Bonjour Panorama P Residence,
+  const defaultWaMessage = useMemo(() => {
+    const arrival = fmtDate(form.arrival, form.arrivalTime);
+    const departure = fmtDate(form.departure, form.departureTime);
+    const type = form.type ? TYPE_LABELS_BI[form.type as LogementType] : "—";
+    return `Bonjour Panorama P Residence, je souhaite réserver / Hello Panorama P Residence, I would like to book:
 
-Je souhaite effectuer une réservation.
+• Nom / Full name: ${form.name || "—"}
+• Téléphone / Phone: ${form.phone || "—"}
+• E-mail / Email: ${form.email || "—"}
+• Arrivée / Check-in: ${arrival}
+• Départ / Check-out: ${departure}
+• Logement / Accommodation: ${type}
+• Personnes / Guests: ${form.guests}
+• Commentaires / Comments: ${form.message || "—"}
 
-Détails du séjour :
-- Date d'arrivée : ${arrival}
-- Date de départ : ${departure}
-- Type de logement : ${type}
-- Nombre de personnes : ${guests}
+Merci de confirmer la disponibilité et le tarif.
+Please confirm availability and price.`;
+  }, [
+    form.name,
+    form.phone,
+    form.email,
+    form.arrival,
+    form.departure,
+    form.arrivalTime,
+    form.departureTime,
+    form.type,
+    form.guests,
+    form.message,
+  ]);
 
-Merci de confirmer la disponibilité et les tarifs.
-
-Cordialement,`;
-    }
-    if (lang === "de") {
-      return `Hallo Panorama P Residence,
-
-Ich möchte eine Reservierung vornehmen.
-
-Aufenthaltsdetails:
-- Anreisedatum: ${arrival}
-- Abreisedatum: ${departure}
-- Art der Unterkunft: ${type}
-- Anzahl der Personen: ${guests}
-
-Bitte bestätigen Sie die Verfügbarkeit und die Preise.
-
-Mit freundlichen Grüßen,`;
-    }
-    return `Hello Panorama P Residence,
-
-I would like to make a reservation.
-
-Stay details:
-- Check-in date: ${arrival}
-- Check-out date: ${departure}
-- Accommodation type: ${type}
-- Number of guests: ${guests}
-
-Please confirm availability and price.
-
-Best regards,`;
-  }, [form.arrival, form.departure, form.type, form.guests, lang]);
+  /* Keep the editable message in sync until the user edits it manually. */
+  const [waMessage, setWaMessage] = useState(defaultWaMessage);
+  const waEdited = useRef(false);
+  useEffect(() => {
+    if (!waEdited.current) setWaMessage(defaultWaMessage);
+  }, [defaultWaMessage]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -207,6 +201,9 @@ Best regards,`;
       email: form.email.trim().slice(0, 160) || null,
       arrival_date: form.arrival,
       departure_date: form.departure,
+      arrival_time: form.arrivalTime || DEFAULT_ARRIVAL_TIME,
+      departure_time: form.departureTime || DEFAULT_DEPARTURE_TIME,
+      channel: "website",
       guests: guestsNum || 1,
       logement_unit_id: null,
       logement_type: form.type,
@@ -228,15 +225,19 @@ Best regards,`;
         name: form.name.trim(),
         phone: form.phone.trim(),
         unitLabel: typeLabel(form.type),
+        lang,
       }),
     }).catch(() => {});
     toast.success(t.reservation.success);
+    waEdited.current = false;
     setForm({
       name: "",
       phone: "",
       email: "",
       arrival: "",
       departure: "",
+      arrivalTime: DEFAULT_ARRIVAL_TIME,
+      departureTime: DEFAULT_DEPARTURE_TIME,
       type: "",
       guests: "1",
       message: "",
@@ -295,13 +296,28 @@ Best regards,`;
             aria-invalid={arrivalInPast}
             className={arrivalInPast ? "border-destructive ring-destructive" : ""}
           />
-          {arrivalInPast && (
-            <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">
-              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-              {t.reservation.arrivalInPast}
-            </p>
-          )}
         </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="r-arrival-time">{t.reservation.arrivalTime}<Req /></Label>
+          <Input
+            id="r-arrival-time"
+            type="time"
+            value={form.arrivalTime}
+            onChange={(e) => set("arrivalTime", e.target.value)}
+            required
+            aria-invalid={arrivalInPast}
+            className={arrivalInPast ? "border-destructive ring-destructive" : ""}
+          />
+        </div>
+      </div>
+      {arrivalInPast && (
+        <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+          {t.reservation.arrivalInPast}
+        </p>
+      )}
+
+      <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="r-departure">{t.reservation.departure}<Req /></Label>
           <Input
@@ -313,14 +329,26 @@ Best regards,`;
             aria-invalid={departureBeforeArrival}
             className={departureBeforeArrival ? "border-destructive ring-destructive" : ""}
           />
-          {departureBeforeArrival && (
-            <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">
-              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-              {t.reservation.departureBeforeArrival}
-            </p>
-          )}
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="r-departure-time">{t.reservation.departureTime}<Req /></Label>
+          <Input
+            id="r-departure-time"
+            type="time"
+            value={form.departureTime}
+            onChange={(e) => set("departureTime", e.target.value)}
+            required
+            aria-invalid={departureBeforeArrival}
+            className={departureBeforeArrival ? "border-destructive ring-destructive" : ""}
+          />
         </div>
       </div>
+      {departureBeforeArrival && (
+        <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+          {t.reservation.departureBeforeArrival}
+        </p>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
@@ -383,6 +411,22 @@ Best regards,`;
           value={form.message}
           onChange={(e) => set("message", e.target.value)}
           maxLength={1000}
+        />
+      </div>
+
+      <div className="space-y-1.5 rounded-2xl border border-border/60 bg-muted/30 p-3">
+        <Label htmlFor="r-wa" className="text-xs text-muted-foreground">
+          Message WhatsApp (modifiable) · WhatsApp message (editable)
+        </Label>
+        <Textarea
+          id="r-wa"
+          rows={9}
+          value={waMessage}
+          onChange={(e) => {
+            waEdited.current = true;
+            setWaMessage(e.target.value);
+          }}
+          className="font-mono text-xs"
         />
       </div>
 

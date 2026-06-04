@@ -16,12 +16,16 @@ import {
   CreditCard,
   Contact,
   UsersRound,
+  BarChart3,
   Settings,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { roleTier, ROLE_TIER_LABELS } from "@/lib/operations";
+import { useLanguage } from "@/lib/i18n/language-context";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminNotifications } from "@/components/notifications/admin-notifications";
 import { DashboardOverview } from "@/components/admin/dashboard-overview";
@@ -32,6 +36,7 @@ import { LogementsOverview } from "@/components/admin/logements-overview";
 import { OccupancyCalendar } from "@/components/admin/occupancy-calendar";
 import { ClientsAdmin } from "@/components/admin/clients-admin";
 import { PaymentsAdmin } from "@/components/admin/payments-admin";
+import { AnalyticsAdmin } from "@/components/admin/analytics-admin";
 import { TeamAdmin } from "@/components/admin/team-admin";
 import { SettingsAdmin } from "@/components/admin/settings-admin";
 import { claimAdmin } from "@/lib/admin.functions";
@@ -44,9 +49,11 @@ export const Route = createFileRoute("/admin")({
 
 function AdminPage() {
   const navigate = useNavigate();
+  const { lang } = useLanguage();
   const [session, setSession] = useState<Session | null>(null);
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [roles, setRoles] = useState<string[]>([]);
   const [claiming, setClaiming] = useState(false);
   const runClaim = useServerFn(claimAdmin);
   const runGetAdminStatus = useServerFn(staffGetStatus);
@@ -74,6 +81,7 @@ function AdminPage() {
       .then((res) => {
         if (!active) return;
         setIsAdmin(res.isStaff);
+        setRoles(res.roles ?? []);
         setChecking(false);
       })
       .catch(() => {
@@ -121,6 +129,14 @@ function AdminPage() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Logo />
           <div className="flex items-center gap-2">
+            {isAdmin && (() => {
+              const tier = roleTier(roles);
+              return tier ? (
+                <Badge variant="outline" className="hidden border-gold/40 text-gold sm:inline-flex">
+                  {ROLE_TIER_LABELS[lang][tier]}
+                </Badge>
+              ) : null;
+            })()}
             {isAdmin && <AdminNotifications adminId={session.user.id} />}
             <Button asChild variant="ghost" size="sm">
               <Link to="/"><Home className="h-4 w-4" /> Site</Link>
@@ -162,6 +178,7 @@ function AdminDashboard() {
     { value: "logements", label: "Logements", icon: BedDouble },
     { value: "clients", label: "Clients", icon: Contact },
     { value: "payments", label: "Paiements", icon: CreditCard },
+    { value: "analytics", label: "Analyses", icon: BarChart3 },
     { value: "messages", label: "Messages", icon: MessageSquare },
     { value: "reviews", label: "Avis", icon: Star },
     { value: "team", label: "Équipe", icon: UsersRound },
@@ -186,6 +203,7 @@ function AdminDashboard() {
       <TabsContent value="logements" className="mt-6"><LogementsOverview /></TabsContent>
       <TabsContent value="clients" className="mt-6"><ClientsAdmin /></TabsContent>
       <TabsContent value="payments" className="mt-6"><PaymentsAdmin /></TabsContent>
+      <TabsContent value="analytics" className="mt-6"><AnalyticsAdmin /></TabsContent>
       <TabsContent value="messages" className="mt-6"><MessagesAdmin /></TabsContent>
       <TabsContent value="reviews" className="mt-6"><ReviewsAdmin /></TabsContent>
       <TabsContent value="team" className="mt-6"><TeamAdmin /></TabsContent>

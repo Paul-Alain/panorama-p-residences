@@ -52,6 +52,9 @@ export function NewReservationDialog({
   const [unitId, setUnitId] = useState<string>("");
   const [arrival, setArrival] = useState("");
   const [departure, setDeparture] = useState("");
+  const [arrivalTime, setArrivalTime] = useState("14:00");
+  const [departureTime, setDepartureTime] = useState("11:00");
+  const [channel, setChannel] = useState("walkin");
   const [guests, setGuests] = useState("1");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
@@ -68,8 +71,11 @@ export function NewReservationDialog({
     if (!name.trim()) return toast.error("Le nom du client est obligatoire.");
     if (!phone.trim()) return toast.error("Le téléphone est obligatoire.");
     if (!unitId) return toast.error("Choisissez une unité physique.");
-    if (!arrival || !departure || departure <= arrival)
-      return toast.error("Dates invalides.");
+    if (!arrival || !departure) return toast.error("Dates invalides.");
+    const arrivalDT = new Date(`${arrival}T${arrivalTime}:00`);
+    const departureDT = new Date(`${departure}T${departureTime}:00`);
+    if (departureDT <= arrivalDT)
+      return toast.error("La date/heure de départ doit suivre l'arrivée.");
     setBusy(true);
     try {
       await runCreate({
@@ -80,6 +86,9 @@ export function NewReservationDialog({
           unitId,
           arrival,
           departure,
+          arrivalTime,
+          departureTime,
+          channel: channel as "website" | "whatsapp" | "phone" | "walkin",
           guests: Number(guests) || 1,
           status: "confirmée",
           notes: notes.trim() || undefined,
@@ -126,13 +135,37 @@ export function NewReservationDialog({
               <Input type="date" value={arrival} onChange={(e) => setArrival(e.target.value)} />
             </div>
             <div>
+              <label className="text-xs text-muted-foreground">Heure d'arrivée</label>
+              <Input type="time" value={arrivalTime} onChange={(e) => setArrivalTime(e.target.value)} />
+            </div>
+            <div>
               <label className="text-xs text-muted-foreground">Départ</label>
               <Input type="date" value={departure} onChange={(e) => setDeparture(e.target.value)} />
             </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Heure de départ</label>
+              <Input type="time" value={departureTime} onChange={(e) => setDepartureTime(e.target.value)} />
+            </div>
           </div>
-          <div>
-            <label className="text-xs text-muted-foreground">Personne(s)</label>
-            <Input type="number" min={1} value={guests} onChange={(e) => setGuests(e.target.value)} />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-muted-foreground">Personne(s)</label>
+              <Input type="number" min={1} value={guests} onChange={(e) => setGuests(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Canal</label>
+              <Select value={channel} onValueChange={setChannel}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="walkin">Sur place</SelectItem>
+                  <SelectItem value="phone">Téléphone</SelectItem>
+                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                  <SelectItem value="website">Site web</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <Input placeholder="Notes (facultatif)" value={notes} onChange={(e) => setNotes(e.target.value)} />
           <Button variant="gold" className="w-full" disabled={busy} onClick={submit}>
