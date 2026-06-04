@@ -17,6 +17,16 @@ import chambre9 from "@/assets/chambre-9.jpg.asset.json";
 import chambre10 from "@/assets/chambre-10.jpg.asset.json";
 import chambre11 from "@/assets/chambre-11.jpg.asset.json";
 
+import salon1 from "@/assets/salon-1.jpg.asset.json";
+import salon2 from "@/assets/salon-2.jpg.asset.json";
+import salon3 from "@/assets/salon-3.jpg.asset.json";
+import salon4 from "@/assets/salon-4.jpg.asset.json";
+import salon5 from "@/assets/salon-5.jpg.asset.json";
+import salon6 from "@/assets/salon-6.jpg.asset.json";
+import salon7 from "@/assets/salon-7.jpg.asset.json";
+import salon8 from "@/assets/salon-8.jpg.asset.json";
+import salon9 from "@/assets/salon-9.jpg.asset.json";
+
 export interface GalleryImage {
   url: string;
   alt: Record<Lang, string>;
