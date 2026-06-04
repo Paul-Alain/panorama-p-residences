@@ -245,7 +245,7 @@ export function ReservationsAdmin() {
         </div>
       )}
 
-      <ReservationDetailDialog reservationId={detailId} open={!!detailId} onOpenChange={(v) => !v && setDetailId(null)} />
+      
       <ReservationFormDialog open={createOpen} onOpenChange={setCreateOpen} />
       <ReservationFormDialog
         open={!!editing}
