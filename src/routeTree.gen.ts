@@ -23,6 +23,8 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AProposRouteImport } from './routes/a-propos'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as GalerieIndexRouteImport } from './routes/galerie.index'
+import { Route as GalerieBlockIdRouteImport } from './routes/galerie.$blockId'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as AuthResetRouteImport } from './routes/auth.reset'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
@@ -105,6 +107,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GalerieIndexRoute = GalerieIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => GalerieRoute,
+} as any)
+const GalerieBlockIdRoute = GalerieBlockIdRouteImport.update({
+  id: '/$blockId',
+  path: '/$blockId',
+  getParentRoute: () => GalerieRoute,
+} as any)
 const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   id: '/email/unsubscribe',
   path: '/email/unsubscribe',
@@ -173,7 +185,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRouteWithChildren
   '/contact': typeof ContactRoute
-  '/galerie': typeof GalerieRoute
+  '/galerie': typeof GalerieRouteWithChildren
   '/localisation': typeof LocalisationRoute
   '/logements': typeof LogementsRoute
   '/mon-espace': typeof MonEspaceRoute
@@ -184,6 +196,8 @@ export interface FileRoutesByFullPath {
   '/unsubscribe': typeof UnsubscribeRoute
   '/auth/reset': typeof AuthResetRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/galerie/$blockId': typeof GalerieBlockIdRoute
+  '/galerie/': typeof GalerieIndexRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/email/contact-confirmation': typeof ApiPublicEmailContactConfirmationRoute
   '/api/public/email/reservation-confirmation': typeof ApiPublicEmailReservationConfirmationRoute
@@ -200,7 +214,6 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRouteWithChildren
   '/contact': typeof ContactRoute
-  '/galerie': typeof GalerieRoute
   '/localisation': typeof LocalisationRoute
   '/logements': typeof LogementsRoute
   '/mon-espace': typeof MonEspaceRoute
@@ -211,6 +224,8 @@ export interface FileRoutesByTo {
   '/unsubscribe': typeof UnsubscribeRoute
   '/auth/reset': typeof AuthResetRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/galerie/$blockId': typeof GalerieBlockIdRoute
+  '/galerie': typeof GalerieIndexRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/email/contact-confirmation': typeof ApiPublicEmailContactConfirmationRoute
   '/api/public/email/reservation-confirmation': typeof ApiPublicEmailReservationConfirmationRoute
@@ -228,7 +243,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRouteWithChildren
   '/contact': typeof ContactRoute
-  '/galerie': typeof GalerieRoute
+  '/galerie': typeof GalerieRouteWithChildren
   '/localisation': typeof LocalisationRoute
   '/logements': typeof LogementsRoute
   '/mon-espace': typeof MonEspaceRoute
@@ -239,6 +254,8 @@ export interface FileRoutesById {
   '/unsubscribe': typeof UnsubscribeRoute
   '/auth/reset': typeof AuthResetRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/galerie/$blockId': typeof GalerieBlockIdRoute
+  '/galerie/': typeof GalerieIndexRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/email/contact-confirmation': typeof ApiPublicEmailContactConfirmationRoute
   '/api/public/email/reservation-confirmation': typeof ApiPublicEmailReservationConfirmationRoute
@@ -268,6 +285,8 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/auth/reset'
     | '/email/unsubscribe'
+    | '/galerie/$blockId'
+    | '/galerie/'
     | '/lovable/email/suppression'
     | '/api/public/email/contact-confirmation'
     | '/api/public/email/reservation-confirmation'
@@ -284,7 +303,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/contact'
-    | '/galerie'
     | '/localisation'
     | '/logements'
     | '/mon-espace'
@@ -295,6 +313,8 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/auth/reset'
     | '/email/unsubscribe'
+    | '/galerie/$blockId'
+    | '/galerie'
     | '/lovable/email/suppression'
     | '/api/public/email/contact-confirmation'
     | '/api/public/email/reservation-confirmation'
@@ -322,6 +342,8 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/auth/reset'
     | '/email/unsubscribe'
+    | '/galerie/$blockId'
+    | '/galerie/'
     | '/lovable/email/suppression'
     | '/api/public/email/contact-confirmation'
     | '/api/public/email/reservation-confirmation'
@@ -339,7 +361,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRouteWithChildren
   ContactRoute: typeof ContactRoute
-  GalerieRoute: typeof GalerieRoute
+  GalerieRoute: typeof GalerieRouteWithChildren
   LocalisationRoute: typeof LocalisationRoute
   LogementsRoute: typeof LogementsRoute
   MonEspaceRoute: typeof MonEspaceRoute
@@ -460,6 +482,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/galerie/': {
+      id: '/galerie/'
+      path: '/'
+      fullPath: '/galerie/'
+      preLoaderRoute: typeof GalerieIndexRouteImport
+      parentRoute: typeof GalerieRoute
+    }
+    '/galerie/$blockId': {
+      id: '/galerie/$blockId'
+      path: '/$blockId'
+      fullPath: '/galerie/$blockId'
+      preLoaderRoute: typeof GalerieBlockIdRouteImport
+      parentRoute: typeof GalerieRoute
+    }
     '/email/unsubscribe': {
       id: '/email/unsubscribe'
       path: '/email/unsubscribe'
@@ -550,13 +586,26 @@ const AuthRouteChildren: AuthRouteChildren = {
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
+interface GalerieRouteChildren {
+  GalerieBlockIdRoute: typeof GalerieBlockIdRoute
+  GalerieIndexRoute: typeof GalerieIndexRoute
+}
+
+const GalerieRouteChildren: GalerieRouteChildren = {
+  GalerieBlockIdRoute: GalerieBlockIdRoute,
+  GalerieIndexRoute: GalerieIndexRoute,
+}
+
+const GalerieRouteWithChildren =
+  GalerieRoute._addFileChildren(GalerieRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AProposRoute: AProposRoute,
   AdminRoute: AdminRoute,
   AuthRoute: AuthRouteWithChildren,
   ContactRoute: ContactRoute,
-  GalerieRoute: GalerieRoute,
+  GalerieRoute: GalerieRouteWithChildren,
   LocalisationRoute: LocalisationRoute,
   LogementsRoute: LogementsRoute,
   MonEspaceRoute: MonEspaceRoute,
