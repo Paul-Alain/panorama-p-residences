@@ -122,7 +122,7 @@ export const gallerySections: GallerySection[] = [
   {
     id: "chambre",
     title: {
-      fr: "Des chambres confortables",
+      fr: "Chambres confortables",
       de: "Komfortable Zimmer",
       en: "Comfortable bedrooms",
     },
