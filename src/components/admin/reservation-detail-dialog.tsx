@@ -39,6 +39,7 @@ import {
   opSetReservationStatus,
   opAddPayment,
   opSetReservationTotal,
+  opAssignUnit,
 } from "@/lib/operations.functions";
 import {
   RES_STATUS_LABELS,
