@@ -50,7 +50,27 @@ const chambreUrls = [
   chambre7, chambre8, chambre9, chambre10, chambre11,
 ];
 
+const salonAlt: Record<Lang, string> = {
+  fr: "Salon accueillant – Résidence Panorama P",
+  de: "Einladendes Wohnzimmer – Residenz Panorama P",
+  en: "Welcoming living room – Panorama P Residence",
+};
+
+const salonUrls = [
+  salon1, salon2, salon3, salon4, salon5, salon6, salon7, salon8, salon9,
+];
+
 export const gallerySections: GallerySection[] = [
+  {
+    id: "salon",
+    title: {
+      fr: "Un salon accueillant",
+      de: "Ein einladendes Wohnzimmer",
+      en: "A welcoming living room",
+    },
+    cover: salon1.url,
+    images: salonUrls.map((a) => ({ url: a.url, alt: salonAlt })),
+  },
   {
     id: "chambre",
     title: {
