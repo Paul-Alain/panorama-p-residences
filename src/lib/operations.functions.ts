@@ -940,28 +940,47 @@ export const opGetReservationDetail = createServerFn({ method: "GET" })
 // ── Manager-created reservation (mirrors the public site form) ────────────
 const LOGEMENT_TYPE = z.enum(["chambre", "studio", "appartement"]);
 
-const reservationFormSchema = z
-  .object({
-    name: z.string().trim().min(1).max(120),
-    phone: z.string().trim().min(1).max(40),
-    email: z.string().trim().email().max(160).optional().or(z.literal("")),
-    logementType: LOGEMENT_TYPE,
-    arrival: DATE,
-    departure: DATE,
-    arrivalTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-    departureTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-    channel: z.enum(["website", "whatsapp", "phone", "walkin"]).default("walkin"),
-    guests: z.number().int().min(1).max(20),
-    advance: z.number().min(0).max(100_000_000).default(0),
-    notes: z.string().max(1000).optional(),
+const reservationFormBase = z.object({
+  name: z.string().trim().min(1).max(120),
+  phone: z.string().trim().min(1).max(40),
+  email: z.string().trim().email().max(160).optional().or(z.literal("")),
+  logementType: LOGEMENT_TYPE,
+  arrival: DATE,
+  departure: DATE,
+  arrivalTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  departureTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  channel: z.enum(["website", "whatsapp", "phone", "walkin"]).default("walkin"),
+  guests: z.number().int().min(1).max(20),
+  advance: z.number().min(0).max(100_000_000).default(0),
+  notes: z.string().max(1000).optional(),
+});
+
+const departureAfterArrival = (v: {
+  arrival: string;
+  departure: string;
+  arrivalTime?: string;
+  departureTime?: string;
+}) =>
+  new Date(`${v.departure}T${(v.departureTime ?? DEFAULT_CHECKOUT_TIME)}:00`) >
+  new Date(`${v.arrival}T${(v.arrivalTime ?? DEFAULT_CHECKIN_TIME)}:00`);
+
+const guestsWithinCapacity = (v: { logementType: string; guests: number }) =>
+  v.guests <= (MAX_GUESTS_BY_TYPE[v.logementType] ?? 20);
+
+const reservationFormSchema = reservationFormBase
+  .refine(departureAfterArrival, {
+    message: "La date/heure de départ doit suivre l'arrivée.",
   })
-  .refine(
-    (v) =>
-      new Date(`${v.departure}T${(v.departureTime ?? DEFAULT_CHECKOUT_TIME)}:00`) >
-      new Date(`${v.arrival}T${(v.arrivalTime ?? DEFAULT_CHECKIN_TIME)}:00`),
-    { message: "La date/heure de départ doit suivre l'arrivée." },
-  )
-  .refine((v) => v.guests <= (MAX_GUESTS_BY_TYPE[v.logementType] ?? 20), {
+  .refine(guestsWithinCapacity, {
+    message: "Le nombre de personnes dépasse la capacité maximale de ce logement.",
+  });
+
+const reservationUpdateSchema = reservationFormBase
+  .extend({ id: UUID })
+  .refine(departureAfterArrival, {
+    message: "La date/heure de départ doit suivre l'arrivée.",
+  })
+  .refine(guestsWithinCapacity, {
     message: "Le nombre de personnes dépasse la capacité maximale de ce logement.",
   });
 
