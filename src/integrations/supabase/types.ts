@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_log: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          object_id: string | null
+          object_type: string | null
+          summary: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          object_id?: string | null
+          object_type?: string | null
+          summary?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          object_id?: string | null
+          object_type?: string | null
+          summary?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
       app_config: {
         Row: {
           admin_bootstrapped: boolean
@@ -256,6 +289,47 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          method: string
+          note: string | null
+          recorded_by: string | null
+          recorded_by_name: string | null
+          reservation_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          method?: string
+          note?: string | null
+          recorded_by?: string | null
+          recorded_by_name?: string | null
+          reservation_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          method?: string
+          note?: string | null
+          recorded_by?: string | null
+          recorded_by_name?: string | null
+          reservation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -353,6 +427,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      residence_settings: {
+        Row: {
+          cancellation_policy: string | null
+          checkin_time: string
+          checkout_time: string
+          currency: string
+          deposit_percent: number
+          email_notifications: boolean
+          id: boolean
+          language: string
+          logo_url: string | null
+          name: string
+          taxes: string | null
+          updated_at: string
+        }
+        Insert: {
+          cancellation_policy?: string | null
+          checkin_time?: string
+          checkout_time?: string
+          currency?: string
+          deposit_percent?: number
+          email_notifications?: boolean
+          id?: boolean
+          language?: string
+          logo_url?: string | null
+          name?: string
+          taxes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cancellation_policy?: string | null
+          checkin_time?: string
+          checkout_time?: string
+          currency?: string
+          deposit_percent?: number
+          email_notifications?: boolean
+          id?: boolean
+          language?: string
+          logo_url?: string | null
+          name?: string
+          taxes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       suppressed_emails: {
         Row: {
