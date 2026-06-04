@@ -52,8 +52,6 @@ export function DashboardOverview() {
   const runUnitStatus = useServerFn(opSetUnitOpStatus);
 
   const [detailId, setDetailId] = useState<string | null>(null);
-  const [newOpen, setNewOpen] = useState(false);
-  const [presetUnit, setPresetUnit] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
