@@ -202,6 +202,7 @@ function AdminDashboard() {
       <TabsContent value="logements" className="mt-6"><LogementsOverview /></TabsContent>
       <TabsContent value="clients" className="mt-6"><ClientsAdmin /></TabsContent>
       <TabsContent value="payments" className="mt-6"><PaymentsAdmin /></TabsContent>
+      <TabsContent value="analytics" className="mt-6"><AnalyticsAdmin /></TabsContent>
       <TabsContent value="messages" className="mt-6"><MessagesAdmin /></TabsContent>
       <TabsContent value="reviews" className="mt-6"><ReviewsAdmin /></TabsContent>
       <TabsContent value="team" className="mt-6"><TeamAdmin /></TabsContent>
