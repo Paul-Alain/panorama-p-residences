@@ -13,6 +13,8 @@ import {
   derivePaymentStatus,
   bookingUnitsFrom,
   computeUnitStatus,
+  displayReservationStatus,
+  MAX_GUESTS_BY_TYPE,
   shortRef,
   RES_STATUS_LABELS,
   PAY_METHOD_LABELS,
