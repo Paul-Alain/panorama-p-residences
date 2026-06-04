@@ -7,11 +7,13 @@ export const siteConfig = {
   email: "Residencespanoramap@gmail.com",
   address:
     "Bafoussam, à 500 m du stade municipal de Bamendzi vers le carrefour Aladji, première entrée à gauche",
-  // Carte Google Maps centrée sur le stade municipal de Bamendzi, Bafoussam (modifiable)
+  // Coordonnées GPS exactes de la résidence (repère précis sur la carte)
+  coordinates: { lat: 5.478280, lng: 10.427312 },
+  // Carte Google Maps avec un repère exactement sur la résidence
   mapEmbedUrl:
-    "https://www.google.com/maps?q=Stade+municipal+de+Bamendzi,Bafoussam,Cameroun&z=15&output=embed",
+    "https://www.google.com/maps?q=5.478280,10.427312&z=17&output=embed",
   mapLink:
-    "https://www.google.com/maps/search/?api=1&query=Stade+municipal+de+Bamendzi,Bafoussam,Cameroun",
+    "https://www.google.com/maps/search/?api=1&query=5.478280,10.427312",
   social: {
     facebook: "https://www.facebook.com/share/1BuuL3YZz2/",
     instagram: "https://instagram.com",
