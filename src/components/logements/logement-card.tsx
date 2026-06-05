@@ -60,7 +60,6 @@ export function LogementCard({ logement }: { logement: Logement }) {
 
         <div className="mt-5 flex items-end justify-between border-t border-border/60 pt-4">
           <div>
-            <span className="text-xs text-muted-foreground">{t.logements.from}</span>
             <p className="font-display text-2xl font-semibold leading-none text-foreground">
               {formatPrice(logement.price, logement.currency)}
               <span className="text-sm font-normal text-muted-foreground">
