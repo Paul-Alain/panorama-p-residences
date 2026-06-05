@@ -11,6 +11,9 @@ import {
   CheckCircle2,
   Pencil,
   XCircle,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,15 +94,15 @@ export function ReservationsAdmin() {
   const [view, setView] = useState<"active" | "all">("active");
   const [page, setPage] = useState(1);
   const [busyId, setBusyId] = useState<string | null>(null);
-  
   const [editing, setEditing] = useState<EditableReservation | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [sort, setSort] = useState<{ column: "arrival" | "departure"; dir: "asc" | "desc" } | null>(null);
 
   const invalidate = () => Promise.all(KEYS.map((k) => qc.invalidateQueries({ queryKey: [k] })));
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return data.filter((r) => {
+    const list = data.filter((r) => {
       if (view === "active" && !r.active) return false;
       if (q) {
         const hay = `${r.name} ${r.phone} ${r.email ?? ""} ${r.ref}`.toLowerCase();
@@ -108,9 +111,16 @@ export function ReservationsAdmin() {
       if (status !== "all" && r.displayStatus !== status) return false;
       return true;
     });
-  }, [data, search, status, view]);
+    if (!sort) return list;
+    const key = sort.column === "arrival" ? "arrival_date" : "departure_date";
+    const sorted = [...list].sort((a, b) => {
+      const cmp = (a as any)[key].localeCompare((b as any)[key]);
+      return sort.dir === "asc" ? cmp : -cmp;
+    });
+    return sorted;
+  }, [data, search, status, view, sort]);
 
-  useEffect(() => setPage(1), [search, status, view]);
+  useEffect(() => setPage(1), [search, status, view, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -187,8 +197,8 @@ export function ReservationsAdmin() {
                   <th className="px-3 py-2">E-mail</th>
                   <th className="px-3 py-2">Type</th>
                   <th className="px-3 py-2">Pers.</th>
-                  <th className="px-3 py-2">Arrivée</th>
-                  <th className="px-3 py-2">Départ</th>
+                  <SortHeader label="Arrivée" column="arrival" sort={sort} onSort={setSort} />
+                  <SortHeader label="Départ" column="departure" sort={sort} onSort={setSort} />
                   <th className="px-3 py-2 text-center">Unités</th>
                   <th className="px-3 py-2">Statut</th>
                   <th className="px-3 py-2 text-right">Total à payer</th>
@@ -253,6 +263,33 @@ export function ReservationsAdmin() {
         reservation={editing}
       />
     </div>
+  );
+}
+
+function SortHeader({
+  label,
+  column,
+  sort,
+  onSort,
+}: {
+  label: string;
+  column: "arrival" | "departure";
+  sort: { column: "arrival" | "departure"; dir: "asc" | "desc" } | null;
+  onSort: (s: { column: "arrival" | "departure"; dir: "asc" | "desc" } | null) => void;
+}) {
+  const active = sort?.column === column;
+  const Icon = active ? (sort.dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+  return (
+    <th className="px-3 py-2 cursor-pointer select-none" onClick={() => {
+      if (!active) onSort({ column, dir: "asc" });
+      else if (sort!.dir === "asc") onSort({ column, dir: "desc" });
+      else onSort(null);
+    }}>
+      <span className="inline-flex items-center gap-1">
+        {label}
+        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+      </span>
+    </th>
   );
 }
 
