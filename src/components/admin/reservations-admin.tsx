@@ -277,13 +277,13 @@ export function ReservationsAdmin() {
                         </span>
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">
-                        {formatMoney(r.total, residence.currency)}
+                        {formatMoney(r.displayStatus === "annulée" ? 0 : r.total, residence.currency)}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap text-emerald-600">
-                        {formatMoney(r.advance, residence.currency)}
+                        {formatMoney(r.displayStatus === "annulée" ? 0 : r.advance, residence.currency)}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap text-gold">
-                        {formatMoney(r.balance, residence.currency)}
+                        {formatMoney(r.displayStatus === "annulée" ? 0 : r.balance, residence.currency)}
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex items-center justify-end gap-1">
