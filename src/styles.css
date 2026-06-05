@@ -113,13 +113,13 @@
   --st-nettoyage-fg: oklch(0.98 0.02 300);
 
   /* Occupancy calendar palette (Phase 2 — consistent platform-wide) */
-  --cal-free: oklch(0.95 0.05 150);
-  --cal-free-fg: oklch(0.45 0.09 150);
+  --cal-free: oklch(0.82 0 0);
+  --cal-free-fg: oklch(0.4 0 0);
   --cal-pending: oklch(0.74 0.15 65);
   --cal-pending-fg: oklch(0.27 0.05 65);
   --cal-confirmed: oklch(0.58 0.14 250);
   --cal-confirmed-fg: oklch(0.98 0.01 250);
-  --cal-completed: oklch(0.72 0.015 250);
+  --cal-completed: oklch(0.6 0.16 150);
   --cal-completed-fg: oklch(0.99 0 0);
   --cal-maintenance: oklch(0.58 0.2 27);
   --cal-maintenance-fg: oklch(0.98 0.01 27);
