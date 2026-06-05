@@ -437,6 +437,77 @@ export function OccupancyCalendar() {
                 </div>
               );
             })}
+
+            {/* Unassigned reservations — no unit could be allocated (e.g. all
+                units of that type are taken). Shown here so they remain visible. */}
+            {(() => {
+              const unassignedBars = reservations
+                .filter(
+                  (r) =>
+                    !r.logement_unit_id &&
+                    statusOk(r) &&
+                    (unitFilter === "all" || r.logement_type === unitFilter),
+                )
+                .map((r) => {
+                  const startIdx = Math.max(0, dayDiff(start, r.arrival_date));
+                  const endIdx = Math.min(WINDOW, dayDiff(start, r.departure_date));
+                  return { r, startIdx, endIdx };
+                })
+                .filter((b) => b.endIdx > b.startIdx && b.startIdx < WINDOW && b.endIdx > 0);
+              if (unassignedBars.length === 0) return null;
+              return (
+                <div className="flex border-b border-border/40 last:border-b-0">
+                  <div
+                    className="sticky left-0 z-20 flex shrink-0 items-center gap-1.5 bg-card px-3 py-2 text-sm font-medium text-muted-foreground"
+                    style={{ width: LABEL_W }}
+                  >
+                    <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+                    <span className="truncate">
+                      {lang === "en"
+                        ? "Unassigned"
+                        : lang === "de"
+                          ? "Nicht zugewiesen"
+                          : "Non assigné"}
+                    </span>
+                  </div>
+                  <div className="relative" style={{ width: trackW, height: 52 }}>
+                    <div className="absolute inset-0 flex">
+                      {days.map((d) => (
+                        <div
+                          key={d}
+                          className={`shrink-0 border-l border-border/40 cal-free ${
+                            d === today ? "ring-1 ring-inset ring-gold/40" : ""
+                          }`}
+                          style={{ width: DAY_W }}
+                        />
+                      ))}
+                    </div>
+                    {unassignedBars.map(({ r, startIdx, endIdx }) => (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => setEditing(calToEditable(r))}
+                        className={`absolute top-1 bottom-1 flex flex-col justify-center overflow-hidden rounded-md px-1.5 text-left shadow-sm transition hover:brightness-105 ${barClass(
+                          r,
+                        )}`}
+                        style={{
+                          left: startIdx * DAY_W + 2,
+                          width: (endIdx - startIdx) * DAY_W - 4,
+                        }}
+                        title={`${r.name} · ${fmtShort(r.arrival_date)} → ${fmtShort(r.departure_date)}`}
+                      >
+                        <span className="truncate text-[11px] font-semibold leading-tight">
+                          {r.name}
+                        </span>
+                        <span className="truncate text-[10px] leading-tight opacity-90">
+                          {fmtShort(r.arrival_date)} → {fmtShort(r.departure_date)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
