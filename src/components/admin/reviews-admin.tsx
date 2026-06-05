@@ -2,10 +2,12 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Star, Eye, EyeOff, MessageSquare } from "lucide-react";
+import { Loader2, Star, Eye, EyeOff, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { opListReviews, opModerateReview } from "@/lib/review.functions";
+
+type Action = "publish" | "unpublish" | "reject";
 
 export function ReviewsAdmin() {
   const qc          = useQueryClient();
@@ -19,15 +21,20 @@ export function ReviewsAdmin() {
     staleTime: 30_000,
   });
 
-  const pending  = data.filter((r) => !r.published);
+  const pending   = data.filter((r) => !r.published && !r.rejected);
   const published = data.filter((r) => r.published);
+  const rejected  = data.filter((r) => r.rejected);
 
-  const moderate = async (id: string, action: "publish" | "unpublish") => {
+  const moderate = async (id: string, action: Action) => {
     setBusyId(id);
     try {
       await runModerate({ data: { id, action } });
       await qc.invalidateQueries({ queryKey: ["admin-reviews"] });
-      toast.success(action === "publish" ? "Avis publié." : "Avis masqué.");
+      toast.success(
+        action === "publish" ? "Avis publié."
+          : action === "reject" ? "Avis refusé."
+            : "Avis masqué.",
+      );
     } catch {
       toast.error("Erreur.");
     }
@@ -56,7 +63,7 @@ export function ReviewsAdmin() {
           <div className="space-y-3">
             {pending.map((r) => (
               <ReviewCard key={r.id} r={r} busyId={busyId}
-                action="publish" onModerate={moderate} fmtDate={fmtDate} />
+                actions={["publish", "reject"]} onModerate={moderate} fmtDate={fmtDate} />
             ))}
           </div>
         )}
@@ -74,27 +81,44 @@ export function ReviewsAdmin() {
           <div className="space-y-3">
             {published.map((r) => (
               <ReviewCard key={r.id} r={r} busyId={busyId}
-                action="unpublish" onModerate={moderate} fmtDate={fmtDate} />
+                actions={["unpublish"]} onModerate={moderate} fmtDate={fmtDate} />
             ))}
           </div>
         )}
       </section>
+
+      {/* Refusés */}
+      {rejected.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-muted-foreground">
+            Refusés
+            <Badge variant="outline">{rejected.length}</Badge>
+          </h2>
+          <div className="space-y-3">
+            {rejected.map((r) => (
+              <ReviewCard key={r.id} r={r} busyId={busyId}
+                actions={[]} onModerate={moderate} fmtDate={fmtDate} muted />
+            ))}
+          </div>
+        </section>
+      )}
 
     </div>
   );
 }
 
 function ReviewCard({
-  r, busyId, action, onModerate, fmtDate,
+  r, busyId, actions, onModerate, fmtDate, muted,
 }: {
   r: any;
   busyId: string | null;
-  action: "publish" | "unpublish";
-  onModerate: (id: string, action: "publish" | "unpublish") => void;
+  actions: Action[];
+  onModerate: (id: string, action: Action) => void;
   fmtDate: (s: string) => string;
+  muted?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-card p-4 shadow-soft">
+    <div className={`rounded-xl border border-border/60 bg-card p-4 shadow-soft ${muted ? "opacity-60" : ""}`}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="space-y-1">
           <div className="flex items-center gap-1 text-amber-500">
@@ -108,18 +132,31 @@ function ReviewCard({
             {r.guest_name} · {fmtDate(r.created_at)}
           </p>
         </div>
-        <Button
-          size="sm"
-          variant={action === "publish" ? "gold" : "outline"}
-          disabled={busyId === r.id}
-          onClick={() => onModerate(r.id, action)}
-        >
-          {busyId === r.id
-            ? <Loader2 className="h-4 w-4 animate-spin" />
-            : action === "publish"
-              ? <><Eye className="h-4 w-4" /> Publier</>
-              : <><EyeOff className="h-4 w-4" /> Masquer</>}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {actions.includes("publish") && (
+            <Button size="sm" variant="gold" disabled={busyId === r.id}
+              onClick={() => onModerate(r.id, "publish")}>
+              {busyId === r.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
+              Publier
+            </Button>
+          )}
+          {actions.includes("reject") && (
+            <Button size="sm" variant="outline"
+              className="border-destructive/40 text-destructive hover:bg-destructive/10"
+              disabled={busyId === r.id}
+              onClick={() => onModerate(r.id, "reject")}>
+              {busyId === r.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+              Refuser
+            </Button>
+          )}
+          {actions.includes("unpublish") && (
+            <Button size="sm" variant="outline" disabled={busyId === r.id}
+              onClick={() => onModerate(r.id, "unpublish")}>
+              {busyId === r.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <EyeOff className="h-4 w-4" />}
+              Masquer
+            </Button>
+          )}
+        </div>
       </div>
       <p className="mt-3 text-sm leading-relaxed">{r.comment || "—"}</p>
     </div>
