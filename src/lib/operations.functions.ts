@@ -1365,7 +1365,7 @@ export const opRemoveTeamRole = createServerFn({ method: "POST" })
     z.object({ userId: UUID, role: z.string().min(1).max(40) }).parse(input),
   )
   .handler(async ({ context, data }) => {
-    await assertAdminOrOwner(context.supabase, context.userId);
+    await assertCanManageTeam(context.supabase, context.userId);
     if (data.role === "admin") throw new Error("Le rôle administrateur ne peut pas être retiré ici.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
