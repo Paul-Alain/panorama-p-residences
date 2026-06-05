@@ -9,6 +9,7 @@ import {
   Home,
   LayoutDashboard,
   CalendarDays,
+  CalendarRange,
   MessageSquare,
   Star,
   Contact,
