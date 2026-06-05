@@ -168,6 +168,7 @@ export const opListReservations = createServerFn({ method: "GET" })
       0;
 
     const nowMs = Date.now();
+    const todayIso = todayLocalIso();
     return reservations
       .filter((r) => r.status !== BLOCK_STATUS)
       .map((r) => {
@@ -208,8 +209,9 @@ export const opListReservations = createServerFn({ method: "GET" })
           advance,
           paid,
           balance: Math.max(0, total - advance),
-          // Réservation active = période de départ non encore expirée.
-          active: r.status !== "annulée" && departureMs > nowMs,
+          // Réservation active = non annulée et dont la date de départ n'est
+          // pas encore passée (départ aujourd'hui ou dans le futur).
+          active: r.status !== "annulée" && r.departure_date >= todayIso,
           notes: r.notes,
           message: r.notes,
           created_at: r.created_at ?? r.arrival_date,

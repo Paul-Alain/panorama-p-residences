@@ -14,7 +14,7 @@ import {
   CalendarRange,
   Contact,
   UsersRound,
-  Settings,
+
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { Logo } from "@/components/brand/logo";
@@ -32,7 +32,7 @@ import { ReviewsAdmin } from "@/components/admin/reviews-admin";
 import { OccupancyCalendar } from "@/components/admin/occupancy-calendar";
 import { ClientsAdmin } from "@/components/admin/clients-admin";
 import { TeamAdmin } from "@/components/admin/team-admin";
-import { SettingsAdmin } from "@/components/admin/settings-admin";
+
 import { claimAdmin } from "@/lib/admin.functions";
 import { staffGetStatus } from "@/lib/operations.functions";
 
@@ -173,7 +173,7 @@ function AdminDashboard() {
     { value: "messages", label: "Messages", icon: MessageSquare },
     { value: "reviews", label: "Avis", icon: Star },
     { value: "team", label: "Équipe", icon: UsersRound },
-    { value: "settings", label: "Paramètres", icon: Settings },
+
   ];
 
   return (
@@ -195,7 +195,7 @@ function AdminDashboard() {
       <TabsContent value="messages" className="mt-6"><MessagesAdmin /></TabsContent>
       <TabsContent value="reviews" className="mt-6"><ReviewsAdmin /></TabsContent>
       <TabsContent value="team" className="mt-6"><TeamAdmin /></TabsContent>
-      <TabsContent value="settings" className="mt-6"><SettingsAdmin /></TabsContent>
+
     </Tabs>
   );
 }
