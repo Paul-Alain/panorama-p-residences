@@ -1518,3 +1518,88 @@ export const opGetAnalytics = createServerFn({ method: "GET" })
       totalReservations: periodRes.length,
     };
   });
+
+// ── Revenue analytics by logement type (dashboard chart) ─────────────────
+// Aggregates the reservation history over a selectable period, grouped by
+// logement type and by reservation status. For each (type, status) bucket we
+// expose the contracted revenue (chiffre d'affaires), the collected amount
+// (avances encaissées) and the remaining balance (solde restant). The status
+// reflects what managers see in the Reservations table (clock-driven), so the
+// "terminée" filter matches finished stays.
+export const opGetRevenueAnalytics = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ start: DATE, end: DATE }).parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertStaff(context.supabase, context.userId);
+    const sb = context.supabase;
+    const [units, reservations] = await Promise.all([
+      loadUnits(sb),
+      loadReservations(sb),
+    ]);
+
+    const unitById = new Map(units.map((u) => [u.id, u]));
+    const priceByType = new Map<string, number>();
+    for (const u of units) if (!priceByType.has(u.type)) priceByType.set(u.type, u.price);
+    const priceOf = (r: ResRow) =>
+      (r.logement_unit_id ? unitById.get(r.logement_unit_id)?.price : undefined) ??
+      (r.logement_type ? priceByType.get(r.logement_type) : undefined) ??
+      0;
+
+    const inRange = (d: string) => d >= data.start && d <= data.end;
+    const nowMs = Date.now();
+
+    const TYPES = ["chambre", "studio", "appartement"] as const;
+    const typeLabels: Record<string, string> = {
+      chambre: "Chambre",
+      studio: "Studio",
+      appartement: "Appartement",
+    };
+    // Status keys exposed to the filter ("all" = every status except cancelled).
+    const STATUSES = ["all", "nouvelle", "confirmée", "encours", "terminée"] as const;
+
+    // Enrich each in-range reservation with its display status + money figures.
+    const rows = reservations
+      .filter((r) => r.status !== BLOCK_STATUS && r.status !== "annulée" && inRange(r.arrival_date))
+      .map((r) => {
+        const total = effectiveTotal(r, priceOf(r));
+        const advance = Math.min(Number(r.advance_amount) || 0, total);
+        const arrivalMs = new Date(
+          `${r.arrival_date}T${(r.arrival_time ?? DEFAULT_CHECKIN_TIME).slice(0, 5)}:00`,
+        ).getTime();
+        const departureMs = new Date(
+          `${r.departure_date}T${(r.departure_time ?? DEFAULT_CHECKOUT_TIME).slice(0, 5)}:00`,
+        ).getTime();
+        return {
+          type: r.logement_type ?? "",
+          status: displayReservationStatus(r.status, arrivalMs, departureMs, nowMs) as string,
+          total,
+          collected: advance,
+          balance: Math.max(0, total - advance),
+        };
+      });
+
+    // Build per-status → per-type aggregation.
+    const byStatus: Record<
+      string,
+      { type: string; label: string; total: number; collected: number; balance: number; count: number }[]
+    > = {};
+    for (const status of STATUSES) {
+      byStatus[status] = TYPES.map((type) => {
+        const rs = rows.filter(
+          (x) => x.type === type && (status === "all" || x.status === status),
+        );
+        return {
+          type,
+          label: typeLabels[type],
+          total: rs.reduce((s, x) => s + x.total, 0),
+          collected: rs.reduce((s, x) => s + x.collected, 0),
+          balance: rs.reduce((s, x) => s + x.balance, 0),
+          count: rs.length,
+        };
+      });
+    }
+
+    return { start: data.start, end: data.end, byStatus };
+  });
