@@ -33,10 +33,18 @@ export function TeamAdmin() {
   const runActivity = useServerFn(opListActivity);
   const runSet = useServerFn(opSetTeamRole);
   const runRemove = useServerFn(opRemoveTeamRole);
+  const runStatus = useServerFn(staffGetStatus);
 
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<string>("gestionnaire");
   const [busy, setBusy] = useState(false);
+
+  const { data: status } = useQuery({
+    queryKey: ["op-staff-status"],
+    queryFn: () => runStatus(),
+    staleTime: 60_000,
+  });
+  const canManage = status?.canManageTeam ?? false;
 
   const { data: team = [], isLoading } = useQuery({
     queryKey: ["op-team"],
