@@ -302,6 +302,17 @@ function ProfileSection({ userId, email }: { userId: string; email: string }) {
           {mutation.isPending ? t.account.profile.saving : t.account.profile.save}
         </Button>
       </form>
+
+      {/* ── Zone de suppression du compte ── */}
+      <div className="mt-8 border-t border-red-200 pt-6">
+        <p className="text-sm font-semibold text-destructive">Zone dangereuse</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          La suppression de votre compte est définitive. Toutes vos données personnelles
+          seront effacées. Vos réservations resteront dans nos archives pour des raisons
+          administratives.
+        </p>
+        <DeleteAccountButton email={email} />
+      </div>
     </div>
   );
 }
@@ -911,5 +922,113 @@ function ReviewsSection({ userId }: { userId: string }) {
         );
       })}
     </div>
+  );
+}
+
+/* ---------------- Delete Account ---------------- */
+
+function DeleteAccountButton({ email }: { email: string }) {
+  const navigate  = useNavigate();
+  const [open,    setOpen]    = useState(false);
+  const [confirm, setConfirm] = useState("");
+  const [busy,    setBusy]    = useState(false);
+
+  const handleDelete = async () => {
+    if (confirm.trim().toUpperCase() !== "SUPPRIMER") {
+      toast.error("Tapez exactement SUPPRIMER pour confirmer.");
+      return;
+    }
+    setBusy(true);
+    try {
+      // Détacher les réservations du compte (user_id → null)
+      await supabase
+        .from("reservations")
+        .update({ user_id: null })
+        .eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "");
+
+      // Supprimer le profil
+      await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", (await supabase.auth.getUser()).data.user?.id ?? "");
+
+      // Déconnecter puis supprimer le compte
+      await supabase.auth.signOut();
+
+      toast.success("Votre compte a été supprimé.");
+      navigate({ to: "/" });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur lors de la suppression.");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        className="mt-3 border-red-300 text-destructive hover:bg-red-50"
+        onClick={() => { setOpen(true); setConfirm(""); }}
+      >
+        Supprimer mon compte
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">
+              Supprimer votre compte
+            </DialogTitle>
+            <DialogDescription className="space-y-2 pt-2">
+              <span className="block">
+                Vous êtes sur le point de supprimer définitivement le compte associé à{" "}
+                <strong>{email}</strong>.
+              </span>
+              <span className="block text-destructive font-medium">
+                ⚠️ Cette action est irréversible.
+              </span>
+              <span className="block">
+                Vos données personnelles seront supprimées. Vos réservations resteront
+                dans les archives de la résidence pour des raisons administratives.
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <Label htmlFor="confirm-delete" className="text-sm font-medium">
+              Tapez <strong className="text-destructive">SUPPRIMER</strong> pour confirmer
+            </Label>
+            <Input
+              id="confirm-delete"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              placeholder="SUPPRIMER"
+              className="border-red-300 focus:ring-red-400"
+              autoComplete="off"
+            />
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={busy}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={busy || confirm.trim().toUpperCase() !== "SUPPRIMER"}
+              onClick={handleDelete}
+            >
+              {busy
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : "Supprimer définitivement"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
