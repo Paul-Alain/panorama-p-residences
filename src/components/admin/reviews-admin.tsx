@@ -105,7 +105,7 @@ function ReviewCard({
             <span className="ml-1 text-xs font-semibold text-amber-700">{r.rating}/5</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            {r.name} · {fmtDate(r.created_at)}
+            {r.guest_name} · {fmtDate(r.created_at)}
           </p>
         </div>
         <Button
@@ -121,7 +121,7 @@ function ReviewCard({
               : <><EyeOff className="h-4 w-4" /> Masquer</>}
         </Button>
       </div>
-      <p className="mt-3 text-sm leading-relaxed">{r.message_fr || "—"}</p>
+      <p className="mt-3 text-sm leading-relaxed">{r.comment || "—"}</p>
     </div>
   );
 }

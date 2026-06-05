@@ -24,6 +24,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AProposRouteImport } from './routes/a-propos'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GalerieIndexRouteImport } from './routes/galerie.index'
+import { Route as NoterTokenRouteImport } from './routes/noter.$token'
 import { Route as GalerieBlockIdRouteImport } from './routes/galerie.$blockId'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as AuthResetRouteImport } from './routes/auth.reset'
@@ -112,6 +113,11 @@ const GalerieIndexRoute = GalerieIndexRouteImport.update({
   path: '/',
   getParentRoute: () => GalerieRoute,
 } as any)
+const NoterTokenRoute = NoterTokenRouteImport.update({
+  id: '/noter/$token',
+  path: '/noter/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GalerieBlockIdRoute = GalerieBlockIdRouteImport.update({
   id: '/$blockId',
   path: '/$blockId',
@@ -197,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/auth/reset': typeof AuthResetRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/galerie/$blockId': typeof GalerieBlockIdRoute
+  '/noter/$token': typeof NoterTokenRoute
   '/galerie/': typeof GalerieIndexRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/email/contact-confirmation': typeof ApiPublicEmailContactConfirmationRoute
@@ -225,6 +232,7 @@ export interface FileRoutesByTo {
   '/auth/reset': typeof AuthResetRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/galerie/$blockId': typeof GalerieBlockIdRoute
+  '/noter/$token': typeof NoterTokenRoute
   '/galerie': typeof GalerieIndexRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/email/contact-confirmation': typeof ApiPublicEmailContactConfirmationRoute
@@ -255,6 +263,7 @@ export interface FileRoutesById {
   '/auth/reset': typeof AuthResetRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/galerie/$blockId': typeof GalerieBlockIdRoute
+  '/noter/$token': typeof NoterTokenRoute
   '/galerie/': typeof GalerieIndexRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/email/contact-confirmation': typeof ApiPublicEmailContactConfirmationRoute
@@ -286,6 +295,7 @@ export interface FileRouteTypes {
     | '/auth/reset'
     | '/email/unsubscribe'
     | '/galerie/$blockId'
+    | '/noter/$token'
     | '/galerie/'
     | '/lovable/email/suppression'
     | '/api/public/email/contact-confirmation'
@@ -314,6 +324,7 @@ export interface FileRouteTypes {
     | '/auth/reset'
     | '/email/unsubscribe'
     | '/galerie/$blockId'
+    | '/noter/$token'
     | '/galerie'
     | '/lovable/email/suppression'
     | '/api/public/email/contact-confirmation'
@@ -343,6 +354,7 @@ export interface FileRouteTypes {
     | '/auth/reset'
     | '/email/unsubscribe'
     | '/galerie/$blockId'
+    | '/noter/$token'
     | '/galerie/'
     | '/lovable/email/suppression'
     | '/api/public/email/contact-confirmation'
@@ -371,6 +383,7 @@ export interface RootRouteChildren {
   TemoignagesRoute: typeof TemoignagesRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
+  NoterTokenRoute: typeof NoterTokenRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicEmailContactConfirmationRoute: typeof ApiPublicEmailContactConfirmationRoute
   ApiPublicEmailReservationConfirmationRoute: typeof ApiPublicEmailReservationConfirmationRoute
@@ -488,6 +501,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/galerie/'
       preLoaderRoute: typeof GalerieIndexRouteImport
       parentRoute: typeof GalerieRoute
+    }
+    '/noter/$token': {
+      id: '/noter/$token'
+      path: '/noter/$token'
+      fullPath: '/noter/$token'
+      preLoaderRoute: typeof NoterTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/galerie/$blockId': {
       id: '/galerie/$blockId'
@@ -615,6 +635,7 @@ const rootRouteChildren: RootRouteChildren = {
   TemoignagesRoute: TemoignagesRoute,
   UnsubscribeRoute: UnsubscribeRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
+  NoterTokenRoute: NoterTokenRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicEmailContactConfirmationRoute:
     ApiPublicEmailContactConfirmationRoute,
