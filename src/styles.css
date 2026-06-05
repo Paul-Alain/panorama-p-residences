@@ -237,6 +237,7 @@
   .cal-dot-completed { background-color: var(--cal-completed); }
   .cal-dot-maintenance { background-color: var(--cal-maintenance); }
   .cal-dot-conflict { background-color: var(--cal-conflict); }
+  .cal-dot-cancelled { background-color: var(--cal-cancelled); }
 }
 
 @keyframes fade-up {
