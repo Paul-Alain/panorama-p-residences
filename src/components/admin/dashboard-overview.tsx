@@ -1,415 +1,306 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 import {
-  Loader2,
-  Percent,
-  DoorOpen,
-  Plane,
-  LogOut,
-  LogIn,
-  Clock,
-  Coins,
-  CreditCard,
-  Mail,
-  AlertTriangle,
-  Eye,
-  Wrench,
-  Ban,
-  Sparkles,
-  RotateCcw,
-  type LucideIcon,
-} from "lucide-react";
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  LabelList,
+} from "recharts";
+import { Loader2, TrendingUp, Wallet, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { opGetDashboard, opCheckIn, opCheckOut, opSetUnitOpStatus } from "@/lib/operations.functions";
-import {
-  UNIT_STATUS_LABELS,
-  PAY_STATUS_LABELS,
-  statusFillClass,
-  type UnitStatus,
-} from "@/lib/operations";
+import { Input } from "@/components/ui/input";
+import { opGetDashboard, opGetRevenueAnalytics } from "@/lib/operations.functions";
 import { formatMoney } from "@/lib/format";
 import { useResidence } from "@/lib/use-residence";
-import { ReservationDetailDialog } from "./reservation-detail-dialog";
 
-const KEYS = ["op-dashboard", "admin-reservations", "op-payments", "admin-occupancy"];
+type Period = "week" | "month" | "quarter" | "year" | "custom";
+type StatusFilter = "terminée" | "all" | "confirmée" | "encours" | "nouvelle";
+type Metric = "total" | "collected" | "balance";
+
+const TYPE_COLORS = ["hsl(43 74% 49%)", "hsl(200 70% 45%)", "hsl(160 60% 40%)"];
+
+function isoDay(d: Date) {
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
+function rangeFor(period: Period): { start: string; end: string } {
+  const now = new Date();
+  const end = new Date(now);
+  const start = new Date(now);
+  if (period === "week") start.setDate(now.getDate() - 7);
+  else if (period === "month") start.setMonth(now.getMonth() - 1);
+  else if (period === "quarter") start.setMonth(now.getMonth() - 3);
+  else if (period === "year") start.setFullYear(now.getFullYear() - 1);
+  return { start: isoDay(start), end: isoDay(end) };
+}
 
 export function DashboardOverview() {
-  const qc = useQueryClient();
   const residence = useResidence();
   const runDash = useServerFn(opGetDashboard);
-  const runCheckIn = useServerFn(opCheckIn);
-  const runCheckOut = useServerFn(opCheckOut);
-  const runUnitStatus = useServerFn(opSetUnitOpStatus);
+  const runRevenue = useServerFn(opGetRevenueAnalytics);
 
-  const [detailId, setDetailId] = useState<string | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
-
-  const { data, isLoading } = useQuery({
+  const { data: dash, isLoading: loadingDash } = useQuery({
     queryKey: ["op-dashboard"],
     queryFn: () => runDash(),
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   });
 
-  const invalidate = () => Promise.all(KEYS.map((k) => qc.invalidateQueries({ queryKey: [k] })));
+  const [period, setPeriod] = useState<Period>("year");
+  const [customStart, setCustomStart] = useState(rangeFor("year").start);
+  const [customEnd, setCustomEnd] = useState(rangeFor("year").end);
+  const [status, setStatus] = useState<StatusFilter>("terminée");
+  const [metric, setMetric] = useState<Metric>("total");
 
-  const doAction = async (id: string, fn: () => Promise<unknown>, ok: string) => {
-    setBusyId(id);
-    try {
-      await fn();
-      await invalidate();
-      toast.success(ok);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erreur");
-    }
-    setBusyId(null);
-  };
+  const range = useMemo(
+    () => (period === "custom" ? { start: customStart, end: customEnd } : rangeFor(period)),
+    [period, customStart, customEnd],
+  );
 
-  const openDetail = (id: string | null) => id && setDetailId(id);
+  const { data: rev, isLoading: loadingRev } = useQuery({
+    queryKey: ["op-revenue", range.start, range.end],
+    queryFn: () => runRevenue({ data: range }),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  });
 
-  if (isLoading || !data) {
-    return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin text-gold" />
-      </div>
-    );
-  }
-
-  const k = data.kpis;
-  const kpiCards: { icon: LucideIcon; label: string; value: string; accent?: boolean }[] = [
-    { icon: Percent, label: "Occupation aujourd'hui", value: `${k.occupancyRate}%`, accent: true },
-    { icon: DoorOpen, label: "Unités disponibles", value: `${k.availableUnits}/${k.totalUnits}` },
-    { icon: Plane, label: "Arrivées aujourd'hui", value: String(k.arrivals) },
-    { icon: LogOut, label: "Départs aujourd'hui", value: String(k.departures) },
-    { icon: Clock, label: "Demandes en attente", value: String(k.pendingRequests), accent: k.pendingRequests > 0 },
-    { icon: CreditCard, label: "Paiements à vérifier", value: String(k.paymentsToVerify), accent: k.paymentsToVerify > 0 },
-    { icon: Mail, label: "Messages à traiter", value: String(k.newMessages), accent: k.newMessages > 0 },
-    { icon: Coins, label: "Revenus du mois", value: formatMoney(k.monthRevenue, residence.currency) },
+  const periods: { value: Period; label: string }[] = [
+    { value: "week", label: "Semaine" },
+    { value: "month", label: "Mois" },
+    { value: "quarter", label: "Trimestre" },
+    { value: "year", label: "Année" },
+    { value: "custom", label: "Personnalisé" },
   ];
+
+  const statuses: { value: StatusFilter; label: string }[] = [
+    { value: "terminée", label: "Terminées" },
+    { value: "encours", label: "En cours" },
+    { value: "confirmée", label: "Confirmées" },
+    { value: "nouvelle", label: "En attente" },
+    { value: "all", label: "Toutes" },
+  ];
+
+  const metrics: { value: Metric; label: string; icon: typeof TrendingUp }[] = [
+    { value: "total", label: "Chiffre d'affaires", icon: TrendingUp },
+    { value: "collected", label: "Encaissé (avances)", icon: Wallet },
+    { value: "balance", label: "Solde restant", icon: Scale },
+  ];
+
+  const rows = rev?.byStatus?.[status] ?? [];
+  const chartData = rows.map((r) => ({
+    label: r.label,
+    value: r[metric],
+    count: r.count,
+  }));
+  const totalValue = rows.reduce((s, r) => s + r[metric], 0);
+  const totalCount = rows.reduce((s, r) => s + r.count, 0);
+  const totalCa = rows.reduce((s, r) => s + r.total, 0);
+  const totalCollected = rows.reduce((s, r) => s + r.collected, 0);
+  const totalBalance = rows.reduce((s, r) => s + r.balance, 0);
+
+  const metricLabel = metrics.find((m) => m.value === metric)!.label;
+  const money = (v: number) => formatMoney(v, residence.currency);
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="font-display text-lg font-semibold">Opérations du jour</h2>
-      </div>
-
-      {/* Per-type availability (green / orange / red) */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {(data.typeAvailability ?? []).map((tA) => {
-          const label =
-            tA.type === "chambre" ? "Chambres" : tA.type === "studio" ? "Studios" : "Appartements";
-          const tone =
-            tA.level === "free"
-              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600"
-              : tA.level === "partial"
-                ? "border-amber-500/40 bg-amber-500/10 text-amber-600"
-                : "border-red-500/40 bg-red-500/10 text-red-600";
-          return (
-            <div key={tA.type} className={`rounded-2xl border p-4 shadow-soft ${tone}`}>
-              <p className="text-sm font-medium">{label}</p>
-              <p className="mt-2 font-display text-3xl font-semibold tabular-nums">
-                {tA.available}/{tA.total}
-              </p>
-              <p className="mt-0.5 text-xs opacity-80">
-                {tA.level === "full" ? "Complet" : tA.level === "partial" ? "Partiellement occupé" : "Disponible"}
-              </p>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {kpiCards.map((c) => (
-          <div
-            key={c.label}
-            className={`rounded-2xl border p-4 shadow-soft ${c.accent ? "border-gold/40 bg-gradient-to-br from-gold/10 to-transparent" : "border-border/60 bg-card"}`}
-          >
-            <span className={`flex h-9 w-9 items-center justify-center rounded-full ${c.accent ? "bg-gold/20 text-gold" : "bg-secondary text-muted-foreground"}`}>
-              <c.icon className="h-4 w-4" />
-            </span>
-            <p className="mt-3 font-display text-2xl font-semibold tabular-nums">{c.value}</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">{c.label}</p>
+      {/* 1) Availability right now — 3 type cards only */}
+      <section className="space-y-3">
+        <h2 className="font-display text-lg font-semibold">Disponibilité à l'instant présent</h2>
+        {loadingDash || !dash ? (
+          <div className="flex justify-center py-10">
+            <Loader2 className="h-6 w-6 animate-spin text-gold" />
           </div>
-        ))}
-      </div>
-
-      {/* Next 24h (arrivals / departures) */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <UpcomingColumn
-          title="Arrivées sous 24h"
-          icon={Plane}
-          rows={data.upcomingArrivals ?? []}
-          empty="Aucune arrivée dans les 24 prochaines heures."
-          kind="arrival"
-          onView={openDetail}
-        />
-        <UpcomingColumn
-          title="Départs sous 24h"
-          icon={LogOut}
-          rows={data.upcomingDepartures ?? []}
-          empty="Aucun départ dans les 24 prochaines heures."
-          kind="departure"
-          onView={openDetail}
-        />
-      </div>
-
-      {/* Urgent actions */}
-      <section className="space-y-3">
-        <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
-          <AlertTriangle className="h-5 w-5 text-gold" /> Actions urgentes
-        </h2>
-        <div className="rounded-2xl border border-border/60 bg-card p-2 shadow-soft">
-          {data.urgent.length === 0 ? (
-            <p className="p-4 text-sm text-muted-foreground">Aucune action urgente. Tout est à jour ✨</p>
-          ) : (
-            <ul className="divide-y divide-border/50">
-              {data.urgent.map((u) => (
-                <li key={u.id} className="flex items-center gap-3 px-3 py-2.5">
-                  <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${u.level === "haute" ? "st-dot-conflit" : u.level === "moyenne" ? "st-dot-jour" : "st-dot-bloque"}`} />
-                  <span className="min-w-0 flex-1 text-sm">{u.label}</span>
-                  <Badge variant="outline" className="shrink-0 text-[10px] uppercase">
-                    {u.level}
-                  </Badge>
-                  {u.reservationId && (
-                    <Button size="sm" variant="outline" className="shrink-0" onClick={() => openDetail(u.reservationId!)}>
-                      Traiter
-                    </Button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {(dash.typeAvailability ?? []).map((tA) => {
+              const label =
+                tA.type === "chambre" ? "Chambres" : tA.type === "studio" ? "Studios" : "Appartements";
+              const tone =
+                tA.level === "free"
+                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600"
+                  : tA.level === "partial"
+                    ? "border-amber-500/40 bg-amber-500/10 text-amber-600"
+                    : "border-red-500/40 bg-red-500/10 text-red-600";
+              return (
+                <div key={tA.type} className={`rounded-2xl border p-4 shadow-soft ${tone}`}>
+                  <p className="text-sm font-medium">{label}</p>
+                  <p className="mt-2 font-display text-3xl font-semibold tabular-nums">
+                    {tA.available}/{tA.total}
+                  </p>
+                  <p className="mt-0.5 text-xs opacity-80">
+                    {tA.level === "full"
+                      ? "Complet"
+                      : tA.level === "partial"
+                        ? "Partiellement occupé"
+                        : "Disponible"}{" "}
+                    · {tA.available} libre(s)
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
-      {/* Today: arrivals & departures */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <TodayColumn
-          title="Arrivées du jour"
-          icon={Plane}
-          rows={data.arrivals}
-          empty="Aucune arrivée aujourd'hui."
-          action="checkin"
-          busyId={busyId}
-          onView={openDetail}
-          onAction={(id) => doAction(id, () => runCheckIn({ data: { id } }), "Check-in effectué.")}
-        />
-        <TodayColumn
-          title="Départs du jour"
-          icon={LogOut}
-          rows={data.departures}
-          empty="Aucun départ aujourd'hui."
-          action="checkout"
-          busyId={busyId}
-          onView={openDetail}
-          onAction={(id) => doAction(id, () => runCheckOut({ data: { id } }), "Check-out effectué.")}
-        />
-      </div>
+      {/* 2) Revenue analytics from reservation history */}
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-display text-lg font-semibold">Analyse du chiffre d'affaires</h2>
+        </div>
 
-      {/* 9 units state */}
-      <section className="space-y-3">
-        <h2 className="font-display text-lg font-semibold">État des unités</h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {data.units.map((u) => (
-            <div key={u.id} className="rounded-2xl border border-border/60 bg-card p-4 shadow-soft">
-              <div className="flex items-center justify-between">
-                <p className="font-medium">{u.label}</p>
-                <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusFillClass(u.status as UnitStatus)}`}>
-                  {UNIT_STATUS_LABELS[u.status as UnitStatus]}
-                </span>
+        {/* Filters */}
+        <div className="space-y-3 rounded-2xl border border-border/60 bg-card p-4 shadow-soft">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">Période :</span>
+            {periods.map((p) => (
+              <Button
+                key={p.value}
+                size="sm"
+                variant={period === p.value ? "gold" : "outline"}
+                onClick={() => setPeriod(p.value)}
+              >
+                {p.label}
+              </Button>
+            ))}
+            {period === "custom" && (
+              <div className="flex items-center gap-2">
+                <Input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="h-9 w-auto" />
+                <span className="text-muted-foreground">→</span>
+                <Input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="h-9 w-auto" />
               </div>
-              <div className="mt-2 min-h-[2.5rem] text-sm text-muted-foreground">
-                {u.guestName ? (
-                  <>
-                    <p className="text-foreground">
-                      {u.guestName}{" "}
-                      <span className="text-xs text-muted-foreground">({u.guestPhase})</span>
-                    </p>
-                    <p className="text-xs">{u.period}</p>
-                    {u.paymentStatus && (
-                      <p className="text-xs">{PAY_STATUS_LABELS[u.paymentStatus] ?? u.paymentStatus}</p>
-                    )}
-                  </>
-                ) : (
-                  <p>Aucun client à venir</p>
-                )}
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">Statut :</span>
+            {statuses.map((s) => (
+              <Button
+                key={s.value}
+                size="sm"
+                variant={status === s.value ? "default" : "outline"}
+                onClick={() => setStatus(s.value)}
+              >
+                {s.label}
+              </Button>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">Indicateur :</span>
+            {metrics.map((m) => (
+              <Button
+                key={m.value}
+                size="sm"
+                variant={metric === m.value ? "gold" : "outline"}
+                onClick={() => setMetric(m.value)}
+              >
+                <m.icon className="h-4 w-4" /> {m.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {loadingRev || !rev ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-6 w-6 animate-spin text-gold" />
+          </div>
+        ) : (
+          <>
+            {/* Summary cards */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+              <StatCard icon={TrendingUp} label="Chiffre d'affaires" value={money(totalCa)} accent={metric === "total"} />
+              <StatCard icon={Wallet} label="Encaissé (avances)" value={money(totalCollected)} accent={metric === "collected"} />
+              <StatCard icon={Scale} label="Solde restant" value={money(totalBalance)} accent={metric === "balance"} />
+              <StatCard icon={TrendingUp} label="Réservations" value={String(totalCount)} />
+            </div>
+
+            {/* Bar chart by type with values written on bars */}
+            <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-soft">
+              <h3 className="mb-1 font-display text-base font-semibold">
+                {metricLabel} par type de logement
+              </h3>
+              <p className="mb-4 text-xs text-muted-foreground">
+                {statuses.find((s) => s.value === status)!.label} · {money(totalValue)} au total
+              </p>
+              <div className="h-80 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 24, right: 8, left: 8, bottom: 8 }}>
+                    <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={12} />
+                    <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      fontSize={11}
+                      width={78}
+                      tickFormatter={(v) => money(Number(v))}
+                    />
+                    <Tooltip
+                      formatter={(v: number) => [money(Number(v)), metricLabel]}
+                      cursor={{ fill: "hsl(var(--muted))", opacity: 0.4 }}
+                    />
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                      {chartData.map((_, i) => (
+                        <Cell key={i} fill={TYPE_COLORS[i % TYPE_COLORS.length]} />
+                      ))}
+                      <LabelList
+                        dataKey="value"
+                        position="top"
+                        formatter={(v: number) => money(Number(v))}
+                        style={{ fontSize: 12, fontWeight: 600, fill: "hsl(var(--foreground))" }}
+                      />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
-              <div className="mt-3 flex items-center gap-2 border-t border-border/50 pt-3">
-                <Button size="sm" variant="outline" disabled={!u.reservationId} onClick={() => openDetail(u.reservationId)}>
-                  <Eye className="h-4 w-4" /> Voir
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button size="sm" variant="ghost" disabled={busyId === u.id}>
-                      {busyId === u.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "•••"}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => doAction(u.id, () => runUnitStatus({ data: { unitId: u.id, opStatus: "bloquee" } }), "Unité bloquée.")}>
-                      <Ban className="h-4 w-4" /> Bloquer
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => doAction(u.id, () => runUnitStatus({ data: { unitId: u.id, opStatus: "maintenance" } }), "Unité en maintenance.")}>
-                      <Wrench className="h-4 w-4" /> Maintenance
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => doAction(u.id, () => runUnitStatus({ data: { unitId: u.id, opStatus: "nettoyage" } }), "Unité en nettoyage.")}>
-                      <Sparkles className="h-4 w-4" /> Nettoyage
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => doAction(u.id, () => runUnitStatus({ data: { unitId: u.id, opStatus: "actif" } }), "Unité réactivée.")}>
-                      <RotateCcw className="h-4 w-4" /> Remettre actif
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+
+              {/* Per-type detail */}
+              <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                {rows.map((r) => (
+                  <div key={r.type} className="rounded-xl border border-border/50 p-3">
+                    <p className="font-medium">{r.label}</p>
+                    <p className="text-xs text-muted-foreground">{r.count} réservation(s)</p>
+                    <div className="mt-2 space-y-0.5 text-xs">
+                      <p className="flex justify-between"><span className="text-muted-foreground">CA</span><span className="tabular-nums">{money(r.total)}</span></p>
+                      <p className="flex justify-between"><span className="text-muted-foreground">Encaissé</span><span className="tabular-nums">{money(r.collected)}</span></p>
+                      <p className="flex justify-between"><span className="text-muted-foreground">Solde</span><span className="tabular-nums">{money(r.balance)}</span></p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
+          </>
+        )}
       </section>
-
-      <ReservationDetailDialog reservationId={detailId} open={!!detailId} onOpenChange={(v) => !v && setDetailId(null)} />
     </div>
   );
 }
 
-interface TodayRow {
-  id: string;
-  name: string;
-  unitLabel: string;
-  guests: number;
-  paymentStatus: string;
-  status: string;
-}
-
-function TodayColumn({
-  title,
+function StatCard({
   icon: Icon,
-  rows,
-  empty,
-  action,
-  busyId,
-  onView,
-  onAction,
+  label,
+  value,
+  accent,
 }: {
-  title: string;
-  icon: LucideIcon;
-  rows: TodayRow[];
-  empty: string;
-  action: "checkin" | "checkout";
-  busyId: string | null;
-  onView: (id: string) => void;
-  onAction: (id: string) => void;
+  icon: typeof TrendingUp;
+  label: string;
+  value: string;
+  accent?: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-soft">
-      <p className="flex items-center gap-2 font-medium">
-        <Icon className="h-4 w-4 text-gold" /> {title}
-      </p>
-      {rows.length === 0 ? (
-        <p className="mt-3 text-sm text-muted-foreground">{empty}</p>
-      ) : (
-        <ul className="mt-3 space-y-2">
-          {rows.map((r) => {
-            const canAct = action === "checkin" ? r.status === "confirmée" : r.status === "checkin";
-            return (
-              <li key={r.id} className="rounded-xl border border-border/50 p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <button className="font-medium hover:text-gold" onClick={() => onView(r.id)}>
-                      {r.name}
-                    </button>
-                    <p className="text-xs text-muted-foreground">
-                      {r.unitLabel} · {r.guests} pers. · {PAY_STATUS_LABELS[r.paymentStatus] ?? r.paymentStatus}
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant={canAct ? "gold" : "outline"}
-                    disabled={!canAct || busyId === r.id}
-                    onClick={() => onAction(r.id)}
-                  >
-                    {busyId === r.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : action === "checkin" ? (
-                      <LogIn className="h-4 w-4" />
-                    ) : (
-                      <LogOut className="h-4 w-4" />
-                    )}
-                    {action === "checkin" ? "Check-in" : "Check-out"}
-                  </Button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+    <div
+      className={`rounded-2xl border p-4 shadow-soft ${accent ? "border-gold/40 bg-gradient-to-br from-gold/10 to-transparent" : "border-border/60 bg-card"}`}
+    >
+      <span
+        className={`flex h-9 w-9 items-center justify-center rounded-full ${accent ? "bg-gold/20 text-gold" : "bg-secondary text-muted-foreground"}`}
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      <p className="mt-3 font-display text-xl font-semibold tabular-nums">{value}</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">{label}</p>
     </div>
   );
 }
-
-interface UpcomingRow {
-  id: string;
-  name: string;
-  unitLabel: string;
-  guests: number;
-  arrival: string;
-  departure: string;
-  arrivalTime: string;
-  departureTime: string;
-}
-
-function UpcomingColumn({
-  title,
-  icon: Icon,
-  rows,
-  empty,
-  kind,
-  onView,
-}: {
-  title: string;
-  icon: LucideIcon;
-  rows: UpcomingRow[];
-  empty: string;
-  kind: "arrival" | "departure";
-  onView: (id: string) => void;
-}) {
-  return (
-    <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-soft">
-      <p className="flex items-center gap-2 font-medium">
-        <Icon className="h-4 w-4 text-gold" /> {title}
-      </p>
-      {rows.length === 0 ? (
-        <p className="mt-3 text-sm text-muted-foreground">{empty}</p>
-      ) : (
-        <ul className="mt-3 space-y-2">
-          {rows.map((r) => (
-            <li key={r.id} className="flex items-center justify-between gap-2 rounded-xl border border-border/50 p-3">
-              <div className="min-w-0">
-                <button className="font-medium hover:text-gold" onClick={() => onView(r.id)}>
-                  {r.name}
-                </button>
-                <p className="text-xs text-muted-foreground">
-                  {r.unitLabel} · {r.guests} pers. ·{" "}
-                  {kind === "arrival" ? r.arrivalTime : r.departureTime}
-                </p>
-              </div>
-              <Button size="sm" variant="outline" onClick={() => onView(r.id)}>
-                <Eye className="h-4 w-4" /> Ouvrir
-              </Button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
