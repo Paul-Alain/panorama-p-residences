@@ -2,37 +2,26 @@ import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { AlertCircle, CalendarCheck, Loader2, Info } from "lucide-react";
+import { AlertCircle, CalendarCheck, Loader2, Lock } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { PhoneInput } from "@/components/forms/phone-input";
 import { DateField } from "@/components/forms/date-field";
 import { TimeField } from "@/components/forms/time-field";
 import { supabase } from "@/integrations/supabase/client";
+import { opCreateReservation, opUpdateReservation } from "@/lib/operations.functions";
 import {
-  opCreateReservation,
-  opUpdateReservation,
-} from "@/lib/operations.functions";
-import {
-  bookingUnitsFrom,
-  MAX_GUESTS_BY_TYPE,
-  displayReservationStatus,
-  isLocked,
+  bookingUnitsFrom, MAX_GUESTS_BY_TYPE,
+  displayReservationStatus, isLocked,
+  RES_STATUS_LABELS,
 } from "@/lib/operations";
 import { formatMoney } from "@/lib/format";
 import { useResidence } from "@/lib/use-residence";
@@ -50,11 +39,10 @@ const TYPE_LABELS: Record<LogementType, string> = {
 const DEFAULT_ARRIVAL_TIME   = "14:00";
 const DEFAULT_DEPARTURE_TIME = "11:00";
 
-const KEYS = [
+export const RESERVATION_QUERY_KEYS = [
   "op-dashboard",
   "admin-reservations",
   "op-clients",
-  "admin-occupancy",
   "op-calendar",
   "op-payments",
   "op-revenue",
@@ -87,10 +75,12 @@ export function ReservationFormDialog({
   open,
   onOpenChange,
   reservation,
+  onSaved,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   reservation?: EditableReservation | null;
+  onSaved?: () => void;
 }) {
   const qc        = useQueryClient();
   const residence = useResidence();
@@ -99,7 +89,7 @@ export function ReservationFormDialog({
   const runUpdate = useServerFn(opUpdateReservation);
   const isEdit    = !!reservation;
 
-  // Determine if this reservation is locked (logé or annulée)
+  // Detect locked status (logé or annulée)
   const locked = useMemo(() => {
     if (!reservation) return false;
     const arrMs = new Date(
@@ -112,8 +102,19 @@ export function ReservationFormDialog({
     return isLocked(ds);
   }, [reservation]);
 
-  // Load prices per type
-  const { data: priceByType = {} } = useQuery({
+  const displayStatus = useMemo(() => {
+    if (!reservation) return null;
+    const arrMs = new Date(
+      `${reservation.arrival_date}T${(reservation.arrival_time ?? DEFAULT_ARRIVAL_TIME).slice(0, 5)}:00`,
+    ).getTime();
+    const depMs = new Date(
+      `${reservation.departure_date}T${(reservation.departure_time ?? DEFAULT_DEPARTURE_TIME).slice(0, 5)}:00`,
+    ).getTime();
+    return displayReservationStatus(reservation.status ?? "nouvelle", arrMs, depMs);
+  }, [reservation]);
+
+  // Load default prices per type
+  const { data: defaultPriceByType = {} } = useQuery({
     queryKey: ["logement-prices"],
     queryFn: async () => {
       const { data } = await supabase
@@ -130,23 +131,23 @@ export function ReservationFormDialog({
   });
 
   const empty = {
-    name:          "",
-    phone:         "",
-    email:         "",
-    type:          "",
-    guests:        "1",
-    arrival:       "",
-    departure:     "",
-    arrivalTime:   DEFAULT_ARRIVAL_TIME,
-    departureTime: DEFAULT_DEPARTURE_TIME,
-    advance:       "0",
-    addAdvance:    "0",
-    notes:         "",
-    customTotal:   "",   // empty = auto-calculated
+    name:           "",
+    phone:          "",
+    email:          "",
+    type:           "",
+    guests:         "1",
+    arrival:        "",
+    departure:      "",
+    arrivalTime:    DEFAULT_ARRIVAL_TIME,
+    departureTime:  DEFAULT_DEPARTURE_TIME,
+    advance:        "0",
+    addAdvance:     "0",
+    notes:          "",
+    customUnitPrice: "", // empty = use default price
   };
 
-  const [form, setForm]   = useState(empty);
-  const [busy, setBusy]   = useState(false);
+  const [form, setForm] = useState(empty);
+  const [busy, setBusy] = useState(false);
 
   const set = (key: string, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -154,32 +155,45 @@ export function ReservationFormDialog({
   useEffect(() => {
     if (!open) return;
     if (reservation) {
+      // Compute default unit price for this type
+      const defPrice = defaultPriceByType[reservation.logement_type ?? ""] ?? 0;
+      // Compute auto total to detect if price was customized
+      const billUnits = bookingUnitsFrom(
+        reservation.arrival_date,
+        reservation.arrival_time ?? DEFAULT_ARRIVAL_TIME,
+        reservation.departure_date,
+        reservation.departure_time ?? DEFAULT_DEPARTURE_TIME,
+      );
+      const autoTotal = billUnits * defPrice;
+      // If total_amount is set and differs from auto, derive the custom unit price
+      const savedTotal = reservation.total_amount ?? 0;
+      const customUnit = savedTotal > 0 && billUnits > 0 && savedTotal !== autoTotal
+        ? String(Math.round(savedTotal / billUnits))
+        : "";
+
       setForm({
-        name:          reservation.name ?? "",
-        phone:         reservation.phone ?? "",
-        email:         reservation.email ?? "",
-        type:          reservation.logement_type ?? "",
-        guests:        String(reservation.guests ?? 1),
-        arrival:       reservation.arrival_date ?? "",
-        departure:     reservation.departure_date ?? "",
-        arrivalTime:   (reservation.arrival_time   ?? DEFAULT_ARRIVAL_TIME).slice(0, 5),
-        departureTime: (reservation.departure_time ?? DEFAULT_DEPARTURE_TIME).slice(0, 5),
-        advance:       String(reservation.advance ?? 0),
-        addAdvance:    "0",
-        notes:         reservation.notes ?? "",
-        // If total was already overridden (>0 and different from auto), pre-fill
-        customTotal:   reservation.total_amount && reservation.total_amount > 0
-          ? String(reservation.total_amount)
-          : "",
+        name:           reservation.name ?? "",
+        phone:          reservation.phone ?? "",
+        email:          reservation.email ?? "",
+        type:           reservation.logement_type ?? "",
+        guests:         String(reservation.guests ?? 1),
+        arrival:        reservation.arrival_date ?? "",
+        departure:      reservation.departure_date ?? "",
+        arrivalTime:    (reservation.arrival_time   ?? DEFAULT_ARRIVAL_TIME).slice(0, 5),
+        departureTime:  (reservation.departure_time ?? DEFAULT_DEPARTURE_TIME).slice(0, 5),
+        advance:        String(reservation.advance ?? 0),
+        addAdvance:     "0",
+        notes:          reservation.notes ?? "",
+        customUnitPrice: customUnit,
       });
     } else {
       setForm(empty);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, reservation]);
 
-  const maxGuests    = form.type ? MAX_GUESTS_BY_TYPE[form.type as LogementType] : undefined;
-  const guestsNum    = Number(form.guests) || 0;
+  const maxGuests      = form.type ? MAX_GUESTS_BY_TYPE[form.type as LogementType] : undefined;
+  const guestsNum      = Number(form.guests) || 0;
   const guestsExceeded = maxGuests !== undefined && guestsNum > maxGuests;
 
   const toDateTime = (date: string, time: string) =>
@@ -189,7 +203,7 @@ export function ReservationFormDialog({
   const departureBeforeArrival =
     departureDT !== null && arrivalDT !== null && departureDT <= arrivalDT;
 
-  // Auto-calculated values
+  // Billing units
   const units = useMemo(() => {
     if (!form.arrival || !form.departure) return 0;
     return bookingUnitsFrom(
@@ -198,21 +212,25 @@ export function ReservationFormDialog({
     );
   }, [form.arrival, form.departure, form.arrivalTime, form.departureTime]);
 
-  const unitPrice  = form.type ? (priceByType[form.type] ?? 0) : 0;
-  const autoTotal  = units * unitPrice;
+  // Default unit price for selected type
+  const defaultUnitPrice = form.type ? (defaultPriceByType[form.type] ?? 0) : 0;
 
-  // If gestionnaire entered a custom total, use it; otherwise use auto
-  const customTotalNum = Number(form.customTotal);
-  const total = form.customTotal !== "" && customTotalNum >= 0
-    ? customTotalNum
-    : autoTotal;
+  // Effective unit price: custom if set, else default
+  const customUnitNum  = Number(form.customUnitPrice);
+  const effectiveUnitPrice = form.customUnitPrice !== "" && customUnitNum >= 0
+    ? customUnitNum
+    : defaultUnitPrice;
 
-  const isCustomPrice = form.customTotal !== "" && customTotalNum !== autoTotal;
+  const isCustomPrice = form.customUnitPrice !== "" && customUnitNum !== defaultUnitPrice;
+  const total         = units * effectiveUnitPrice;
 
   const baseAdvance  = Number(form.advance) || 0;
   const addedAdvance = Number(form.addAdvance) || 0;
   const advanceNum   = baseAdvance + addedAdvance;
   const balance      = Math.max(0, total - advanceNum);
+
+  const invalidateAll = () =>
+    Promise.all(RESERVATION_QUERY_KEYS.map((k) => qc.invalidateQueries({ queryKey: [k] })));
 
   const submit = async () => {
     if (!form.name.trim())    return toast.error("Le nom du client est obligatoire.");
@@ -236,7 +254,7 @@ export function ReservationFormDialog({
       channel:       "walkin" as const,
       guests:        guestsNum || 1,
       advance:       advanceNum,
-      totalAmount:   total > 0 ? total : 0,
+      totalAmount:   total,
       notes:         form.notes.trim() || undefined,
     };
 
@@ -249,7 +267,8 @@ export function ReservationFormDialog({
         await runCreate({ data: payload });
         toast.success("Réservation créée.");
       }
-      await Promise.all(KEYS.map((k) => qc.invalidateQueries({ queryKey: [k] })));
+      await invalidateAll();
+      onSaved?.();
       onOpenChange(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erreur");
@@ -257,30 +276,59 @@ export function ReservationFormDialog({
     setBusy(false);
   };
 
+  // Status badge color
+  const statusColor = () => {
+    switch (displayStatus) {
+      case "nouvelle":  return "bg-amber-100 text-amber-700 border-amber-300";
+      case "confirmée": return "bg-emerald-100 text-emerald-700 border-emerald-300";
+      case "logé":      return "bg-blue-100 text-blue-700 border-blue-300";
+      case "annulée":   return "bg-red-100 text-red-700 border-red-300";
+      default:          return "bg-secondary text-foreground border-border";
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="font-display text-xl">
-            {isEdit ? "Modifier la réservation" : "Nouvelle réservation"}
+          <DialogTitle className="flex items-center justify-between font-display text-xl">
+            <span>{isEdit ? "Modifier la réservation" : "Nouvelle réservation"}</span>
+            {displayStatus && (
+              <span className={`rounded-full border px-3 py-0.5 text-xs font-medium ${statusColor()}`}>
+                {locked && <Lock className="mr-1 inline h-3 w-3" />}
+                {RES_STATUS_LABELS[displayStatus]}
+              </span>
+            )}
           </DialogTitle>
         </DialogHeader>
 
         {locked ? (
-          <div className="rounded-xl border border-blue-300/40 bg-blue-50 p-4 text-sm text-blue-700">
-            <p className="font-semibold">Réservation verrouillée</p>
-            <p className="mt-1 text-xs">
-              Cette réservation est marquée <strong>Logé ✓</strong> ou <strong>Annulée</strong> —
-              elle ne peut plus être modifiée.
-            </p>
+          /* ── READ-ONLY VIEW for logé / annulée ── */
+          <div className="space-y-4 text-sm">
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-700">
+              <Lock className="mr-1 inline h-3 w-3" />
+              Cette réservation est verrouillée — aucune modification possible.
+            </div>
+            <ReadOnlyField label="Client"       value={reservation!.name} />
+            <ReadOnlyField label="Téléphone"    value={reservation!.phone} />
+            <ReadOnlyField label="E-mail"       value={reservation!.email ?? "—"} />
+            <ReadOnlyField label="Type"         value={TYPE_LABELS[reservation!.logement_type as LogementType] ?? "—"} />
+            <ReadOnlyField label="Personnes"    value={String(reservation!.guests)} />
+            <ReadOnlyField label="Arrivée"      value={`${reservation!.arrival_date} à ${reservation!.arrival_time}`} />
+            <ReadOnlyField label="Départ"       value={`${reservation!.departure_date} à ${reservation!.departure_time}`} />
+            <ReadOnlyField label="Total"        value={formatMoney(reservation!.total_amount ?? 0, residence.currency)} />
+            <ReadOnlyField label="Avance"       value={formatMoney(reservation!.advance, residence.currency)} />
+            <ReadOnlyField label="Solde"        value={formatMoney(Math.max(0, (reservation!.total_amount ?? 0) - reservation!.advance), residence.currency)} />
+            {reservation!.notes && <ReadOnlyField label="Notes" value={reservation!.notes ?? ""} />}
           </div>
         ) : (
+          /* ── EDITABLE FORM ── */
           <div className="space-y-5">
             <p className="text-xs text-muted-foreground">
               <span className="text-destructive">*</span> Champs obligatoires.
             </p>
 
-            {/* Client */}
+            {/* Client info */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="nr-name">Nom complet<Req /></Label>
@@ -289,18 +337,17 @@ export function ReservationFormDialog({
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="nr-phone">Téléphone<Req /></Label>
-                <PhoneInput id="nr-phone" value={form.phone}
-                  onChange={(v) => set("phone", v)} />
+                <PhoneInput id="nr-phone" value={form.phone} onChange={(v) => set("phone", v)} />
               </div>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="nr-email">E-mail</Label>
-              <Input id="nr-email" type="email" value={form.email}
-                maxLength={160} onChange={(e) => set("email", e.target.value)} />
+              <Input id="nr-email" type="email" value={form.email} maxLength={160}
+                onChange={(e) => set("email", e.target.value)} />
             </div>
 
-            {/* Type + Guests */}
+            {/* Type + guests */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Type de logement<Req /></Label>
@@ -308,16 +355,20 @@ export function ReservationFormDialog({
                   value={form.type}
                   onValueChange={(v) =>
                     setForm((f) => {
-                      const max     = MAX_GUESTS_BY_TYPE[v as LogementType];
-                      const current = Number(f.guests) || 1;
-                      return { ...f, type: v, guests: String(Math.min(current, max)), customTotal: "" };
+                      const max = MAX_GUESTS_BY_TYPE[v as LogementType];
+                      return {
+                        ...f,
+                        type: v,
+                        guests: String(Math.min(Number(f.guests) || 1, max)),
+                        customUnitPrice: "", // reset custom price on type change
+                      };
                     })
                   }
                 >
                   <SelectTrigger><SelectValue placeholder="Choisir un type" /></SelectTrigger>
                   <SelectContent>
-                    {TYPE_OPTIONS.map((type) => (
-                      <SelectItem key={type} value={type}>{TYPE_LABELS[type]}</SelectItem>
+                    {TYPE_OPTIONS.map((t) => (
+                      <SelectItem key={t} value={t}>{TYPE_LABELS[t]}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -330,7 +381,7 @@ export function ReservationFormDialog({
                 {guestsExceeded && (
                   <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">
                     <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                    Maximum {maxGuests} personne(s) pour ce logement.
+                    Maximum {maxGuests} personne(s).
                   </p>
                 )}
               </div>
@@ -339,12 +390,12 @@ export function ReservationFormDialog({
             {/* Dates */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="nr-arrival">Date d'arrivée<Req /></Label>
+                <Label>Date d'arrivée<Req /></Label>
                 <DateField id="nr-arrival" lang={lang} value={form.arrival}
                   onChange={(v) => set("arrival", v)} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="nr-arrival-time">Heure d'arrivée<Req /></Label>
+                <Label>Heure d'arrivée<Req /></Label>
                 <TimeField id="nr-arrival-time" lang={lang} value={form.arrivalTime}
                   onChange={(v) => set("arrivalTime", v)} />
               </div>
@@ -352,16 +403,14 @@ export function ReservationFormDialog({
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="nr-departure">Date de départ<Req /></Label>
+                <Label>Date de départ<Req /></Label>
                 <DateField id="nr-departure" lang={lang} value={form.departure}
-                  onChange={(v) => set("departure", v)}
-                  invalid={departureBeforeArrival} />
+                  onChange={(v) => set("departure", v)} invalid={departureBeforeArrival} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="nr-departure-time">Heure de départ<Req /></Label>
+                <Label>Heure de départ<Req /></Label>
                 <TimeField id="nr-departure-time" lang={lang} value={form.departureTime}
-                  onChange={(v) => set("departureTime", v)}
-                  invalid={departureBeforeArrival} />
+                  onChange={(v) => set("departureTime", v)} invalid={departureBeforeArrival} />
               </div>
             </div>
             {departureBeforeArrival && (
@@ -371,9 +420,9 @@ export function ReservationFormDialog({
               </p>
             )}
 
-            {/* Prix */}
-            <div className="space-y-2 rounded-xl border border-border/60 bg-secondary/30 p-4">
-              <div className="flex items-center gap-2">
+            {/* Prix unitaire négociable */}
+            <div className="space-y-3 rounded-xl border border-border/60 bg-secondary/30 p-4">
+              <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold">Prix</p>
                 {isCustomPrice && (
                   <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700">
@@ -383,33 +432,50 @@ export function ReservationFormDialog({
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                {/* Auto total (read-only info) */}
+                {/* Default unit price info */}
                 <div className="space-y-1">
-                  <p className="text-[11px] text-muted-foreground">
-                    Prix calculé ({units} unité{units > 1 ? "s" : ""} × {formatMoney(unitPrice, residence.currency)})
-                  </p>
-                  <p className="font-mono text-sm font-semibold">
-                    {formatMoney(autoTotal, residence.currency)}
+                  <p className="text-[11px] text-muted-foreground">Prix unitaire par défaut</p>
+                  <p className="font-mono text-sm font-semibold text-muted-foreground">
+                    {formatMoney(defaultUnitPrice, residence.currency)}
                   </p>
                 </div>
 
-                {/* Custom total (editable) */}
+                {/* Negotiable unit price */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="nr-custom-total" className="flex items-center gap-1 text-xs">
-                    Prix total négocié
-                    <Info className="h-3 w-3 text-muted-foreground" />
+                  <Label htmlFor="nr-unit-price" className="text-xs">
+                    Prix unitaire négocié
                   </Label>
                   <Input
-                    id="nr-custom-total"
+                    id="nr-unit-price"
                     type="number"
                     min={0}
                     inputMode="numeric"
-                    placeholder={String(autoTotal)}
-                    value={form.customTotal}
-                    onChange={(e) => set("customTotal", e.target.value)}
+                    placeholder={String(defaultUnitPrice)}
+                    value={form.customUnitPrice}
+                    onChange={(e) => set("customUnitPrice", e.target.value)}
                   />
                   <p className="text-[11px] text-muted-foreground">
-                    Laisser vide = prix automatique
+                    Laisser vide = prix par défaut
+                  </p>
+                </div>
+              </div>
+
+              {/* Summary */}
+              <div className="grid grid-cols-3 gap-2 rounded-lg border border-border/50 bg-card p-3 text-center text-xs">
+                <div>
+                  <p className="text-muted-foreground">Unités</p>
+                  <p className="font-semibold tabular-nums">{units}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Total à payer</p>
+                  <p className={`font-semibold tabular-nums ${isCustomPrice ? "text-amber-600" : ""}`}>
+                    {formatMoney(total, residence.currency)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Solde restant</p>
+                  <p className="font-semibold tabular-nums text-gold">
+                    {formatMoney(balance, residence.currency)}
                   </p>
                 </div>
               </div>
@@ -418,13 +484,11 @@ export function ReservationFormDialog({
             {/* Avance */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="nr-add-advance">Ajouter une avance (FCFA)</Label>
+                <Label htmlFor="nr-add-advance">Ajouter une avance</Label>
                 <Input id="nr-add-advance" type="number" min={0} inputMode="numeric"
                   value={form.addAdvance} onChange={(e) => set("addAdvance", e.target.value)}
                   placeholder="0" />
-                <p className="text-[11px] text-muted-foreground">
-                  Montant encaissé maintenant.
-                </p>
+                <p className="text-[11px] text-muted-foreground">Montant encaissé maintenant.</p>
               </div>
               <div className="space-y-1.5">
                 <Label>Montant avancé total</Label>
@@ -438,26 +502,6 @@ export function ReservationFormDialog({
               </div>
             </div>
 
-            {/* Summary */}
-            <div className="grid grid-cols-3 gap-2 rounded-xl border border-border/60 bg-secondary/40 p-3 text-center">
-              <div>
-                <p className="text-[11px] text-muted-foreground">Unités</p>
-                <p className="font-semibold tabular-nums">{units}</p>
-              </div>
-              <div>
-                <p className="text-[11px] text-muted-foreground">Total à payer</p>
-                <p className={`font-semibold tabular-nums ${isCustomPrice ? "text-amber-600" : ""}`}>
-                  {formatMoney(total, residence.currency)}
-                </p>
-              </div>
-              <div>
-                <p className="text-[11px] text-muted-foreground">Solde restant</p>
-                <p className="font-semibold tabular-nums text-gold">
-                  {formatMoney(balance, residence.currency)}
-                </p>
-              </div>
-            </div>
-
             {/* Notes */}
             <div className="space-y-1.5">
               <Label htmlFor="nr-notes">Notes / message</Label>
@@ -465,13 +509,8 @@ export function ReservationFormDialog({
                 onChange={(e) => set("notes", e.target.value)} />
             </div>
 
-            <Button
-              variant="gold"
-              size="lg"
-              className="w-full"
-              disabled={busy || guestsExceeded || departureBeforeArrival}
-              onClick={submit}
-            >
+            <Button variant="gold" size="lg" className="w-full"
+              disabled={busy || guestsExceeded || departureBeforeArrival} onClick={submit}>
               {busy
                 ? <Loader2 className="h-5 w-5 animate-spin" />
                 : <CalendarCheck className="h-5 w-5" />}
@@ -481,5 +520,14 @@ export function ReservationFormDialog({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ReadOnlyField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between rounded-lg border border-border/50 bg-secondary/30 px-3 py-2">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium">{value}</span>
+    </div>
   );
 }
