@@ -102,7 +102,7 @@ export function ReservationsAdmin() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return data.filter((r) => {
+    const list = data.filter((r) => {
       if (view === "active" && !r.active) return false;
       if (q) {
         const hay = `${r.name} ${r.phone} ${r.email ?? ""} ${r.ref}`.toLowerCase();
@@ -111,9 +111,16 @@ export function ReservationsAdmin() {
       if (status !== "all" && r.displayStatus !== status) return false;
       return true;
     });
-  }, [data, search, status, view]);
+    if (!sort) return list;
+    const key = sort.column === "arrival" ? "arrival_date" : "departure_date";
+    const sorted = [...list].sort((a, b) => {
+      const cmp = (a as any)[key].localeCompare((b as any)[key]);
+      return sort.dir === "asc" ? cmp : -cmp;
+    });
+    return sorted;
+  }, [data, search, status, view, sort]);
 
-  useEffect(() => setPage(1), [search, status, view]);
+  useEffect(() => setPage(1), [search, status, view, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
