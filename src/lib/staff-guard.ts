@@ -19,6 +19,20 @@ export async function assertAdminOrOwner(supabase: SB, userId: string): Promise<
   if (a !== true && o !== true) throw new Error("Forbidden: admin role required");
 }
 
+/**
+ * Server-side guard for team management: only owners (admin / proprietaire)
+ * and technicians may add or remove team members.
+ */
+export async function assertCanManageTeam(supabase: SB, userId: string): Promise<void> {
+  const [{ data: a }, { data: o }, { data: t }] = await Promise.all([
+    supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
+    supabase.rpc("has_role", { _user_id: userId, _role: "proprietaire" }),
+    supabase.rpc("has_role", { _user_id: userId, _role: "technicien" as never }),
+  ]);
+  if (a !== true && o !== true && t !== true)
+    throw new Error("Forbidden: owner or technician role required");
+}
+
 /** Returns the set of role strings held by the user. */
 export async function getUserRoles(supabase: SB, userId: string): Promise<string[]> {
   const { data, error } = await supabase

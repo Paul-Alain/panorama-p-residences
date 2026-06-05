@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   assertStaff,
   assertAdminOrOwner,
+  assertCanManageTeam,
   getUserRoles,
   actorName,
   logActivity,
@@ -76,6 +77,7 @@ export const staffGetStatus = createServerFn({ method: "GET" })
       "admin",
       "proprietaire",
       "gestionnaire",
+      "technicien",
       "reception",
       "menage",
       "comptable",
@@ -84,6 +86,10 @@ export const staffGetStatus = createServerFn({ method: "GET" })
     return {
       isStaff,
       isAdmin: roles.includes("admin") || roles.includes("proprietaire"),
+      canManageTeam:
+        roles.includes("admin") ||
+        roles.includes("proprietaire") ||
+        roles.includes("technicien"),
       roles,
     };
   });
@@ -1314,12 +1320,12 @@ export const opSetTeamRole = createServerFn({ method: "POST" })
     z
       .object({
         email: z.string().trim().email().max(160),
-        role: z.enum(["proprietaire", "gestionnaire", "reception", "menage", "comptable"]),
+        role: z.enum(["proprietaire", "gestionnaire", "technicien"]),
       })
       .parse(input),
   )
   .handler(async ({ context, data }) => {
-    await assertAdminOrOwner(context.supabase, context.userId);
+    await assertCanManageTeam(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // Resolve user by email.
@@ -1359,7 +1365,7 @@ export const opRemoveTeamRole = createServerFn({ method: "POST" })
     z.object({ userId: UUID, role: z.string().min(1).max(40) }).parse(input),
   )
   .handler(async ({ context, data }) => {
-    await assertAdminOrOwner(context.supabase, context.userId);
+    await assertCanManageTeam(context.supabase, context.userId);
     if (data.role === "admin") throw new Error("Le rôle administrateur ne peut pas être retiré ici.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin

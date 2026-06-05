@@ -304,10 +304,14 @@ export function shortRef(id: string): string {
 }
 
 // ── Team roles ───────────────────────────────────────────────────────────
+// The three operational administration levels are: Propriétaire (owner),
+// Gestionnaire (manager) and Technicien (technician). Legacy roles
+// (reception / menage / comptable) are kept for label back-compat only.
 export const TEAM_ROLE_LABELS: Record<string, string> = {
   admin: "Administrateur",
   proprietaire: "Propriétaire",
   gestionnaire: "Gestionnaire",
+  technicien: "Technicien",
   reception: "Réception",
   menage: "Ménage",
   comptable: "Comptable",
@@ -316,9 +320,7 @@ export const TEAM_ROLE_LABELS: Record<string, string> = {
 export const ASSIGNABLE_ROLES = [
   "proprietaire",
   "gestionnaire",
-  "reception",
-  "menage",
-  "comptable",
+  "technicien",
 ] as const;
 
 // ── Role tiers (Owner / Manager / Technician) ────────────────────────────
@@ -328,8 +330,13 @@ export type RoleTier = "owner" | "manager" | "technician" | null;
 export function roleTier(roles: string[]): RoleTier {
   if (roles.includes("admin") || roles.includes("proprietaire")) return "owner";
   if (roles.includes("gestionnaire") || roles.includes("comptable")) return "manager";
-  if (roles.includes("reception") || roles.includes("menage")) return "technician";
+  if (roles.includes("technicien") || roles.includes("reception") || roles.includes("menage")) return "technician";
   return null;
+}
+
+/** Whether a tier may add / remove team members (owner & technician only). */
+export function canManageTeam(roles: string[]): boolean {
+  return roles.includes("admin") || roles.includes("proprietaire") || roles.includes("technicien");
 }
 
 /** Tier display labels per language. */
