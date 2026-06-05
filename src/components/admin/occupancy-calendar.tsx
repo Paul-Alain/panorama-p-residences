@@ -21,7 +21,6 @@ import {
 const WINDOW   = 30;   // 30 days visible
 const DAY_W    = 44;
 const LABEL_W  = 128;
-const BLOCK_STATUS = "bloqué";
 
 interface CalUnit {
   id: string; label: string; type: string;
@@ -217,13 +216,9 @@ export function OccupancyCalendar() {
             {visibleUnits.map((unit) => {
               const maint = unit.op_status === "maintenance" || unit.op_status === "bloquee";
 
-              // Only show non-cancelled reservations on calendar
+              // Show ALL reservations (every status, including cancelled)
               const bars = reservations
-                .filter((r) =>
-                  r.logement_unit_id === unit.id &&
-                  r.status !== "annulée" &&
-                  r.status !== BLOCK_STATUS
-                )
+                .filter((r) => r.logement_unit_id === unit.id)
                 .map((r) => {
                   const startIdx = Math.max(0, dayDiff(start, r.arrival_date));
                   const endIdx   = Math.min(WINDOW, dayDiff(start, r.departure_date));
