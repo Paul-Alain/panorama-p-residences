@@ -1320,12 +1320,12 @@ export const opSetTeamRole = createServerFn({ method: "POST" })
     z
       .object({
         email: z.string().trim().email().max(160),
-        role: z.enum(["proprietaire", "gestionnaire", "reception", "menage", "comptable"]),
+        role: z.enum(["proprietaire", "gestionnaire", "technicien"]),
       })
       .parse(input),
   )
   .handler(async ({ context, data }) => {
-    await assertAdminOrOwner(context.supabase, context.userId);
+    await assertCanManageTeam(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // Resolve user by email.
