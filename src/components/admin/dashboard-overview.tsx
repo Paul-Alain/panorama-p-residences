@@ -1,145 +1,407 @@
 import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-  LabelList,
+  BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell, LabelList,
 } from "recharts";
-import { Loader2, TrendingUp, Wallet, Scale } from "lucide-react";
+import { Loader2, AlertTriangle, CheckCircle2, BedDouble } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { opGetDashboard, opGetRevenueAnalytics } from "@/lib/operations.functions";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, formatDateFr } from "@/lib/format";
 import { useResidence } from "@/lib/use-residence";
+import { displayReservationStatus } from "@/lib/operations";
 
-type Period = "week" | "month" | "quarter" | "year" | "custom";
-type StatusFilter = "terminée" | "all" | "confirmée" | "encours" | "nouvelle";
-type Metric = "total" | "collected" | "balance";
+// ── Types ────────────────────────────────────────────────────────────────
+type FilterMode  = "month-year" | "custom";
+type StatusKey   = "all" | "confirmée" | "logé" | "annulée";
+type MetricKey   = "revenue" | "count";
 
-const TYPE_COLORS = ["hsl(43 74% 49%)", "hsl(200 70% 45%)", "hsl(160 60% 40%)"];
+const STATUS_OPTIONS: { value: StatusKey; label: string }[] = [
+  { value: "all",       label: "Tous (hors annulés)" },
+  { value: "confirmée", label: "Confirmées" },
+  { value: "logé",      label: "Logé ✓" },
+  { value: "annulée",   label: "Annulées" },
+];
 
+const TYPE_LABELS: Record<string, string> = {
+  chambre: "Chambres", studio: "Studios", appartement: "Appartement",
+};
+
+const BAR_COLOR = "#1d4ed8"; // blue-700
+
+// ── Date helpers ─────────────────────────────────────────────────────────
 function isoDay(d: Date) {
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 }
-
-function rangeFor(period: Period): { start: string; end: string } {
-  const now = new Date();
-  const end = new Date(now);
-  const start = new Date(now);
-  if (period === "week") start.setDate(now.getDate() - 7);
-  else if (period === "month") start.setMonth(now.getMonth() - 1);
-  else if (period === "quarter") start.setMonth(now.getMonth() - 3);
-  else if (period === "year") start.setFullYear(now.getFullYear() - 1);
-  return { start: isoDay(start), end: isoDay(end) };
+function monthRange(year: number, month: number) {
+  const start = `${year}-${String(month).padStart(2, "0")}-01`;
+  const last  = new Date(year, month, 0).getDate();
+  const end   = `${year}-${String(month).padStart(2, "0")}-${String(last).padStart(2, "0")}`;
+  return { start, end };
 }
 
-export function DashboardOverview() {
-  const residence = useResidence();
-  const runDash = useServerFn(opGetDashboard);
-  const runRevenue = useServerFn(opGetRevenueAnalytics);
+// ── Month/Year selectors ─────────────────────────────────────────────────
+const MONTHS = [
+  "Janvier","Février","Mars","Avril","Mai","Juin",
+  "Juillet","Août","Septembre","Octobre","Novembre","Décembre",
+];
+const YEARS = Array.from({ length: 26 }, (_, i) => 2025 + i); // 2025 → 2050
 
+// ── Main component ───────────────────────────────────────────────────────
+export function DashboardOverview() {
+  const residence  = useResidence();
+  const qc         = useQueryClient();
+  const runDash    = useServerFn(opGetDashboard);
+  const runRevenue = useServerFn(opGetRevenueAnalytics);
+  const money      = (v: number) => formatMoney(v, residence.currency);
+
+  const now   = new Date();
+  const nowMs = Date.now();
+
+  // ── Dashboard data ───────────────────────────────────────────────────
   const { data: dash, isLoading: loadingDash } = useQuery({
     queryKey: ["op-dashboard"],
-    queryFn: () => runDash(),
+    queryFn:  () => runDash(),
     staleTime: 30_000,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
   });
 
-  const [period, setPeriod] = useState<Period>("year");
-  const [customStart, setCustomStart] = useState(rangeFor("year").start);
-  const [customEnd, setCustomEnd] = useState(rangeFor("year").end);
-  const [status, setStatus] = useState<StatusFilter>("terminée");
-  const [metric, setMetric] = useState<Metric>("total");
+  // ── Dismissed urgent IDs ─────────────────────────────────────────────
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const dismiss = (id: string) => setDismissed((s) => new Set([...s, id]));
 
-  const range = useMemo(
-    () => (period === "custom" ? { start: customStart, end: customEnd } : rangeFor(period)),
-    [period, customStart, customEnd],
-  );
+  // ── Chart filters ────────────────────────────────────────────────────
+  const [filterMode,    setFilterMode]    = useState<FilterMode>("month-year");
+  const [selMonth,      setSelMonth]      = useState(now.getMonth() + 1);
+  const [selYear,       setSelYear]       = useState(now.getFullYear());
+  const [customStart,   setCustomStart]   = useState(isoDay(new Date(now.getFullYear(), now.getMonth(), 1)));
+  const [customEnd,     setCustomEnd]     = useState(isoDay(now));
+  const [statusFilter,  setStatusFilter]  = useState<StatusKey>("all");
+  const [metric,        setMetric]        = useState<MetricKey>("revenue");
+
+  const range = useMemo(() => {
+    if (filterMode === "custom") return { start: customStart, end: customEnd };
+    return monthRange(selYear, selMonth);
+  }, [filterMode, selMonth, selYear, customStart, customEnd]);
 
   const { data: rev, isLoading: loadingRev } = useQuery({
     queryKey: ["op-revenue", range.start, range.end],
-    queryFn: () => runRevenue({ data: range }),
+    queryFn:  () => runRevenue({ data: range }),
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   });
 
-  const periods: { value: Period; label: string }[] = [
-    { value: "week", label: "Semaine" },
-    { value: "month", label: "Mois" },
-    { value: "quarter", label: "Trimestre" },
-    { value: "year", label: "Année" },
-    { value: "custom", label: "Personnalisé" },
-  ];
+  // ── Compute occupancy from reservations ──────────────────────────────
+  // A unit is occupied if its reservation period includes now AND status = confirmée
+  const occupancyByType = useMemo(() => {
+    const today = isoDay(now);
+    const allRes = [
+      ...(dash?.arrivals ?? []),
+      ...(dash?.departures ?? []),
+      ...(dash?.upcomingArrivals ?? []),
+      ...(dash?.upcomingDepartures ?? []),
+    ];
+    // Use unitCards from dashboard which already has status computed
+    const cards = dash?.units ?? [];
+    const byType: Record<string, { occupied: number; total: number }> = {
+      chambre:     { occupied: 0, total: 0 },
+      studio:      { occupied: 0, total: 0 },
+      appartement: { occupied: 0, total: 0 },
+    };
+    for (const c of cards) {
+      if (!byType[c.type]) continue;
+      byType[c.type].total++;
+      // Occupied = status occupee or depart (client still there)
+      if (c.status === "occupee" || c.status === "depart") {
+        byType[c.type].occupied++;
+      }
+    }
+    return byType;
+  }, [dash]);
 
-  const statuses: { value: StatusFilter; label: string }[] = [
-    { value: "terminée", label: "Terminées" },
-    { value: "encours", label: "En cours" },
-    { value: "confirmée", label: "Confirmées" },
-    { value: "nouvelle", label: "En attente" },
-    { value: "all", label: "Toutes" },
-  ];
+  // ── Chart data ───────────────────────────────────────────────────────
+  // Map our StatusKey to the keys used by opGetRevenueAnalytics
+  const revStatusKey = useMemo(() => {
+    // opGetRevenueAnalytics uses: all, nouvelle, confirmée, encours, terminée
+    // We expose: all, confirmée, logé (=encours+terminée), annulée
+    if (statusFilter === "logé")    return "encours";   // best proxy
+    if (statusFilter === "annulée") return "all";       // handled below
+    return statusFilter;
+  }, [statusFilter]);
 
-  const metrics: { value: Metric; label: string; icon: typeof TrendingUp }[] = [
-    { value: "total", label: "Chiffre d'affaires", icon: TrendingUp },
-    { value: "collected", label: "Encaissé (avances)", icon: Wallet },
-    { value: "balance", label: "Solde restant", icon: Scale },
-  ];
+  const rows = useMemo(() => {
+    const base = rev?.byStatus?.[revStatusKey] ?? [];
+    // For annulée we want 0 (annulées are excluded from analytics server-side)
+    if (statusFilter === "annulée") {
+      return base.map((r) => ({ ...r, total: 0, collected: 0, balance: 0, count: 0 }));
+    }
+    return base;
+  }, [rev, revStatusKey, statusFilter]);
 
-  const rows = rev?.byStatus?.[status] ?? [];
   const chartData = rows.map((r) => ({
-    label: r.label,
-    value: r[metric],
-    count: r.count,
+    label: TYPE_LABELS[r.type] ?? r.label,
+    value: metric === "revenue" ? r.total : r.count,
+    type:  r.type,
   }));
-  const totalValue = rows.reduce((s, r) => s + r[metric], 0);
-  const totalCount = rows.reduce((s, r) => s + r.count, 0);
-  const totalCa = rows.reduce((s, r) => s + r.total, 0);
-  const totalCollected = rows.reduce((s, r) => s + r.collected, 0);
-  const totalBalance = rows.reduce((s, r) => s + r.balance, 0);
 
-  const metricLabel = metrics.find((m) => m.value === metric)!.label;
-  const money = (v: number) => formatMoney(v, residence.currency);
+  const aggregate = useMemo(() => ({
+    value:  rows.reduce((s, r) => s + (metric === "revenue" ? r.total : r.count), 0),
+    label:  metric === "revenue" ? "Chiffre d'affaires total" : "Nombre total de réservations",
+  }), [rows, metric]);
+
+  // ── Urgent arrivals within 30h ────────────────────────────────────────
+  const urgentArrivals = useMemo(() => {
+    const in30h = nowMs + 30 * 60 * 60 * 1000;
+    const allRes = [
+      ...(dash?.arrivals ?? []),
+      ...(dash?.upcomingArrivals ?? []),
+    ];
+    // Deduplicate by id
+    const seen = new Set<string>();
+    return allRes.filter((r) => {
+      if (seen.has(r.id)) return false;
+      seen.add(r.id);
+      if (dismissed.has(r.id)) return false;
+      const arrMs = new Date(
+        `${r.arrival}T${(r.arrivalTime ?? "14:00").slice(0, 5)}:00`
+      ).getTime();
+      return arrMs >= nowMs && arrMs <= in30h && r.status !== "annulée";
+    });
+  }, [dash, nowMs, dismissed]);
+
+  if (loadingDash) return (
+    <div className="flex justify-center py-20">
+      <Loader2 className="h-6 w-6 animate-spin text-gold" />
+    </div>
+  );
 
   return (
     <div className="space-y-8">
-      {/* 1) Availability right now — 3 type cards only */}
+
+      {/* ── 1. CARTES OCCUPATION EN TEMPS RÉEL ── */}
       <section className="space-y-3">
-        <h2 className="font-display text-lg font-semibold">Disponibilité à l'instant présent</h2>
-        {loadingDash || !dash ? (
-          <div className="flex justify-center py-10">
-            <Loader2 className="h-6 w-6 animate-spin text-gold" />
+        <h2 className="font-display text-lg font-bold">Disponibilité à l'instant présent</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {(["chambre", "studio", "appartement"] as const).map((type) => {
+            const { occupied, total } = occupancyByType[type] ?? { occupied: 0, total: 0 };
+            const free = total - occupied;
+            return (
+              <OccupancyCard
+                key={type}
+                label={TYPE_LABELS[type]}
+                occupied={occupied}
+                total={total}
+                free={free}
+              />
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ── 2. GRAPHIQUE CHIFFRE D'AFFAIRES ── */}
+      <section className="space-y-4">
+        <h2 className="font-display text-lg font-bold">Analyse par type de logement</h2>
+
+        {/* Filters */}
+        <div className="space-y-3 rounded-2xl border-2 border-black/10 bg-card p-4 shadow-md">
+
+          {/* Mode toggle */}
+          <div className="flex gap-2">
+            <Button size="sm"
+              variant={filterMode === "month-year" ? "default" : "outline"}
+              onClick={() => setFilterMode("month-year")}>
+              Par mois / année
+            </Button>
+            <Button size="sm"
+              variant={filterMode === "custom" ? "default" : "outline"}
+              onClick={() => setFilterMode("custom")}>
+              Période personnalisée
+            </Button>
+          </div>
+
+          {/* Period selectors */}
+          {filterMode === "month-year" ? (
+            <div className="flex flex-wrap gap-2">
+              <Select value={String(selMonth)} onValueChange={(v) => setSelMonth(Number(v))}>
+                <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {MONTHS.map((m, i) => (
+                    <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={String(selYear)} onValueChange={(v) => setSelYear(Number(v))}>
+                <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {YEARS.map((y) => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <Input type="date" value={customStart}
+                onChange={(e) => setCustomStart(e.target.value)} className="h-9 w-auto" />
+              <span className="text-muted-foreground">→</span>
+              <Input type="date" value={customEnd}
+                onChange={(e) => setCustomEnd(e.target.value)} className="h-9 w-auto" />
+            </div>
+          )}
+
+          {/* Status + Metric */}
+          <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1">
+              <span className="self-center text-xs font-medium text-muted-foreground">Statut :</span>
+              {STATUS_OPTIONS.map(({ value, label }) => (
+                <Button key={value} size="sm"
+                  variant={statusFilter === value ? "default" : "outline"}
+                  onClick={() => setStatusFilter(value)}>
+                  {label}
+                </Button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-1">
+              <span className="self-center text-xs font-medium text-muted-foreground">Afficher :</span>
+              <Button size="sm"
+                variant={metric === "revenue" ? "gold" : "outline"}
+                onClick={() => setMetric("revenue")}>
+                Chiffre d'affaires
+              </Button>
+              <Button size="sm"
+                variant={metric === "count" ? "gold" : "outline"}
+                onClick={() => setMetric("count")}>
+                Nombre de réservations
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {loadingRev ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-5 w-5 animate-spin text-gold" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {(dash.typeAvailability ?? []).map((tA) => {
-              const label =
-                tA.type === "chambre" ? "Chambres" : tA.type === "studio" ? "Studios" : "Appartements";
-              const tone =
-                tA.level === "free"
-                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600"
-                  : tA.level === "partial"
-                    ? "border-amber-500/40 bg-amber-500/10 text-amber-600"
-                    : "border-red-500/40 bg-red-500/10 text-red-600";
+          <div className="space-y-4">
+
+            {/* Aggregate card 3D */}
+            <AggregateCard
+              label={aggregate.label}
+              value={metric === "revenue" ? money(aggregate.value) : String(aggregate.value)}
+              sub={filterMode === "month-year"
+                ? `${MONTHS[selMonth - 1]} ${selYear}`
+                : `${customStart} → ${customEnd}`}
+            />
+
+            {/* Bar chart */}
+            <div className="rounded-2xl border-2 border-black/10 bg-card p-4 shadow-md">
+              <p className="mb-1 font-display text-base font-semibold">
+                {metric === "revenue" ? "Chiffre d'affaires" : "Nombre de réservations"} par type
+              </p>
+              <p className="mb-4 text-xs text-muted-foreground">
+                Période : {filterMode === "month-year"
+                  ? `${MONTHS[selMonth - 1]} ${selYear}`
+                  : `${customStart} → ${customEnd}`}
+                {" · "}Statut : {STATUS_OPTIONS.find((s) => s.value === statusFilter)?.label}
+              </p>
+              <div className="h-72 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 36, right: 16, left: 16, bottom: 8 }}>
+                    <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={13} />
+                    <Tooltip
+                      formatter={(v: number) =>
+                        metric === "revenue"
+                          ? [money(v), "Chiffre d'affaires"]
+                          : [v, "Réservations"]
+                      }
+                      cursor={{ fill: "hsl(var(--muted))", opacity: 0.4 }}
+                    />
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                      {chartData.map((_, i) => (
+                        <Cell key={i} fill={BAR_COLOR} />
+                      ))}
+                      <LabelList
+                        dataKey="value"
+                        position="top"
+                        formatter={(v: number) =>
+                          metric === "revenue" ? money(v) : String(v)
+                        }
+                        style={{ fontSize: 12, fontWeight: 700, fill: "#1d4ed8" }}
+                      />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Detail per type */}
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                {rows.map((r) => (
+                  <div key={r.type}
+                    className="rounded-xl border-2 border-black/10 bg-secondary/40 p-3 shadow-sm">
+                    <p className="text-xs font-semibold">{TYPE_LABELS[r.type] ?? r.label}</p>
+                    <p className="mt-1 font-display text-base font-bold tabular-nums text-blue-700">
+                      {metric === "revenue" ? money(r.total) : r.count}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {r.count} réservation{r.count > 1 ? "s" : ""}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ── 3. ACTIONS URGENTES — arrivées dans les 30h ── */}
+      <section className="space-y-3">
+        <h2 className="flex items-center gap-2 font-display text-lg font-bold">
+          <AlertTriangle className="h-5 w-5 text-amber-500" />
+          Actions urgentes
+          {urgentArrivals.length > 0 && (
+            <Badge variant="destructive">{urgentArrivals.length}</Badge>
+          )}
+        </h2>
+
+        {urgentArrivals.length === 0 ? (
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-300/40 bg-emerald-50 p-4 text-sm text-emerald-700">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            Aucune arrivée urgente dans les prochaines 30 heures.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {urgentArrivals.map((r) => {
+              const arrMs = new Date(
+                `${r.arrival}T${(r.arrivalTime ?? "14:00").slice(0, 5)}:00`
+              ).getTime();
+              const hoursLeft = Math.max(0, Math.round((arrMs - nowMs) / 3_600_000));
               return (
-                <div key={tA.type} className={`rounded-2xl border p-4 shadow-soft ${tone}`}>
-                  <p className="text-sm font-medium">{label}</p>
-                  <p className="mt-2 font-display text-3xl font-semibold tabular-nums">
-                    {tA.available}/{tA.total}
-                  </p>
-                  <p className="mt-0.5 text-xs opacity-80">
-                    {tA.level === "full"
-                      ? "Complet"
-                      : tA.level === "partial"
-                        ? "Partiellement occupé"
-                        : "Disponible"}{" "}
-                    · {tA.available} libre(s)
-                  </p>
+                <div key={r.id}
+                  className="flex items-start justify-between gap-3 rounded-xl border-2 border-amber-400/40 bg-amber-50 p-3 text-sm shadow-sm">
+                  <div className="space-y-0.5">
+                    <p className="font-semibold">
+                      {r.name}
+                      <span className="ml-2 font-mono text-[11px] text-muted-foreground">{r.ref}</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {r.unitLabel} · {r.guests} pers. · Arrivée : {formatDateFr(r.arrival)} à {r.arrivalTime}
+                    </p>
+                    <p className="text-xs font-medium text-amber-700">
+                      Dans environ {hoursLeft}h
+                      {r.balance > 0 && ` · Solde restant : ${money(r.balance)}`}
+                    </p>
+                  </div>
+                  <Button size="sm" variant="outline"
+                    className="shrink-0 border-amber-400 text-amber-700 hover:bg-amber-100"
+                    onClick={() => dismiss(r.id)}>
+                    <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                    C'est compris
+                  </Button>
                 </div>
               );
             })}
@@ -147,160 +409,61 @@ export function DashboardOverview() {
         )}
       </section>
 
-      {/* 2) Revenue analytics from reservation history */}
-      <section className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-display text-lg font-semibold">Analyse du chiffre d'affaires</h2>
-        </div>
-
-        {/* Filters */}
-        <div className="space-y-3 rounded-2xl border border-border/60 bg-card p-4 shadow-soft">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground">Période :</span>
-            {periods.map((p) => (
-              <Button
-                key={p.value}
-                size="sm"
-                variant={period === p.value ? "gold" : "outline"}
-                onClick={() => setPeriod(p.value)}
-              >
-                {p.label}
-              </Button>
-            ))}
-            {period === "custom" && (
-              <div className="flex items-center gap-2">
-                <Input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="h-9 w-auto" />
-                <span className="text-muted-foreground">→</span>
-                <Input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="h-9 w-auto" />
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground">Statut :</span>
-            {statuses.map((s) => (
-              <Button
-                key={s.value}
-                size="sm"
-                variant={status === s.value ? "default" : "outline"}
-                onClick={() => setStatus(s.value)}
-              >
-                {s.label}
-              </Button>
-            ))}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground">Indicateur :</span>
-            {metrics.map((m) => (
-              <Button
-                key={m.value}
-                size="sm"
-                variant={metric === m.value ? "gold" : "outline"}
-                onClick={() => setMetric(m.value)}
-              >
-                <m.icon className="h-4 w-4" /> {m.label}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        {loadingRev || !rev ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="h-6 w-6 animate-spin text-gold" />
-          </div>
-        ) : (
-          <>
-            {/* Summary cards */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-              <StatCard icon={TrendingUp} label="Chiffre d'affaires" value={money(totalCa)} accent={metric === "total"} />
-              <StatCard icon={Wallet} label="Encaissé (avances)" value={money(totalCollected)} accent={metric === "collected"} />
-              <StatCard icon={Scale} label="Solde restant" value={money(totalBalance)} accent={metric === "balance"} />
-              <StatCard icon={TrendingUp} label="Réservations" value={String(totalCount)} />
-            </div>
-
-            {/* Bar chart by type with values written on bars */}
-            <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-soft">
-              <h3 className="mb-1 font-display text-base font-semibold">
-                {metricLabel} par type de logement
-              </h3>
-              <p className="mb-4 text-xs text-muted-foreground">
-                {statuses.find((s) => s.value === status)!.label} · {money(totalValue)} au total
-              </p>
-              <div className="h-80 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 24, right: 8, left: 8, bottom: 8 }}>
-                    <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={12} />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      fontSize={11}
-                      width={78}
-                      tickFormatter={(v) => money(Number(v))}
-                    />
-                    <Tooltip
-                      formatter={(v: number) => [money(Number(v)), metricLabel]}
-                      cursor={{ fill: "hsl(var(--muted))", opacity: 0.4 }}
-                    />
-                    <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                      {chartData.map((_, i) => (
-                        <Cell key={i} fill={TYPE_COLORS[i % TYPE_COLORS.length]} />
-                      ))}
-                      <LabelList
-                        dataKey="value"
-                        position="top"
-                        formatter={(v: number) => money(Number(v))}
-                        style={{ fontSize: 12, fontWeight: 600, fill: "hsl(var(--foreground))" }}
-                      />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Per-type detail */}
-              <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
-                {rows.map((r) => (
-                  <div key={r.type} className="rounded-xl border border-border/50 p-3">
-                    <p className="font-medium">{r.label}</p>
-                    <p className="text-xs text-muted-foreground">{r.count} réservation(s)</p>
-                    <div className="mt-2 space-y-0.5 text-xs">
-                      <p className="flex justify-between"><span className="text-muted-foreground">CA</span><span className="tabular-nums">{money(r.total)}</span></p>
-                      <p className="flex justify-between"><span className="text-muted-foreground">Encaissé</span><span className="tabular-nums">{money(r.collected)}</span></p>
-                      <p className="flex justify-between"><span className="text-muted-foreground">Solde</span><span className="tabular-nums">{money(r.balance)}</span></p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-      </section>
     </div>
   );
 }
 
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  accent,
+// ── Sous-composants ───────────────────────────────────────────────────────
+
+function OccupancyCard({
+  label, occupied, total, free,
 }: {
-  icon: typeof TrendingUp;
-  label: string;
-  value: string;
-  accent?: boolean;
+  label: string; occupied: number; total: number; free: number;
+}) {
+  const pctOccupied = total > 0 ? Math.round((occupied / total) * 100) : 0;
+  return (
+    <div
+      className="rounded-2xl bg-amber-800 p-5 text-white"
+      style={{
+        boxShadow: "4px 4px 0 0 #000, 6px 6px 0 0 rgba(0,0,0,0.3)",
+        border: "3px solid #000",
+      }}>
+      <p className="text-sm font-semibold opacity-90">{label}</p>
+      <div className="mt-2 flex items-end justify-between">
+        <p className="font-display text-4xl font-bold tabular-nums leading-none">
+          {occupied}
+          <span className="text-xl font-normal opacity-70">/{total}</span>
+        </p>
+        <p className="text-sm font-medium opacity-80">{pctOccupied}% occupé</p>
+      </div>
+      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-black/20">
+        <div
+          className="h-full rounded-full bg-white/80 transition-all"
+          style={{ width: `${pctOccupied}%` }}
+        />
+      </div>
+      <p className="mt-2 text-xs opacity-75">
+        {free} libre{free > 1 ? "s" : ""} · {occupied} occupé{occupied > 1 ? "s" : ""}
+      </p>
+    </div>
+  );
+}
+
+function AggregateCard({
+  label, value, sub,
+}: {
+  label: string; value: string; sub: string;
 }) {
   return (
     <div
-      className={`rounded-2xl border p-4 shadow-soft ${accent ? "border-gold/40 bg-gradient-to-br from-gold/10 to-transparent" : "border-border/60 bg-card"}`}
-    >
-      <span
-        className={`flex h-9 w-9 items-center justify-center rounded-full ${accent ? "bg-gold/20 text-gold" : "bg-secondary text-muted-foreground"}`}
-      >
-        <Icon className="h-4 w-4" />
-      </span>
-      <p className="mt-3 font-display text-xl font-semibold tabular-nums">{value}</p>
-      <p className="mt-0.5 text-xs text-muted-foreground">{label}</p>
+      className="rounded-2xl bg-amber-800 p-5 text-white"
+      style={{
+        boxShadow: "5px 5px 0 0 #000, 8px 8px 0 0 rgba(0,0,0,0.25)",
+        border: "3px solid #000",
+      }}>
+      <p className="text-sm font-semibold opacity-80">{label}</p>
+      <p className="mt-1 font-display text-3xl font-bold tabular-nums">{value}</p>
+      <p className="mt-1 text-xs opacity-70">{sub}</p>
     </div>
   );
 }
