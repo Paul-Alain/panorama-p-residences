@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import {
   Loader2, Search, Plus, ChevronLeft, ChevronRight,
   CheckCircle2, Pencil, XCircle, ArrowUpDown, ArrowUp, ArrowDown, Lock,
+  Star, Copy, MessageCircle, Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { opListReservations, opSetReservationStatus } from "@/lib/operations.functions";
+import { opGenerateReviewToken, opSendReviewEmail } from "@/lib/review.functions";
 import {
   RES_STATUS_LABELS, DISPLAY_RES_STATUSES,
   isLocked, type DisplayResStatus,
@@ -56,16 +58,15 @@ function toEditable(r: ResItem): EditableReservation {
   };
 }
 
-// Generate list of months for filter, covering every year from 2025 to 2050
+// Generate list of months for filter (last 12 months + next 6)
 function generateMonthOptions() {
   const options: { value: string; label: string }[] = [];
-  for (let year = 2025; year <= 2050; year++) {
-    for (let m = 0; m < 12; m++) {
-      const d = new Date(year, m, 1);
-      const value = `${year}-${String(m + 1).padStart(2, "0")}`;
-      const label = d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
-      options.push({ value, label: label.charAt(0).toUpperCase() + label.slice(1) });
-    }
+  const now = new Date();
+  for (let i = -12; i <= 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const label = d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+    options.push({ value, label: label.charAt(0).toUpperCase() + label.slice(1) });
   }
   return options;
 }
@@ -277,13 +278,13 @@ export function ReservationsAdmin() {
                         </span>
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">
-                        {formatMoney(r.displayStatus === "annulée" ? 0 : r.total, residence.currency)}
+                        {formatMoney(r.total, residence.currency)}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap text-emerald-600">
-                        {formatMoney(r.displayStatus === "annulée" ? 0 : r.advance, residence.currency)}
+                        {formatMoney(r.advance, residence.currency)}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap text-gold">
-                        {formatMoney(r.displayStatus === "annulée" ? 0 : r.balance, residence.currency)}
+                        {formatMoney(r.balance, residence.currency)}
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex items-center justify-end gap-1">
@@ -360,7 +361,91 @@ function RowActions({ r, busyId, locked, onEdit, act, runStatus }: {
   runStatus: (a: { data: { id: string; status: any } }) => Promise<unknown>;
 }) {
   const loading = busyId === r.id;
+  const runGenerateToken = useServerFn(opGenerateReviewToken);
+  const runSendEmail     = useServerFn(opSendReviewEmail);
+  const [reviewUrl, setReviewUrl] = useState<string | null>(null);
+  const [genBusy,   setGenBusy]   = useState(false);
+  const [copied,    setCopied]    = useState(false);
+
+  const generateLink = async () => {
+    setGenBusy(true);
+    try {
+      const res = await runGenerateToken({ data: { reservationId: r.id } });
+      setReviewUrl(res.url);
+      toast.success(res.alreadyExists ? "Lien existant récupéré." : "Lien généré !");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur");
+    }
+    setGenBusy(false);
+  };
+
+  const copyLink = async () => {
+    if (!reviewUrl) return;
+    await navigator.clipboard.writeText(reviewUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast.success("Lien copié !");
+  };
+
+  const sendWhatsApp = () => {
+    if (!reviewUrl) return;
+    const msg = encodeURIComponent(
+      `Bonjour ${r.name},\n\nMerci pour votre séjour à la Résidence Panorama P ! Nous serions ravis d'avoir votre avis :\n${reviewUrl}\n\nMerci d'avance !`
+    );
+    window.open(`https://wa.me/${r.phone.replace(/\D/g, "")}?text=${msg}`, "_blank");
+  };
+
+  const sendEmail = async () => {
+    if (!reviewUrl || !r.email) return;
+    try {
+      await runSendEmail({ data: { token: reviewUrl.split("/").pop()!, email: r.email, guestName: r.name } });
+      toast.success("Email envoyé !");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur envoi email");
+    }
+  };
+
+  // Logé → bouton notation + verrou
+  if (r.displayStatus === "logé") {
+    return (
+      <div className="flex items-center justify-end gap-1">
+        <Lock className="h-3.5 w-3.5 text-muted-foreground/40" />
+        {!reviewUrl ? (
+          <Button size="sm" variant="outline"
+            className="border-amber-400 text-amber-700 hover:bg-amber-50"
+            disabled={genBusy} onClick={generateLink}>
+            {genBusy
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <Star className="h-3.5 w-3.5" />}
+            Lien avis
+          </Button>
+        ) : (
+          <div className="flex items-center gap-1">
+            <Button size="sm" variant="outline" onClick={copyLink} title="Copier le lien">
+              <Copy className="h-3.5 w-3.5" />
+              {copied ? "Copié !" : "Copier"}
+            </Button>
+            <Button size="sm" variant="outline"
+              className="text-green-700 border-green-400 hover:bg-green-50"
+              onClick={sendWhatsApp} title="Envoyer via WhatsApp">
+              <MessageCircle className="h-3.5 w-3.5" />
+            </Button>
+            {r.email && (
+              <Button size="sm" variant="outline"
+                className="text-blue-700 border-blue-400 hover:bg-blue-50"
+                onClick={sendEmail} title="Envoyer par email">
+                <Mail className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Annulée → juste verrou
   if (locked) return <Lock className="h-4 w-4 text-muted-foreground/40" />;
+
   return (
     <>
       <Button size="sm" variant="ghost" onClick={onEdit} title="Modifier">
