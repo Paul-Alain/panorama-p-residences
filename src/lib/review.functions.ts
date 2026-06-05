@@ -144,16 +144,14 @@ export const opSubmitReview = createServerFn({ method: "POST" })
     if (row.used)   throw new Error("Cet avis a déjà été soumis.");
     if (new Date(row.expires_at) < new Date()) throw new Error("Ce lien a expiré.");
 
-    // Créer l'avis — sort_order < 0 = en attente de modération
+    // Créer l'avis — published = false = en attente de modération
     const { error: e1 } = await sb.from("reviews").insert({
-      name:            data.name,
+      guest_name:      data.name,
       rating:          data.rating,
-      message_fr:      data.comment,
-      sort_order:      -1,  // en attente
+      comment:         data.comment,
       published:       false,
       review_token_id: row.id,
       reservation_id:  row.reservation_id,
-      location:        null,
     });
     if (e1) throw new Error(e1.message);
 
