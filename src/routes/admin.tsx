@@ -195,7 +195,7 @@ function AdminDashboard() {
       <TabsContent value="messages" className="mt-6"><MessagesAdmin /></TabsContent>
       <TabsContent value="reviews" className="mt-6"><ReviewsAdmin /></TabsContent>
       <TabsContent value="team" className="mt-6"><TeamAdmin /></TabsContent>
-      <TabsContent value="settings" className="mt-6"><SettingsAdmin /></TabsContent>
+
     </Tabs>
   );
 }
