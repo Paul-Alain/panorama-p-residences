@@ -125,8 +125,8 @@
   --cal-maintenance-fg: oklch(0.98 0.01 27);
   --cal-conflict: oklch(0.55 0.22 305);
   --cal-conflict-fg: oklch(0.98 0.02 305);
-  --cal-cancelled: oklch(0.8 0.01 60);
-  --cal-cancelled-fg: oklch(0.5 0.01 60);
+  --cal-cancelled: oklch(0.58 0.2 27);
+  --cal-cancelled-fg: oklch(0.98 0.01 27);
 }
 
 .dark {
