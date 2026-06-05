@@ -187,11 +187,10 @@ export const opModerateReview = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     await assertStaff(context.supabase, context.userId);
-    const published  = data.action === "publish";
-    const sort_order = published ? 1 : -1;
+    const published = data.action === "publish";
     const { error } = await context.supabase
       .from("reviews")
-      .update({ published, sort_order })
+      .update({ published })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { success: true };
