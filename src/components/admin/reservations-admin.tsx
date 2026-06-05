@@ -94,9 +94,9 @@ export function ReservationsAdmin() {
   const [view, setView] = useState<"active" | "all">("active");
   const [page, setPage] = useState(1);
   const [busyId, setBusyId] = useState<string | null>(null);
-  
   const [editing, setEditing] = useState<EditableReservation | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [sort, setSort] = useState<{ column: "arrival" | "departure"; dir: "asc" | "desc" } | null>(null);
 
   const invalidate = () => Promise.all(KEYS.map((k) => qc.invalidateQueries({ queryKey: [k] })));
 
