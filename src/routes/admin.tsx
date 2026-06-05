@@ -11,12 +11,9 @@ import {
   CalendarDays,
   MessageSquare,
   Star,
-  BedDouble,
   CalendarRange,
-  CreditCard,
   Contact,
   UsersRound,
-  BarChart3,
   Settings,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
@@ -32,11 +29,8 @@ import { DashboardOverview } from "@/components/admin/dashboard-overview";
 import { ReservationsAdmin } from "@/components/admin/reservations-admin";
 import { MessagesAdmin } from "@/components/admin/messages-admin";
 import { ReviewsAdmin } from "@/components/admin/reviews-admin";
-import { LogementsOverview } from "@/components/admin/logements-overview";
 import { OccupancyCalendar } from "@/components/admin/occupancy-calendar";
 import { ClientsAdmin } from "@/components/admin/clients-admin";
-import { PaymentsAdmin } from "@/components/admin/payments-admin";
-import { AnalyticsAdmin } from "@/components/admin/analytics-admin";
 import { TeamAdmin } from "@/components/admin/team-admin";
 import { SettingsAdmin } from "@/components/admin/settings-admin";
 import { claimAdmin } from "@/lib/admin.functions";
@@ -175,10 +169,7 @@ function AdminDashboard() {
     { value: "overview", label: "Tableau de bord", icon: LayoutDashboard },
     { value: "reservations", label: "Réservations", icon: CalendarDays },
     { value: "calendar", label: "Calendrier", icon: CalendarRange },
-    { value: "logements", label: "Logements", icon: BedDouble },
     { value: "clients", label: "Clients", icon: Contact },
-    { value: "payments", label: "Paiements", icon: CreditCard },
-    { value: "analytics", label: "Analyses", icon: BarChart3 },
     { value: "messages", label: "Messages", icon: MessageSquare },
     { value: "reviews", label: "Avis", icon: Star },
     { value: "team", label: "Équipe", icon: UsersRound },
@@ -200,10 +191,7 @@ function AdminDashboard() {
       <TabsContent value="overview" className="mt-6"><DashboardOverview /></TabsContent>
       <TabsContent value="reservations" className="mt-6"><ReservationsAdmin /></TabsContent>
       <TabsContent value="calendar" className="mt-6"><OccupancyCalendar /></TabsContent>
-      <TabsContent value="logements" className="mt-6"><LogementsOverview /></TabsContent>
       <TabsContent value="clients" className="mt-6"><ClientsAdmin /></TabsContent>
-      <TabsContent value="payments" className="mt-6"><PaymentsAdmin /></TabsContent>
-      <TabsContent value="analytics" className="mt-6"><AnalyticsAdmin /></TabsContent>
       <TabsContent value="messages" className="mt-6"><MessagesAdmin /></TabsContent>
       <TabsContent value="reviews" className="mt-6"><ReviewsAdmin /></TabsContent>
       <TabsContent value="team" className="mt-6"><TeamAdmin /></TabsContent>
