@@ -65,16 +65,14 @@ function calToEditable(r: CalRes): EditableReservation {
 
 /** Bar color class based on display status */
 function barClass(r: CalRes): string {
-  const arrMs = new Date(`${r.arrival_date}T${r.arrival_time.slice(0, 5)}:00`).getTime();
   const depMs = new Date(`${r.departure_date}T${r.departure_time.slice(0, 5)}:00`).getTime();
-  const ds    = displayReservationStatus(r.status, arrMs, depMs);
-  switch (ds) {
-    case "nouvelle":  return "cal-pending";
-    case "confirmée": return "cal-confirmed";
-    case "logé":      return "cal-completed";
-    case "annulée":   return "cal-cancelled";
-    default:          return "cal-pending";
-  }
+  const departed = Date.now() >= depMs;
+  if (r.status === "annulée") return "cal-cancelled";
+  // "Logé" (green) only when the DB status is logé/terminée AND departure has passed
+  if ((r.status === "logé" || r.status === "terminée") && departed) return "cal-completed";
+  if (r.status === "confirmée" || r.status === "logé" || r.status === "terminée") return "cal-confirmed";
+  if (r.status === "nouvelle") return "cal-pending";
+  return "cal-pending";
 }
 
 // ── Main component ───────────────────────────────────────────────────────
@@ -234,7 +232,7 @@ export function OccupancyCalendar() {
                 .filter((b) => b.endIdx > b.startIdx && b.startIdx < WINDOW && b.endIdx > 0);
 
               return (
-                <div key={unit.id} className="flex border-b border-border/40 last:border-b-0">
+                <div key={unit.id} className="flex border-b-2 border-foreground last:border-b-0">
                   {/* Unit label */}
                   <div className="sticky left-0 z-20 flex shrink-0 items-center gap-1.5 bg-card px-3 py-2 text-sm font-medium"
                     style={{ width: LABEL_W }}>
@@ -251,7 +249,7 @@ export function OccupancyCalendar() {
                         const isToday = d === today;
                         return (
                           <div key={d}
-                            className={`shrink-0 border-l border-border/40 ${
+                            className={`shrink-0 border-l-2 border-foreground ${
                               maint   ? "cal-maintenance opacity-30"
                               : isSun ? "bg-secondary/30"
                               : "cal-free"
