@@ -83,33 +83,40 @@ export function TeamAdmin() {
 
   return (
     <div className="space-y-8">
-      {/* Add member */}
-      <section className="rounded-2xl border border-border/60 bg-card p-5 shadow-soft">
-        <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
-          <UserPlus className="h-5 w-5 text-gold" /> Ajouter un membre
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Le membre doit déjà avoir créé un compte avec cet e-mail.
-        </p>
-        <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto_auto]">
-          <Input placeholder="E-mail du membre" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <Select value={role} onValueChange={setRole}>
-            <SelectTrigger className="sm:w-44">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {ASSIGNABLE_ROLES.map((r) => (
-                <SelectItem key={r} value={r}>
-                  {TEAM_ROLE_LABELS[r]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button variant="gold" disabled={busy} onClick={addMember}>
-            {busy && <Loader2 className="h-4 w-4 animate-spin" />} Ajouter
-          </Button>
-        </div>
-      </section>
+      {/* Add member — owners & technicians only */}
+      {canManage ? (
+        <section className="rounded-2xl border border-border/60 bg-card p-5 shadow-soft">
+          <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
+            <UserPlus className="h-5 w-5 text-gold" /> Ajouter un membre
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Le membre doit déjà avoir créé un compte avec cet e-mail. Trois niveaux
+            d'administration : Propriétaire, Gestionnaire et Technicien.
+          </p>
+          <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+            <Input placeholder="E-mail du membre" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger className="sm:w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ASSIGNABLE_ROLES.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {TEAM_ROLE_LABELS[r]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button variant="gold" disabled={busy} onClick={addMember}>
+              {busy && <Loader2 className="h-4 w-4 animate-spin" />} Ajouter
+            </Button>
+          </div>
+        </section>
+      ) : (
+        <section className="rounded-2xl border border-border/60 bg-card p-5 text-sm text-muted-foreground shadow-soft">
+          Seuls les propriétaires et les techniciens peuvent gérer l'équipe.
+        </section>
+      )}
 
       {/* Team list */}
       <section className="space-y-3">
