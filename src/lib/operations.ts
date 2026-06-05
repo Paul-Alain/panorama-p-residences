@@ -10,7 +10,9 @@
 export type ResStatus =
   | "nouvelle"
   | "confirmée"
-  | "annulée";
+  | "annulée"
+  | "checkin"
+  | "terminée";
 
 export const RES_STATUS_LABELS: Record<string, string> = {
   nouvelle:  "En attente de confirmation",
@@ -83,9 +85,8 @@ export const MAX_GUESTS_BY_TYPE: Record<string, number> = {
  */
 export const RES_TRANSITIONS: Record<string, ResStatus[]> = {
   nouvelle:  ["confirmée", "annulée"],
-  confirmée: ["annulée"],   // can only cancel while departure not yet passed
+  confirmée: ["annulée"],
   annulée:   [],
-  // legacy
   checkin:   [],
   terminée:  [],
 };
