@@ -114,7 +114,7 @@ const cuisineAlt: Record<Lang, string> = {
   en: "Fully equipped kitchen – Panorama P Residence",
 };
 
-const cuisineUrls = [cuisine1, cuisine2, cuisine3, cuisine4, cuisine5, cuisine6];
+const cuisineUrls = [cuisine2, cuisine1, cuisine3, cuisine4, cuisine5, cuisine6];
 
 const exterieurAlt: Record<Lang, string> = {
   fr: "Espace extérieur agréable – Résidence Panorama P",
