@@ -188,6 +188,7 @@ function AdminDashboard() {
       </div>
       <TabsContent value="overview" className="mt-6"><DashboardOverview /></TabsContent>
       <TabsContent value="reservations" className="mt-6"><ReservationsAdmin /></TabsContent>
+      <TabsContent value="calendar" className="mt-6"><OccupancyCalendar /></TabsContent>
       <TabsContent value="clients" className="mt-6"><ClientsAdmin /></TabsContent>
       <TabsContent value="messages" className="mt-6"><MessagesAdmin /></TabsContent>
       <TabsContent value="reviews" className="mt-6"><ReviewsAdmin /></TabsContent>
