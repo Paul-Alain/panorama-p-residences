@@ -177,7 +177,7 @@ export function OccupancyCalendar() {
         <LegendDot cls="cal-dot-pending"   label="En attente" />
         <LegendDot cls="cal-dot-confirmed" label="Confirmée" />
         <LegendDot cls="cal-dot-completed" label="Logé ✓" />
-        <LegendDot cls="cal-dot-maintenance" label="Annulée" />
+        <LegendDot cls="cal-dot-cancelled" label="Annulée" />
       </div>
 
       {/* Calendar grid */}
