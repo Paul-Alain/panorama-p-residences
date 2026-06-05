@@ -266,6 +266,33 @@ export function ReservationsAdmin() {
   );
 }
 
+function SortHeader({
+  label,
+  column,
+  sort,
+  onSort,
+}: {
+  label: string;
+  column: "arrival" | "departure";
+  sort: { column: "arrival" | "departure"; dir: "asc" | "desc" } | null;
+  onSort: (s: { column: "arrival" | "departure"; dir: "asc" | "desc" } | null) => void;
+}) {
+  const active = sort?.column === column;
+  const Icon = active ? (sort.dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+  return (
+    <th className="px-3 py-2 cursor-pointer select-none" onClick={() => {
+      if (!active) onSort({ column, dir: "asc" });
+      else if (sort!.dir === "asc") onSort({ column, dir: "desc" });
+      else onSort(null);
+    }}>
+      <span className="inline-flex items-center gap-1">
+        {label}
+        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+      </span>
+    </th>
+  );
+}
+
 function RowActions({
   r,
   busyId,
