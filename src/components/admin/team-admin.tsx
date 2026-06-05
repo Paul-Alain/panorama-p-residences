@@ -135,7 +135,7 @@ export function TeamAdmin() {
                   {m.roles.map((r) => (
                     <Badge key={r} variant="secondary" className="gap-1">
                       {TEAM_ROLE_LABELS[r] ?? r}
-                      {r !== "admin" && (
+                      {canManage && r !== "admin" && (
                         <button onClick={() => removeRole(m.id, r)} className="ml-1 text-muted-foreground hover:text-destructive">
                           <Trash2 className="h-3 w-3" />
                         </button>
