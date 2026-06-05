@@ -1,136 +1,127 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Star, Check, EyeOff } from "lucide-react";
+import { Loader2, Star, Eye, EyeOff, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useLanguage } from "@/lib/i18n/language-context";
-import { stripReviewMeta } from "@/lib/data";
-import { adminListReviewsFull, adminModerateReview } from "@/lib/admin.functions";
-
-interface Review {
-  id: string;
-  name: string;
-  location: string | null;
-  rating: number;
-  message_fr: string;
-  sort_order: number;
-  created_at: string;
-  user_id: string | null;
-}
+import { opListReviews, opModerateReview } from "@/lib/review.functions";
 
 export function ReviewsAdmin() {
-  const { t, lang } = useLanguage();
-  const d = t.admin.dash;
-  const qc = useQueryClient();
-  const runList = useServerFn(adminListReviewsFull);
-  const runModerate = useServerFn(adminModerateReview);
-  const [savingId, setSavingId] = useState<string | null>(null);
+  const qc          = useQueryClient();
+  const runList     = useServerFn(opListReviews);
+  const runModerate = useServerFn(opModerateReview);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const { data = [], isLoading } = useQuery({
     queryKey: ["admin-reviews"],
-    queryFn: async () => (await runList()) as Review[],
+    queryFn:  () => runList(),
+    staleTime: 30_000,
   });
 
-  const { pending, approved } = useMemo(
-    () => ({
-      pending: data.filter((r) => r.sort_order < 0),
-      approved: data.filter((r) => r.sort_order >= 0),
-    }),
-    [data],
-  );
+  const pending  = data.filter((r) => !r.published);
+  const published = data.filter((r) => r.published);
 
-  const moderate = async (id: string, action: "approve" | "hide") => {
-    setSavingId(id);
+  const moderate = async (id: string, action: "publish" | "unpublish") => {
+    setBusyId(id);
     try {
       await runModerate({ data: { id, action } });
       await qc.invalidateQueries({ queryKey: ["admin-reviews"] });
-      await qc.invalidateQueries({ queryKey: ["admin-stats"] });
-      await qc.invalidateQueries({ queryKey: ["testimonials"] });
-      toast.success(action === "approve" ? d.reviews.approve : d.reviews.hide);
+      toast.success(action === "publish" ? "Avis publié." : "Avis masqué.");
     } catch {
-      toast.error("Erreur");
+      toast.error("Erreur.");
     }
-    setSavingId(null);
+    setBusyId(null);
   };
 
-  const fmtDate = (s: string) => {
-    const dt = new Date(s);
-    return Number.isNaN(dt.getTime()) ? s : dt.toLocaleDateString(lang);
-  };
+  const fmtDate = (s: string) =>
+    new Date(s).toLocaleDateString("fr-FR", {
+      day: "2-digit", month: "long", year: "numeric",
+    });
 
   if (isLoading) return <Loader2 className="h-5 w-5 animate-spin text-gold" />;
-  if (data.length === 0)
-    return <p className="text-muted-foreground">{d.reviews.empty}</p>;
-
-  const Card = ({ r, action }: { r: Review; action: "approve" | "hide" }) => (
-    <div className="rounded-xl border border-border/60 bg-card p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-1 text-gold">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Star
-              key={i}
-              className={`h-4 w-4 ${i < r.rating ? "fill-current" : "text-muted-foreground/30"}`}
-            />
-          ))}
-        </div>
-        <Button
-          variant={action === "approve" ? "gold" : "outline"}
-          size="sm"
-          disabled={savingId === r.id}
-          onClick={() => moderate(r.id, action)}
-        >
-          {savingId === r.id ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : action === "approve" ? (
-            <Check className="h-4 w-4" />
-          ) : (
-            <EyeOff className="h-4 w-4" />
-          )}
-          {action === "approve" ? d.reviews.approve : d.reviews.hide}
-        </Button>
-      </div>
-      <p className="mt-2 whitespace-pre-line text-sm">{stripReviewMeta(r.message_fr) || "—"}</p>
-      <p className="mt-2 text-xs text-muted-foreground">
-        {d.reviews.by} {r.name}
-        {r.location ? ` · ${r.location}` : ""} · {d.reviews.on} {fmtDate(r.created_at)}
-      </p>
-    </div>
-  );
 
   return (
     <div className="space-y-8">
-      <div>
-        <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold">
-          {d.reviews.pending}
+
+      {/* En attente */}
+      <section className="space-y-3">
+        <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
+          En attente de modération
           <Badge variant="secondary">{pending.length}</Badge>
         </h2>
         {pending.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{d.reviews.none}</p>
+          <p className="text-sm text-muted-foreground">Aucun avis en attente.</p>
         ) : (
           <div className="space-y-3">
             {pending.map((r) => (
-              <Card key={r.id} r={r} action="approve" />
+              <ReviewCard key={r.id} r={r} busyId={busyId}
+                action="publish" onModerate={moderate} fmtDate={fmtDate} />
             ))}
           </div>
         )}
-      </div>
-      <div>
-        <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold">
-          {d.reviews.approved}
-          <Badge variant="secondary">{approved.length}</Badge>
+      </section>
+
+      {/* Publiés */}
+      <section className="space-y-3">
+        <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
+          Publiés sur le site
+          <Badge variant="secondary">{published.length}</Badge>
         </h2>
-        {approved.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{d.reviews.none}</p>
+        {published.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Aucun avis publié.</p>
         ) : (
           <div className="space-y-3">
-            {approved.map((r) => (
-              <Card key={r.id} r={r} action="hide" />
+            {published.map((r) => (
+              <ReviewCard key={r.id} r={r} busyId={busyId}
+                action="unpublish" onModerate={moderate} fmtDate={fmtDate} />
             ))}
           </div>
         )}
+      </section>
+
+    </div>
+  );
+}
+
+function ReviewCard({
+  r, busyId, action, onModerate, fmtDate,
+}: {
+  r: any;
+  busyId: string | null;
+  action: "publish" | "unpublish";
+  onModerate: (id: string, action: "publish" | "unpublish") => void;
+  fmtDate: (s: string) => string;
+}) {
+  return (
+    <div className="rounded-xl border border-border/60 bg-card p-4 shadow-soft">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="space-y-1">
+          <div className="flex items-center gap-1 text-amber-500">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Star key={i}
+                className={`h-4 w-4 ${i < r.rating ? "fill-current" : "text-muted-foreground/20"}`} />
+            ))}
+            <span className="ml-1 text-xs font-semibold text-amber-700">{r.rating}/5</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {r.name} · {fmtDate(r.created_at)}
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant={action === "publish" ? "gold" : "outline"}
+          disabled={busyId === r.id}
+          onClick={() => onModerate(r.id, action)}
+        >
+          {busyId === r.id
+            ? <Loader2 className="h-4 w-4 animate-spin" />
+            : action === "publish"
+              ? <><Eye className="h-4 w-4" /> Publier</>
+              : <><EyeOff className="h-4 w-4" /> Masquer</>}
+        </Button>
       </div>
+      <p className="mt-3 text-sm leading-relaxed">{r.message_fr || "—"}</p>
     </div>
   );
 }
