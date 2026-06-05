@@ -462,7 +462,13 @@ export function OccupancyCalendar() {
                     style={{ width: LABEL_W }}
                   >
                     <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
-                    <span className="truncate">{c.unassigned ?? "Non assigné"}</span>
+                    <span className="truncate">
+                      {lang === "en"
+                        ? "Unassigned"
+                        : lang === "de"
+                          ? "Nicht zugewiesen"
+                          : "Non assigné"}
+                    </span>
                   </div>
                   <div className="relative" style={{ width: trackW, height: 52 }}>
                     <div className="absolute inset-0 flex">
