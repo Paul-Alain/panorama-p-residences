@@ -121,7 +121,7 @@ function ReviewCard({
               : <><EyeOff className="h-4 w-4" /> Masquer</>}
         </Button>
       </div>
-      <p className="mt-3 text-sm leading-relaxed">{r.message_fr || "—"}</p>
+      <p className="mt-3 text-sm leading-relaxed">{r.comment || "—"}</p>
     </div>
   );
 }
