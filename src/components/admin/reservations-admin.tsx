@@ -197,8 +197,8 @@ export function ReservationsAdmin() {
                   <th className="px-3 py-2">E-mail</th>
                   <th className="px-3 py-2">Type</th>
                   <th className="px-3 py-2">Pers.</th>
-                  <th className="px-3 py-2">Arrivée</th>
-                  <th className="px-3 py-2">Départ</th>
+                  <SortHeader label="Arrivée" column="arrival" sort={sort} onSort={setSort} />
+                  <SortHeader label="Départ" column="departure" sort={sort} onSort={setSort} />
                   <th className="px-3 py-2 text-center">Unités</th>
                   <th className="px-3 py-2">Statut</th>
                   <th className="px-3 py-2 text-right">Total à payer</th>
