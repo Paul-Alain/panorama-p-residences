@@ -1057,7 +1057,7 @@ export const opCreateReservation = createServerFn({ method: "POST" })
         departure_time: data.departureTime ?? DEFAULT_CHECKOUT_TIME,
         channel: data.channel,
         guests: data.guests,
-        status: "confirmée",
+        status: "nouvelle",
         advance_amount: data.advance,
         notes: data.notes?.trim() || null,
       })
