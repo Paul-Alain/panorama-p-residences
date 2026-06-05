@@ -170,7 +170,7 @@ export const opListReviews = createServerFn({ method: "GET" })
     await assertStaff(context.supabase, context.userId);
     const { data, error } = await context.supabase
       .from("reviews")
-      .select("id, guest_name, rating, comment, published, created_at, reservation_id")
+      .select("id, guest_name, rating, comment, published, rejected, created_at, reservation_id")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
@@ -182,15 +182,20 @@ export const opModerateReview = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z.object({
       id:     UUID,
-      action: z.enum(["publish", "unpublish"]),
+      action: z.enum(["publish", "unpublish", "reject"]),
     }).parse(input),
   )
   .handler(async ({ context, data }) => {
     await assertStaff(context.supabase, context.userId);
-    const published = data.action === "publish";
+    const patch =
+      data.action === "publish"
+        ? { published: true,  rejected: false }
+        : data.action === "reject"
+          ? { published: false, rejected: true }
+          : { published: false, rejected: false }; // unpublish
     const { error } = await context.supabase
       .from("reviews")
-      .update({ published })
+      .update(patch)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { success: true };
