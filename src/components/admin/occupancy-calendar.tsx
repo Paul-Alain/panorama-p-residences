@@ -65,16 +65,14 @@ function calToEditable(r: CalRes): EditableReservation {
 
 /** Bar color class based on display status */
 function barClass(r: CalRes): string {
-  const arrMs = new Date(`${r.arrival_date}T${r.arrival_time.slice(0, 5)}:00`).getTime();
   const depMs = new Date(`${r.departure_date}T${r.departure_time.slice(0, 5)}:00`).getTime();
-  const ds    = displayReservationStatus(r.status, arrMs, depMs);
-  switch (ds) {
-    case "nouvelle":  return "cal-pending";
-    case "confirmée": return "cal-confirmed";
-    case "logé":      return "cal-completed";
-    case "annulée":   return "cal-cancelled";
-    default:          return "cal-pending";
-  }
+  const departed = Date.now() >= depMs;
+  if (r.status === "annulée") return "cal-cancelled";
+  // "Logé" (green) only when the DB status is logé/terminée AND departure has passed
+  if ((r.status === "logé" || r.status === "terminée") && departed) return "cal-completed";
+  if (r.status === "confirmée" || r.status === "logé" || r.status === "terminée") return "cal-confirmed";
+  if (r.status === "nouvelle") return "cal-pending";
+  return "cal-pending";
 }
 
 // ── Main component ───────────────────────────────────────────────────────
