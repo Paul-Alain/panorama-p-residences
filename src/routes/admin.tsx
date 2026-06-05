@@ -32,7 +32,7 @@ import { ReviewsAdmin } from "@/components/admin/reviews-admin";
 import { OccupancyCalendar } from "@/components/admin/occupancy-calendar";
 import { ClientsAdmin } from "@/components/admin/clients-admin";
 import { TeamAdmin } from "@/components/admin/team-admin";
-import { SettingsAdmin } from "@/components/admin/settings-admin";
+
 import { claimAdmin } from "@/lib/admin.functions";
 import { staffGetStatus } from "@/lib/operations.functions";
 
