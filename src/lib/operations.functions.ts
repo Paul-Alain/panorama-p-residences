@@ -10,7 +10,6 @@ import {
   logActivity,
 } from "@/lib/staff-guard";
 import {
-  canTransition,
   derivePaymentStatus,
   bookingUnitsFrom,
   computeUnitStatus,
@@ -1316,30 +1315,34 @@ export const opListTeam = createServerFn({ method: "GET" })
 export const opSetTeamRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    z
-      .object({
-        email: z.string().trim().email().max(160),
-        role: z.enum(["proprietaire", "gestionnaire", "technicien"]),
-      })
-      .parse(input),
+    z.object({
+      // Accept email, phone, or name — we'll try to match
+      identifier: z.string().trim().min(1).max(160),
+      role: z.enum(["proprietaire", "gestionnaire"]),
+    }).parse(input),
   )
   .handler(async ({ context, data }) => {
     await assertCanManageTeam(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Resolve user by email.
+    // Resolve user by email, phone or display name
     let targetId: string | null = null;
+    let targetEmail: string | null = null;
+    const id = data.identifier.toLowerCase().trim();
+
     for (let page = 1; ; page++) {
       const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
       if (error) throw new Error(error.message);
-      const found = list.users.find((u) => (u.email ?? "").toLowerCase() === data.email.toLowerCase());
-      if (found) {
-        targetId = found.id;
-        break;
-      }
+      const found = list.users.find((u) =>
+        (u.email ?? "").toLowerCase() === id ||
+        (u.phone ?? "").replace(/\D/g, "") === id.replace(/\D/g, "") ||
+        (u.user_metadata?.full_name ?? "").toLowerCase() === id ||
+        (u.user_metadata?.name ?? "").toLowerCase() === id,
+      );
+      if (found) { targetId = found.id; targetEmail = found.email ?? null; break; }
       if (list.users.length < 1000) break;
     }
-    if (!targetId) throw new Error("Aucun compte ne correspond à cet e-mail. Le membre doit d'abord créer un compte.");
+    if (!targetId) throw new Error("Aucun compte ne correspond. Le membre doit d'abord créer un compte sur le site.");
 
     const { error } = await supabaseAdmin
       .from("user_roles")
@@ -1348,14 +1351,57 @@ export const opSetTeamRole = createServerFn({ method: "POST" })
 
     const name = await actorName(context.supabase, context.userId);
     await logActivity(context.supabase, {
-      userId: context.userId,
-      userName: name,
-      action: "role_attribue",
-      objectType: "team",
-      objectId: targetId,
-      summary: `${data.email} → ${data.role}`,
+      userId: context.userId, userName: name,
+      action: "role_attribue", objectType: "team", objectId: targetId,
+      summary: `${targetEmail ?? data.identifier} → ${data.role}`,
     });
-    return { ok: true };
+    return { ok: true, targetEmail };
+  });
+
+// Replace gestionnaire: remove all existing gestionnaire roles then assign new one
+export const opReplaceManager = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ identifier: z.string().trim().min(1).max(160) }).parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertCanManageTeam(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Resolve new manager
+    let targetId: string | null = null;
+    let targetEmail: string | null = null;
+    const id = data.identifier.toLowerCase().trim();
+    for (let page = 1; ; page++) {
+      const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
+      if (error) throw new Error(error.message);
+      const found = list.users.find((u) =>
+        (u.email ?? "").toLowerCase() === id ||
+        (u.phone ?? "").replace(/\D/g, "") === id.replace(/\D/g, "") ||
+        (u.user_metadata?.full_name ?? "").toLowerCase() === id ||
+        (u.user_metadata?.name ?? "").toLowerCase() === id,
+      );
+      if (found) { targetId = found.id; targetEmail = found.email ?? null; break; }
+      if (list.users.length < 1000) break;
+    }
+    if (!targetId) throw new Error("Aucun compte ne correspond. Le membre doit d'abord créer un compte.");
+
+    // Remove all existing gestionnaire roles
+    await supabaseAdmin.from("user_roles").delete().eq("role", "gestionnaire");
+
+    // Assign new gestionnaire
+    const { error } = await supabaseAdmin
+      .from("user_roles")
+      .upsert({ user_id: targetId, role: "gestionnaire" }, { onConflict: "user_id,role", ignoreDuplicates: true });
+    if (error) throw new Error(error.message);
+
+    const name = await actorName(context.supabase, context.userId);
+    await logActivity(context.supabase, {
+      userId: context.userId, userName: name,
+      action: "role_attribue", objectType: "team", objectId: targetId,
+      summary: `Nouveau gestionnaire : ${targetEmail ?? data.identifier}`,
+    });
+    return { ok: true, targetEmail };
   });
 
 export const opRemoveTeamRole = createServerFn({ method: "POST" })
