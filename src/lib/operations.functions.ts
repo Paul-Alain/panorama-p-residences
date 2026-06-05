@@ -1174,6 +1174,8 @@ export const opListClients = createServerFn({ method: "GET" })
     const [resv, paidMap] = await Promise.all([loadReservations(sb), loadPaymentsMap(sb)]);
 
     const norm = (s: string | null) => (s ?? "").trim().toLowerCase();
+    const nowMs = Date.now();
+
     const clients = new Map<
       string,
       {
@@ -1188,16 +1190,28 @@ export const opListClients = createServerFn({ method: "GET" })
     >();
 
     for (const r of resv) {
-      if (r.status === BLOCK_STATUS) continue;
+      if (r.status === BLOCK_STATUS || r.status === "annulée") continue;
       const name = (r.name ?? "").trim();
-      if (!name) continue; // clients without a name are not listed
+      if (!name) continue;
+
+      // Un client est "ayant séjourné" si son statut est confirmée
+      // ET sa date/heure de départ est dépassée (= logé)
+      const depMs = new Date(
+        `${r.departure_date}T${(r.departure_time ?? DEFAULT_CHECKOUT_TIME).slice(0, 5)}:00`
+      ).getTime();
+      const isLoge = r.status === "confirmée" && depMs <= nowMs;
+      // Aussi accepter les anciens statuts legacy (checkin, terminée)
+      const isLegacy = r.status === "checkin" || r.status === "terminée";
+      if (!isLoge && !isLegacy) continue;
+
       const key = norm(r.email) || norm(r.phone) || norm(name);
       const paid = paidMap.get(r.id) ?? 0;
       const existing = clients.get(key);
       if (existing) {
         existing.reservations += 1;
         existing.totalSpent += paid;
-        if (!existing.lastStay || r.departure_date > existing.lastStay) existing.lastStay = r.departure_date;
+        if (!existing.lastStay || r.departure_date > existing.lastStay)
+          existing.lastStay = r.departure_date;
         if (!existing.email && r.email) existing.email = r.email;
       } else {
         clients.set(key, {
@@ -1211,7 +1225,9 @@ export const opListClients = createServerFn({ method: "GET" })
         });
       }
     }
-    return Array.from(clients.values()).sort((a, b) => b.totalSpent - a.totalSpent);
+    return Array.from(clients.values()).sort((a, b) =>
+      (b.lastStay ?? "").localeCompare(a.lastStay ?? "")
+    );
   });
 
 export const opGetClientDetail = createServerFn({ method: "GET" })
