@@ -14,7 +14,7 @@ import {
   CalendarRange,
   Contact,
   UsersRound,
-  Settings,
+
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { Logo } from "@/components/brand/logo";
