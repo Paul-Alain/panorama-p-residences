@@ -21,7 +21,6 @@ import {
 const WINDOW   = 30;   // 30 days visible
 const DAY_W    = 44;
 const LABEL_W  = 128;
-const BLOCK_STATUS = "bloqué";
 
 interface CalUnit {
   id: string; label: string; type: string;
