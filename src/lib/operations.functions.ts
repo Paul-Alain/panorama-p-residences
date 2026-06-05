@@ -985,6 +985,48 @@ const reservationUpdateSchema = reservationFormBase
     message: "Le nombre de personnes dépasse la capacité maximale de ce logement.",
   });
 
+/**
+ * Pick the first available unit of a given accommodation type that has no
+ * booking conflict over the requested period. Returns null if none is free.
+ */
+async function pickFreeUnit(
+  sb: any,
+  logementType: string,
+  arrival: string,
+  departure: string,
+  excludeId = "00000000-0000-0000-0000-000000000000",
+): Promise<string | null> {
+  const units = await loadUnits(sb);
+  const candidates = units
+    .filter(
+      (u) =>
+        u.type === logementType &&
+        u.available &&
+        (u.op_status === "actif" || !u.op_status),
+    )
+    .sort((a, b) => a.sort_order - b.sort_order);
+  if (candidates.length === 0) return null;
+
+  const { data: active } = await sb
+    .from("reservations")
+    .select("logement_unit_id, arrival_date, departure_date")
+    .in("status", ["nouvelle", "confirmée", "checkin", "bloqué"])
+    .neq("id", excludeId);
+
+  const overlaps = (unitId: string) =>
+    (active ?? []).some(
+      (r: any) =>
+        r.logement_unit_id === unitId &&
+        arrival < r.departure_date &&
+        r.arrival_date < departure,
+    );
+
+  for (const u of candidates) {
+    if (!overlaps(u.id)) return u.id;
+  }
+  return null;
+}
+
 export const opCreateReservation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => reservationFormSchema.parse(input))
@@ -992,13 +1034,22 @@ export const opCreateReservation = createServerFn({ method: "POST" })
     await assertStaff(context.supabase, context.userId);
     const sb = context.supabase;
 
+    // Auto-assign a free unit of the chosen type so the booking is visible on
+    // the occupancy calendar (which is organised by unit).
+    const unitId = await pickFreeUnit(
+      sb,
+      data.logementType,
+      data.arrival,
+      data.departure,
+    );
+
     const { data: inserted, error } = await sb
       .from("reservations")
       .insert({
         name: data.name,
         phone: data.phone,
         email: data.email || null,
-        logement_unit_id: null,
+        logement_unit_id: unitId,
         logement_type: data.logementType,
         arrival_date: data.arrival,
         departure_date: data.departure,
