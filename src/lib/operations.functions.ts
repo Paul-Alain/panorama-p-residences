@@ -1100,34 +1100,27 @@ export const opUpdateReservation = createServerFn({ method: "POST" })
       !existing?.logement_unit_id ||
       (unitRow && unitRow.type !== data.logementType);
 
-    const patch: Record<string, unknown> = {
-      name: data.name,
-      phone: data.phone,
-      email: data.email || null,
-      logement_type: data.logementType,
-      arrival_date: data.arrival,
-      departure_date: data.departure,
-      arrival_time: data.arrivalTime ?? DEFAULT_CHECKIN_TIME,
-      departure_time: data.departureTime ?? DEFAULT_CHECKOUT_TIME,
-      channel: data.channel,
-      guests: data.guests,
-      advance_amount: data.advance,
-      notes: data.notes?.trim() || null,
-    };
-
-    if (needsUnit) {
-      patch.logement_unit_id = await pickFreeUnit(
-        sb,
-        data.logementType,
-        data.arrival,
-        data.departure,
-        data.id,
-      );
-    }
+    const newUnitId = needsUnit
+      ? await pickFreeUnit(sb, data.logementType, data.arrival, data.departure, data.id)
+      : existing?.logement_unit_id ?? null;
 
     const { error } = await sb
       .from("reservations")
-      .update(patch)
+      .update({
+        name: data.name,
+        phone: data.phone,
+        email: data.email || null,
+        logement_type: data.logementType,
+        logement_unit_id: newUnitId,
+        arrival_date: data.arrival,
+        departure_date: data.departure,
+        arrival_time: data.arrivalTime ?? DEFAULT_CHECKIN_TIME,
+        departure_time: data.departureTime ?? DEFAULT_CHECKOUT_TIME,
+        channel: data.channel,
+        guests: data.guests,
+        advance_amount: data.advance,
+        notes: data.notes?.trim() || null,
+      })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
 
