@@ -170,7 +170,7 @@ export const opListReviews = createServerFn({ method: "GET" })
     await assertStaff(context.supabase, context.userId);
     const { data, error } = await context.supabase
       .from("reviews")
-      .select("id, name, rating, message_fr, sort_order, published, created_at, reservation_id")
+      .select("id, guest_name, rating, comment, published, created_at, reservation_id")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
