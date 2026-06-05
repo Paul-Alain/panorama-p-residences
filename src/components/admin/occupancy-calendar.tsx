@@ -232,7 +232,7 @@ export function OccupancyCalendar() {
                 .filter((b) => b.endIdx > b.startIdx && b.startIdx < WINDOW && b.endIdx > 0);
 
               return (
-                <div key={unit.id} className="flex border-b border-border/40 last:border-b-0">
+                <div key={unit.id} className="flex border-b-2 border-foreground last:border-b-0">
                   {/* Unit label */}
                   <div className="sticky left-0 z-20 flex shrink-0 items-center gap-1.5 bg-card px-3 py-2 text-sm font-medium"
                     style={{ width: LABEL_W }}>
