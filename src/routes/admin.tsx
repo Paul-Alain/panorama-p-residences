@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AdminNotifications } from "@/components/notifications/admin-notifications";
 import { DashboardOverview } from "@/components/admin/dashboard-overview";
 import { ReservationsAdmin } from "@/components/admin/reservations-admin";
+import { OccupancyCalendar } from "@/components/admin/occupancy-calendar";
 import { MessagesAdmin } from "@/components/admin/messages-admin";
 import { ReviewsAdmin } from "@/components/admin/reviews-admin";
 import { ClientsAdmin } from "@/components/admin/clients-admin";
