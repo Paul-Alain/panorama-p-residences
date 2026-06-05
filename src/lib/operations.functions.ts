@@ -168,6 +168,7 @@ export const opListReservations = createServerFn({ method: "GET" })
       0;
 
     const nowMs = Date.now();
+    const todayIso = todayLocalIso();
     return reservations
       .filter((r) => r.status !== BLOCK_STATUS)
       .map((r) => {
