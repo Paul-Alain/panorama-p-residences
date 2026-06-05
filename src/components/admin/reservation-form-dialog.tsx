@@ -184,7 +184,7 @@ export function ReservationFormDialog({
         advance:        String(reservation.advance ?? 0),
         addAdvance:     "0",
         notes:          reservation.notes ?? "",
-        customUnitPrice: customUnit,
+        customUnitPrice: customUnit !== "" ? customUnit : String(defPrice),
       });
     } else {
       setForm(empty);
