@@ -540,6 +540,7 @@ export type Database = {
           id: string
           published: boolean
           rating: number
+          rejected: boolean
           reservation_id: string | null
           review_token_id: string | null
           updated_at: string
@@ -551,6 +552,7 @@ export type Database = {
           id?: string
           published?: boolean
           rating?: number
+          rejected?: boolean
           reservation_id?: string | null
           review_token_id?: string | null
           updated_at?: string
@@ -562,6 +564,7 @@ export type Database = {
           id?: string
           published?: boolean
           rating?: number
+          rejected?: boolean
           reservation_id?: string | null
           review_token_id?: string | null
           updated_at?: string
