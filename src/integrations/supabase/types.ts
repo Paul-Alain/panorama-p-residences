@@ -485,6 +485,104 @@ export type Database = {
         }
         Relationships: []
       }
+      review_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          guest_email: string | null
+          guest_name: string
+          guest_phone: string | null
+          id: string
+          reservation_id: string
+          token: string
+          used: boolean
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          guest_email?: string | null
+          guest_name: string
+          guest_phone?: string | null
+          id?: string
+          reservation_id: string
+          token: string
+          used?: boolean
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          guest_email?: string | null
+          guest_name?: string
+          guest_phone?: string | null
+          id?: string
+          reservation_id?: string
+          token?: string
+          used?: boolean
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_tokens_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          guest_name: string
+          id: string
+          published: boolean
+          rating: number
+          reservation_id: string | null
+          review_token_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          guest_name: string
+          id?: string
+          published?: boolean
+          rating?: number
+          reservation_id?: string | null
+          review_token_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          guest_name?: string
+          id?: string
+          published?: boolean
+          rating?: number
+          reservation_id?: string | null
+          review_token_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_review_token_id_fkey"
+            columns: ["review_token_id"]
+            isOneToOne: false
+            referencedRelation: "review_tokens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppressed_emails: {
         Row: {
           created_at: string
