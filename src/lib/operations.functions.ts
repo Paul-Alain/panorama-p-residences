@@ -174,8 +174,9 @@ export const opListReservations = createServerFn({ method: "GET" })
       .map((r) => {
         const billableUnits = bookingUnitsOf(r);
         const unitPrice = priceOf(r);
-        // Total à payer = nombre d'unités × tarif du logement (auto, non modifiable).
-        const total = billableUnits * unitPrice;
+        // If gestionnaire set a custom total_amount, use it; otherwise auto-calculate.
+        const autoTotal = billableUnits * unitPrice;
+        const total = Number(r.total_amount) > 0 ? Number(r.total_amount) : autoTotal;
         const advance = Number(r.advance_amount) || 0;
         const paid = paidMap.get(r.id) ?? 0;
         const arrivalMs = new Date(
@@ -204,13 +205,11 @@ export const opListReservations = createServerFn({ method: "GET" })
           logement_type: r.logement_type,
           units: billableUnits,
           unitPrice,
-          total,
-          // "Montant avancé" : champ géré directement sur la réservation.
-          advance,
+          total,        // 0 if nothing set — never undefined
+          advance,      // 0 if nothing set — never undefined
           paid,
           balance: Math.max(0, total - advance),
-          // Réservation active = non annulée et dont la date de départ n'est
-          // pas encore passée (départ aujourd'hui ou dans le futur).
+          // Active = not cancelled AND departure date not yet passed
           active: r.status !== "annulée" && r.departure_date >= todayIso,
           notes: r.notes,
           message: r.notes,
@@ -540,7 +539,7 @@ export const opSetReservationStatus = createServerFn({ method: "POST" })
     z
       .object({
         id: UUID,
-        status: z.enum(["nouvelle", "confirmée", "checkin", "terminée", "annulée"]),
+        status: z.enum(["nouvelle", "confirmée", "annulée"]),
       })
       .parse(input),
   )
@@ -555,39 +554,33 @@ export const opSetReservationStatus = createServerFn({ method: "POST" })
       .single();
     if (e0) throw new Error(e0.message);
 
-    if (row.status !== data.status && !canTransition(row.status, data.status)) {
-      // allow cancel from any non-final, otherwise reject
-      if (!(data.status === "annulée" && !["terminée"].includes(row.status))) {
-        throw new Error(
-          `Transition non autorisée : ${RES_STATUS_LABELS[row.status]} → ${RES_STATUS_LABELS[data.status]}`,
-        );
-      }
+    // Check if departure has passed → reservation is "logé" → LOCKED
+    const departureMs = new Date(
+      `${row.departure_date}T${(row.departure_time ?? DEFAULT_CHECKOUT_TIME).slice(0, 5)}:00`,
+    ).getTime();
+    const nowMs = Date.now();
+
+    if (row.status === "confirmée" && nowMs >= departureMs) {
+      throw new Error("Cette réservation est verrouillée (client logé) — aucune modification possible.");
+    }
+    if (row.status === "annulée") {
+      throw new Error("Cette réservation est annulée — aucune modification possible.");
     }
 
-    // Cancellation is only allowed while the departure date/time has not passed.
-    if (data.status === "annulée") {
-      const departureMs = new Date(
-        `${row.departure_date}T${(row.departure_time ?? DEFAULT_CHECKOUT_TIME).slice(0, 5)}:00`,
-      ).getTime();
-      if (Date.now() > departureMs) {
-        throw new Error(
-          "Impossible d'annuler : la date de départ est déjà dépassée.",
-        );
-      }
+    // Cancellation only allowed before departure
+    if (data.status === "annulée" && nowMs > departureMs) {
+      throw new Error("Impossible d'annuler : la date de départ est déjà dépassée.");
     }
 
-    // Confirming only needs a conflict check when a physical unit is assigned.
+    // Conflict check when confirming with a physical unit assigned
     if (data.status === "confirmée" && row.logement_unit_id) {
       await ensureNoConflict(sb, row.logement_unit_id, row.arrival_date, row.departure_date, data.id);
     }
 
-    const patch: { status: string; checkin_at?: string; checkout_at?: string } = {
-      status: data.status,
-    };
-    if (data.status === "checkin") patch.checkin_at = new Date().toISOString();
-    if (data.status === "terminée") patch.checkout_at = new Date().toISOString();
-
-    const { error } = await sb.from("reservations").update(patch).eq("id", data.id);
+    const { error } = await sb
+      .from("reservations")
+      .update({ status: data.status })
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
 
     const name = await actorName(sb, context.userId);
@@ -961,6 +954,8 @@ const reservationFormBase = z.object({
   channel: z.enum(["website", "whatsapp", "phone", "walkin"]).default("walkin"),
   guests: z.number().int().min(1).max(20),
   advance: z.number().min(0).max(100_000_000).default(0),
+  // Optional custom total set by gestionnaire (price negotiation)
+  totalAmount: z.number().min(0).max(100_000_000).optional(),
   notes: z.string().max(1000).optional(),
 });
 
@@ -1067,6 +1062,7 @@ export const opCreateReservation = createServerFn({ method: "POST" })
         guests: data.guests,
         status: "nouvelle",
         advance_amount: data.advance,
+        total_amount: data.totalAmount ?? 0,
         notes: data.notes?.trim() || null,
       })
       .select("id")
@@ -1127,6 +1123,7 @@ export const opUpdateReservation = createServerFn({ method: "POST" })
         channel: data.channel,
         guests: data.guests,
         advance_amount: data.advance,
+        total_amount: data.totalAmount ?? 0,
         notes: data.notes?.trim() || null,
       })
       .eq("id", data.id);
