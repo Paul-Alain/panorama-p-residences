@@ -9,6 +9,7 @@ import {
   Home,
   LayoutDashboard,
   CalendarDays,
+  CalendarRange,
   MessageSquare,
   Star,
   Contact,
@@ -25,6 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AdminNotifications } from "@/components/notifications/admin-notifications";
 import { DashboardOverview } from "@/components/admin/dashboard-overview";
 import { ReservationsAdmin } from "@/components/admin/reservations-admin";
+import { OccupancyCalendar } from "@/components/admin/occupancy-calendar";
 import { MessagesAdmin } from "@/components/admin/messages-admin";
 import { ReviewsAdmin } from "@/components/admin/reviews-admin";
 import { ClientsAdmin } from "@/components/admin/clients-admin";
@@ -165,6 +167,7 @@ function AdminDashboard() {
   const tabs: { value: string; label: string; icon: typeof LayoutDashboard }[] = [
     { value: "overview", label: "Tableau de bord", icon: LayoutDashboard },
     { value: "reservations", label: "Réservations", icon: CalendarDays },
+    { value: "calendar", label: "Calendrier", icon: CalendarRange },
     { value: "clients", label: "Clients", icon: Contact },
     { value: "messages", label: "Messages", icon: MessageSquare },
     { value: "reviews", label: "Avis", icon: Star },
@@ -185,6 +188,7 @@ function AdminDashboard() {
       </div>
       <TabsContent value="overview" className="mt-6"><DashboardOverview /></TabsContent>
       <TabsContent value="reservations" className="mt-6"><ReservationsAdmin /></TabsContent>
+      <TabsContent value="calendar" className="mt-6"><OccupancyCalendar /></TabsContent>
       <TabsContent value="clients" className="mt-6"><ClientsAdmin /></TabsContent>
       <TabsContent value="messages" className="mt-6"><MessagesAdmin /></TabsContent>
       <TabsContent value="reviews" className="mt-6"><ReviewsAdmin /></TabsContent>

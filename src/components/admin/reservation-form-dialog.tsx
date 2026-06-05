@@ -184,7 +184,7 @@ export function ReservationFormDialog({
         advance:        String(reservation.advance ?? 0),
         addAdvance:     "0",
         notes:          reservation.notes ?? "",
-        customUnitPrice: customUnit,
+        customUnitPrice: customUnit !== "" ? customUnit : String(defPrice),
       });
     } else {
       setForm(empty);
@@ -360,7 +360,8 @@ export function ReservationFormDialog({
                         ...f,
                         type: v,
                         guests: String(Math.min(Number(f.guests) || 1, max)),
-                        customUnitPrice: "", // reset custom price on type change
+                        // Pre-fill negotiated price with the selected type's default price
+                        customUnitPrice: String(defaultPriceByType[v] ?? 0),
                       };
                     })
                   }
