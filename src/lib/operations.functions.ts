@@ -1085,22 +1085,49 @@ export const opUpdateReservation = createServerFn({ method: "POST" })
     await assertStaff(context.supabase, context.userId);
     const sb = context.supabase;
 
+    // Keep the unit assignment coherent with the (possibly changed) type so the
+    // booking stays visible on the occupancy calendar.
+    const { data: existing } = await sb
+      .from("reservations")
+      .select("logement_unit_id, logement_type")
+      .eq("id", data.id)
+      .single();
+
+    const unitRow = existing?.logement_unit_id
+      ? (await loadUnits(sb)).find((u) => u.id === existing.logement_unit_id)
+      : undefined;
+    const needsUnit =
+      !existing?.logement_unit_id ||
+      (unitRow && unitRow.type !== data.logementType);
+
+    const patch: Record<string, unknown> = {
+      name: data.name,
+      phone: data.phone,
+      email: data.email || null,
+      logement_type: data.logementType,
+      arrival_date: data.arrival,
+      departure_date: data.departure,
+      arrival_time: data.arrivalTime ?? DEFAULT_CHECKIN_TIME,
+      departure_time: data.departureTime ?? DEFAULT_CHECKOUT_TIME,
+      channel: data.channel,
+      guests: data.guests,
+      advance_amount: data.advance,
+      notes: data.notes?.trim() || null,
+    };
+
+    if (needsUnit) {
+      patch.logement_unit_id = await pickFreeUnit(
+        sb,
+        data.logementType,
+        data.arrival,
+        data.departure,
+        data.id,
+      );
+    }
+
     const { error } = await sb
       .from("reservations")
-      .update({
-        name: data.name,
-        phone: data.phone,
-        email: data.email || null,
-        logement_type: data.logementType,
-        arrival_date: data.arrival,
-        departure_date: data.departure,
-        arrival_time: data.arrivalTime ?? DEFAULT_CHECKIN_TIME,
-        departure_time: data.departureTime ?? DEFAULT_CHECKOUT_TIME,
-        channel: data.channel,
-        guests: data.guests,
-        advance_amount: data.advance,
-        notes: data.notes?.trim() || null,
-      })
+      .update(patch)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
 
