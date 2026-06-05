@@ -77,6 +77,7 @@ export const staffGetStatus = createServerFn({ method: "GET" })
       "admin",
       "proprietaire",
       "gestionnaire",
+      "technicien",
       "reception",
       "menage",
       "comptable",
@@ -85,6 +86,10 @@ export const staffGetStatus = createServerFn({ method: "GET" })
     return {
       isStaff,
       isAdmin: roles.includes("admin") || roles.includes("proprietaire"),
+      canManageTeam:
+        roles.includes("admin") ||
+        roles.includes("proprietaire") ||
+        roles.includes("technicien"),
       roles,
     };
   });
