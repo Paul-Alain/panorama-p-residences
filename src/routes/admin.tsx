@@ -173,7 +173,7 @@ function AdminDashboard() {
     { value: "messages", label: "Messages", icon: MessageSquare },
     { value: "reviews", label: "Avis", icon: Star },
     { value: "team", label: "Équipe", icon: UsersRound },
-    { value: "settings", label: "Paramètres", icon: Settings },
+
   ];
 
   return (
