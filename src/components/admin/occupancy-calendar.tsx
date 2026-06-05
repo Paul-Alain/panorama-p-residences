@@ -249,7 +249,7 @@ export function OccupancyCalendar() {
                         const isToday = d === today;
                         return (
                           <div key={d}
-                            className={`shrink-0 border-l border-border/40 ${
+                            className={`shrink-0 border-l-2 border-foreground ${
                               maint   ? "cal-maintenance opacity-30"
                               : isSun ? "bg-secondary/30"
                               : "cal-free"
