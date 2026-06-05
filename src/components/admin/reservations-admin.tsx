@@ -56,15 +56,16 @@ function toEditable(r: ResItem): EditableReservation {
   };
 }
 
-// Generate list of months for filter (last 12 months + next 6)
+// Generate list of months for filter, covering every year from 2025 to 2050
 function generateMonthOptions() {
   const options: { value: string; label: string }[] = [];
-  const now = new Date();
-  for (let i = -12; i <= 6; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const label = d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
-    options.push({ value, label: label.charAt(0).toUpperCase() + label.slice(1) });
+  for (let year = 2025; year <= 2050; year++) {
+    for (let m = 0; m < 12; m++) {
+      const d = new Date(year, m, 1);
+      const value = `${year}-${String(m + 1).padStart(2, "0")}`;
+      const label = d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+      options.push({ value, label: label.charAt(0).toUpperCase() + label.slice(1) });
+    }
   }
   return options;
 }
