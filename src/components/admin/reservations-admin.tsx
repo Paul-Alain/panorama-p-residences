@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import {
   Loader2, Search, Plus, ChevronLeft, ChevronRight,
   CheckCircle2, Pencil, XCircle, ArrowUpDown, ArrowUp, ArrowDown, Lock,
-  Star, Copy, MessageCircle, Mail,
+  Star, Copy, MessageCircle, Mail, Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,7 +71,7 @@ function generateMonthOptions() {
   return options;
 }
 
-export function ReservationsAdmin() {
+export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) {
   const qc        = useQueryClient();
   const residence = useResidence();
   const runList   = useServerFn(opListReservations);
@@ -165,9 +165,16 @@ export function ReservationsAdmin() {
 
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Button variant="gold" size="sm" onClick={() => setCreateOpen(true)}>
-          <Plus className="h-4 w-4" /> Nouvelle réservation
-        </Button>
+        {!readOnly && (
+          <Button variant="gold" size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4" /> Nouvelle réservation
+          </Button>
+        )}
+        {readOnly && (
+          <div className="flex items-center gap-2 rounded-xl border border-amber-300/40 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <Lock className="h-3.5 w-3.5" /> Mode lecture seule — propriétaire
+          </div>
+        )}
       </div>
 
       {/* Filters row */}
@@ -289,6 +296,7 @@ export function ReservationsAdmin() {
                       <td className="px-3 py-2">
                         <div className="flex items-center justify-end gap-1">
                           <RowActions r={r} busyId={busyId} locked={locked}
+                            readOnly={readOnly}
                             onEdit={() => setEditing(toEditable(r))}
                             act={act} runStatus={runStatus} />
                         </div>
@@ -352,10 +360,11 @@ function SortHeader({ label, column, sort, onSort }: {
   );
 }
 
-function RowActions({ r, busyId, locked, onEdit, act, runStatus }: {
+function RowActions({ r, busyId, locked, readOnly, onEdit, act, runStatus }: {
   r: ResItem;
   busyId: string | null;
   locked: boolean;
+  readOnly: boolean;
   onEdit: () => void;
   act: (id: string, fn: () => Promise<unknown>, ok: string) => Promise<void>;
   runStatus: (a: { data: { id: string; status: any } }) => Promise<unknown>;
@@ -366,6 +375,9 @@ function RowActions({ r, busyId, locked, onEdit, act, runStatus }: {
   const [reviewUrl, setReviewUrl] = useState<string | null>(null);
   const [genBusy,   setGenBusy]   = useState(false);
   const [copied,    setCopied]    = useState(false);
+
+  // ReadOnly mode — just show info icon
+  if (readOnly) return <Eye className="h-4 w-4 text-muted-foreground/40" />;
 
   const generateLink = async () => {
     setGenBusy(true);
