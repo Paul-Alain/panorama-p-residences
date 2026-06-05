@@ -105,7 +105,7 @@ function ReviewCard({
             <span className="ml-1 text-xs font-semibold text-amber-700">{r.rating}/5</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            {r.name} · {fmtDate(r.created_at)}
+            {r.guest_name} · {fmtDate(r.created_at)}
           </p>
         </div>
         <Button
