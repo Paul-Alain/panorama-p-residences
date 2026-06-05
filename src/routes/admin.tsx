@@ -167,6 +167,7 @@ function AdminDashboard() {
   const tabs: { value: string; label: string; icon: typeof LayoutDashboard }[] = [
     { value: "overview", label: "Tableau de bord", icon: LayoutDashboard },
     { value: "reservations", label: "Réservations", icon: CalendarDays },
+    { value: "calendar", label: "Calendrier", icon: CalendarRange },
     { value: "clients", label: "Clients", icon: Contact },
     { value: "messages", label: "Messages", icon: MessageSquare },
     { value: "reviews", label: "Avis", icon: Star },
