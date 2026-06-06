@@ -10,7 +10,7 @@ import { useResidence } from "@/lib/use-residence";
 import { generateReceiptPdf } from "@/lib/pdf-documents";
 import { ReservationDetailDialog } from "./reservation-detail-dialog";
 
-export function PaymentsAdmin() {
+export function PaymentsAdmin({ readOnly = false }: { readOnly?: boolean }) {
   const residence = useResidence();
   const runList = useServerFn(opListPayments);
   const [detailId, setDetailId] = useState<string | null>(null);
