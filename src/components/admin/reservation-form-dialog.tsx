@@ -89,17 +89,24 @@ export function ReservationFormDialog({
   const runUpdate = useServerFn(opUpdateReservation);
   const isEdit    = !!reservation;
 
-  // Detect locked status (logé or annulée)
+  // Detect if reservation is fully locked (annulée depuis plus de 5h)
   const locked = useMemo(() => {
     if (!reservation) return false;
-    const arrMs = new Date(
-      `${reservation.arrival_date}T${(reservation.arrival_time ?? DEFAULT_ARRIVAL_TIME).slice(0, 5)}:00`,
-    ).getTime();
+    if ((reservation.status ?? "nouvelle") === "annulée") {
+      const cancelledAt = (reservation as any).cancelled_at ?? (reservation as any).updated_at;
+      if (!cancelledAt) return true;
+      return Date.now() - new Date(cancelledAt).getTime() > 5 * 60 * 60 * 1000;
+    }
+    return false; // nouvelle, confirmée, logé → jamais complètement verrouillé
+  }, [reservation]);
+
+  // Detect if price is locked (logé = prix négocié verrouillé, avance toujours éditable)
+  const priceLocked = useMemo(() => {
+    if (!reservation) return false;
     const depMs = new Date(
-      `${reservation.departure_date}T${(reservation.departure_time ?? DEFAULT_DEPARTURE_TIME).slice(0, 5)}:00`,
+      `${reservation.departure_date}T${(reservation.departure_time ?? DEFAULT_DEPARTURE_TIME).slice(0, 5)}:00+01:00`,
     ).getTime();
-    const ds = displayReservationStatus(reservation.status ?? "nouvelle", arrMs, depMs);
-    return isLocked(ds);
+    return (reservation.status ?? "nouvelle") === "confirmée" && depMs <= Date.now();
   }, [reservation]);
 
   const displayStatus = useMemo(() => {
@@ -461,7 +468,11 @@ export function ReservationFormDialog({
                     placeholder={String(defaultUnitPrice)}
                     value={form.customUnitPrice}
                     onChange={(e) => set("customUnitPrice", e.target.value)}
+                    disabled={priceLocked}
+                    readOnly={priceLocked}
+                    className={priceLocked ? "bg-secondary/40 cursor-not-allowed" : ""}
                   />
+                  {priceLocked && <p className="text-[11px] text-blue-600">Prix verrouillé — client logé</p>}
                   <p className="text-[11px] text-muted-foreground">
                     Laisser vide = prix par défaut
                   </p>
