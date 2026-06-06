@@ -150,7 +150,7 @@ function AdminDashboard({ roles }: { roles: string[] }) {
     { value: "payments",     label: "Paiements",       icon: CreditCard },
     { value: "messages",     label: "Messages",        icon: MessageSquare },
     { value: "reviews",      label: "Avis",            icon: Star },
-    { value: "team",         label: "Administration",  icon: UsersRound },
+    ...(isOwner ? [{ value: "team", label: "Administration", icon: UsersRound } as const] : []),
   ];
 
   return (
@@ -173,7 +173,7 @@ function AdminDashboard({ roles }: { roles: string[] }) {
       <TabsContent value="payments"     className="mt-6"><PaymentsAdmin readOnly={isOwner} /></TabsContent>
       <TabsContent value="messages"     className="mt-6"><MessagesAdmin /></TabsContent>
       <TabsContent value="reviews"      className="mt-6"><ReviewsAdmin /></TabsContent>
-      <TabsContent value="team"         className="mt-6"><TeamAdmin /></TabsContent>
+      {isOwner && <TabsContent value="team" className="mt-6"><TeamAdmin /></TabsContent>}
     </Tabs>
   );
 }
