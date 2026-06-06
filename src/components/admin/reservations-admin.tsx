@@ -48,6 +48,8 @@ function isRowLocked(r: ResItem): boolean {
   }
   return false; // nouvelle, confirmée, logé → toujours éditable
 }
+
+function statusBadgeClass(s: DisplayResStatus): string {
   switch (s) {
     case "nouvelle":  return "bg-amber-100  text-amber-700  border-amber-300";
     case "confirmée": return "bg-emerald-100 text-emerald-700 border-emerald-300";
