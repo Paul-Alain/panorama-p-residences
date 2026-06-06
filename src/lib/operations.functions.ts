@@ -87,8 +87,7 @@ export const staffGetStatus = createServerFn({ method: "GET" })
       isAdmin: roles.includes("admin") || roles.includes("proprietaire"),
       canManageTeam:
         roles.includes("admin") ||
-        roles.includes("proprietaire") ||
-        roles.includes("technicien"),
+        roles.includes("proprietaire"),
       roles,
     };
   });
@@ -963,12 +962,20 @@ const departureAfterArrival = (v: {
   departure: string;
   arrivalTime?: string;
   departureTime?: string;
-}) =>
-  new Date(`${v.departure}T${(v.departureTime ?? DEFAULT_CHECKOUT_TIME)}:00`) >
-  new Date(`${v.arrival}T${(v.arrivalTime ?? DEFAULT_CHECKIN_TIME)}:00`);
+}) => {
+  const arrMs = new Date(`${v.arrival}T${(v.arrivalTime ?? DEFAULT_CHECKIN_TIME).slice(0,5)}:00`).getTime();
+  const depMs = new Date(`${v.departure}T${(v.departureTime ?? DEFAULT_CHECKOUT_TIME).slice(0,5)}:00`).getTime();
+  return depMs > arrMs;
+};
 
 const guestsWithinCapacity = (v: { logementType: string; guests: number }) =>
-  v.guests <= (MAX_GUESTS_BY_TYPE[v.logementType] ?? 20);
+  v.guests >= 1 && v.guests <= (MAX_GUESTS_BY_TYPE[v.logementType] ?? 20);
+
+const amountsValid = (v: { advance?: number; totalAmount?: number }) => {
+  if ((v.advance ?? 0) < 0) return false;
+  if ((v.totalAmount ?? 0) < 0) return false;
+  return true;
+};
 
 const reservationFormSchema = reservationFormBase
   .refine(departureAfterArrival, {
@@ -976,6 +983,9 @@ const reservationFormSchema = reservationFormBase
   })
   .refine(guestsWithinCapacity, {
     message: "Le nombre de personnes dépasse la capacité maximale de ce logement.",
+  })
+  .refine(amountsValid, {
+    message: "Les montants ne peuvent pas être négatifs.",
   });
 
 const reservationUpdateSchema = reservationFormBase
@@ -985,6 +995,9 @@ const reservationUpdateSchema = reservationFormBase
   })
   .refine(guestsWithinCapacity, {
     message: "Le nombre de personnes dépasse la capacité maximale de ce logement.",
+  })
+  .refine(amountsValid, {
+    message: "Les montants ne peuvent pas être négatifs.",
   });
 
 /**
