@@ -85,11 +85,11 @@ function NoterPage() {
           Merci pour votre avis !
         </h1>
         <p className="text-muted-foreground">
-          Votre commentaire a bien été reçu. Il sera examiné par notre équipe avant publication.
+          Nous vous remercions sincèrement pour votre retour. Votre satisfaction est notre priorité.
         </p>
         <hr className="my-2" />
         <p className="text-muted-foreground text-sm italic">
-          Thank you for your review! Our team will review it before publishing.
+          Thank you so much for your feedback. Your satisfaction is our priority.
         </p>
       </div>
     </Shell>
