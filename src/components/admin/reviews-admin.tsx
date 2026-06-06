@@ -2,12 +2,10 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Star, Eye, EyeOff, X } from "lucide-react";
+import { Loader2, Star, Eye, EyeOff, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { opListReviews, opModerateReview } from "@/lib/review.functions";
-
-type Action = "publish" | "unpublish" | "reject";
 
 export function ReviewsAdmin() {
   const qc          = useQueryClient();
@@ -23,18 +21,14 @@ export function ReviewsAdmin() {
 
   const pending   = data.filter((r) => !r.published && !r.rejected);
   const published = data.filter((r) => r.published);
-  const rejected  = data.filter((r) => r.rejected);
+  const rejected  = data.filter((r) => r.rejected && !r.published);
 
-  const moderate = async (id: string, action: Action) => {
+  const moderate = async (id: string, action: "publish" | "unpublish") => {
     setBusyId(id);
     try {
       await runModerate({ data: { id, action } });
       await qc.invalidateQueries({ queryKey: ["admin-reviews"] });
-      toast.success(
-        action === "publish" ? "Avis publié."
-          : action === "reject" ? "Avis refusé."
-            : "Avis masqué.",
-      );
+      toast.success(action === "publish" ? "Avis publié." : "Avis masqué.");
     } catch {
       toast.error("Erreur.");
     }
@@ -63,7 +57,7 @@ export function ReviewsAdmin() {
           <div className="space-y-3">
             {pending.map((r) => (
               <ReviewCard key={r.id} r={r} busyId={busyId}
-                actions={["publish", "reject"]} onModerate={moderate} fmtDate={fmtDate} />
+                action="publish" onModerate={moderate} fmtDate={fmtDate} />
             ))}
           </div>
         )}
@@ -81,23 +75,23 @@ export function ReviewsAdmin() {
           <div className="space-y-3">
             {published.map((r) => (
               <ReviewCard key={r.id} r={r} busyId={busyId}
-                actions={["unpublish"]} onModerate={moderate} fmtDate={fmtDate} />
+                action="unpublish" onModerate={moderate} fmtDate={fmtDate} />
             ))}
           </div>
         )}
       </section>
 
-      {/* Refusés */}
+      {/* Non publiés */}
       {rejected.length > 0 && (
         <section className="space-y-3">
-          <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-muted-foreground">
-            Refusés
-            <Badge variant="outline">{rejected.length}</Badge>
+          <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
+            Non publiés
+            <Badge variant="secondary">{rejected.length}</Badge>
           </h2>
           <div className="space-y-3">
             {rejected.map((r) => (
               <ReviewCard key={r.id} r={r} busyId={busyId}
-                actions={[]} onModerate={moderate} fmtDate={fmtDate} muted />
+                action="publish" onModerate={moderate} fmtDate={fmtDate} />
             ))}
           </div>
         </section>
@@ -108,17 +102,16 @@ export function ReviewsAdmin() {
 }
 
 function ReviewCard({
-  r, busyId, actions, onModerate, fmtDate, muted,
+  r, busyId, action, onModerate, fmtDate,
 }: {
   r: any;
   busyId: string | null;
-  actions: Action[];
-  onModerate: (id: string, action: Action) => void;
+  action: "publish" | "unpublish";
+  onModerate: (id: string, action: "publish" | "unpublish") => void;
   fmtDate: (s: string) => string;
-  muted?: boolean;
 }) {
   return (
-    <div className={`rounded-xl border border-border/60 bg-card p-4 shadow-soft ${muted ? "opacity-60" : ""}`}>
+    <div className="rounded-xl border border-border/60 bg-card p-4 shadow-soft">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="space-y-1">
           <div className="flex items-center gap-1 text-amber-500">
@@ -129,36 +122,23 @@ function ReviewCard({
             <span className="ml-1 text-xs font-semibold text-amber-700">{r.rating}/5</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            {r.guest_name} · {fmtDate(r.created_at)}
+            {(r as any).guest_name} · {fmtDate((r as any).created_at)}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {actions.includes("publish") && (
-            <Button size="sm" variant="gold" disabled={busyId === r.id}
-              onClick={() => onModerate(r.id, "publish")}>
-              {busyId === r.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
-              Publier
-            </Button>
-          )}
-          {actions.includes("reject") && (
-            <Button size="sm" variant="outline"
-              className="border-destructive/40 text-destructive hover:bg-destructive/10"
-              disabled={busyId === r.id}
-              onClick={() => onModerate(r.id, "reject")}>
-              {busyId === r.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
-              Refuser
-            </Button>
-          )}
-          {actions.includes("unpublish") && (
-            <Button size="sm" variant="outline" disabled={busyId === r.id}
-              onClick={() => onModerate(r.id, "unpublish")}>
-              {busyId === r.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <EyeOff className="h-4 w-4" />}
-              Masquer
-            </Button>
-          )}
-        </div>
+        <Button
+          size="sm"
+          variant={action === "publish" ? "gold" : "outline"}
+          disabled={busyId === r.id}
+          onClick={() => onModerate(r.id, action)}
+        >
+          {busyId === r.id
+            ? <Loader2 className="h-4 w-4 animate-spin" />
+            : action === "publish"
+              ? <><Eye className="h-4 w-4" /> Publier</>
+              : <><EyeOff className="h-4 w-4" /> Masquer</>}
+        </Button>
       </div>
-      <p className="mt-3 text-sm leading-relaxed">{r.comment || "—"}</p>
+      <p className="mt-3 text-sm leading-relaxed">{(r as any).comment || "—"}</p>
     </div>
   );
 }
