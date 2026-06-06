@@ -14,6 +14,7 @@ import {
 import { opGetDashboard, opGetRevenueAnalytics } from "@/lib/operations.functions";
 import { formatMoney, formatDateFr } from "@/lib/format";
 import { useResidence } from "@/lib/use-residence";
+import { nowCam, dateTimeMsCam, todayCam } from "@/lib/cameroun-time";
 import { displayReservationStatus } from "@/lib/operations";
 
 // ── Types ────────────────────────────────────────────────────────────────
@@ -35,9 +36,7 @@ const TYPE_LABELS: Record<string, string> = {
 const BAR_COLOR = "#1d4ed8"; // blue-700
 
 // ── Date helpers ─────────────────────────────────────────────────────────
-function isoDay(d: Date) {
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-}
+function isoDay(d: Date) { return todayCam(); } // utilise l'heure Cameroun
 function monthRange(year: number, month: number) {
   const start = `${year}-${String(month).padStart(2, "0")}-01`;
   const last  = new Date(year, month, 0).getDate();
@@ -60,8 +59,8 @@ export function DashboardOverview() {
   const runRevenue = useServerFn(opGetRevenueAnalytics);
   const money      = (v: number) => formatMoney(v, residence.currency);
 
-  const now   = new Date();
-  const nowMs = Date.now();
+  const now   = new Date(nowCam());
+  const nowMs = nowCam();
 
   // ── Dashboard data ───────────────────────────────────────────────────
   const { data: dash, isLoading: loadingDash } = useQuery({
@@ -182,9 +181,7 @@ export function DashboardOverview() {
       if (seen.has(r.id)) return false;
       seen.add(r.id);
       if (dismissed.has(r.id)) return false;
-      const arrMs = new Date(
-        `${r.arrival}T${(r.arrivalTime ?? "14:00").slice(0, 5)}:00`
-      ).getTime();
+      const arrMs = dateTimeMsCam(r.arrival, r.arrivalTime, "14:00");
       return arrMs >= nowMs && arrMs <= in30h && r.status !== "annulée";
     });
   }, [dash, nowMs, dismissed]);
@@ -391,9 +388,7 @@ export function DashboardOverview() {
         ) : (
           <div className="space-y-2">
             {urgentArrivals.map((r) => {
-              const arrMs = new Date(
-                `${r.arrival}T${(r.arrivalTime ?? "14:00").slice(0, 5)}:00`
-              ).getTime();
+              const arrMs = dateTimeMsCam(r.arrival, r.arrivalTime, "14:00");
               const hoursLeft = Math.max(0, Math.round((arrMs - nowMs) / 3_600_000));
               return (
                 <div key={r.id}
