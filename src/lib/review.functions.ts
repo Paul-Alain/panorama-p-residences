@@ -144,12 +144,13 @@ export const opSubmitReview = createServerFn({ method: "POST" })
     if (row.used)   throw new Error("Cet avis a déjà été soumis.");
     if (new Date(row.expires_at) < new Date()) throw new Error("Ce lien a expiré.");
 
-    // Créer l'avis — published = false = en attente de modération
+    // Créer l'avis avec les bonnes colonnes de la table reviews
     const { error: e1 } = await sb.from("reviews").insert({
       guest_name:      data.name,
       rating:          data.rating,
       comment:         data.comment,
       published:       false,
+      rejected:        false,
       review_token_id: row.id,
       reservation_id:  row.reservation_id,
     });
@@ -170,7 +171,7 @@ export const opListReviews = createServerFn({ method: "GET" })
     await assertStaff(context.supabase, context.userId);
     const { data, error } = await context.supabase
       .from("reviews")
-      .select("id, guest_name, rating, comment, published, rejected, created_at, reservation_id")
+      .select("id, guest_name, rating, comment, published, rejected, created_at, reservation_id, review_token_id")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
@@ -182,20 +183,15 @@ export const opModerateReview = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z.object({
       id:     UUID,
-      action: z.enum(["publish", "unpublish", "reject"]),
+      action: z.enum(["publish", "unpublish"]),
     }).parse(input),
   )
   .handler(async ({ context, data }) => {
     await assertStaff(context.supabase, context.userId);
-    const patch =
-      data.action === "publish"
-        ? { published: true,  rejected: false }
-        : data.action === "reject"
-          ? { published: false, rejected: true }
-          : { published: false, rejected: false }; // unpublish
+    const published  = data.action === "publish";
     const { error } = await context.supabase
       .from("reviews")
-      .update(patch)
+      .update({ published, rejected: !published })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { success: true };
