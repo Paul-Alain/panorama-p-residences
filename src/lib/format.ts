@@ -68,8 +68,10 @@ export function formatRelativeFr(input: string | Date | null | undefined): strin
 }
 
 /** `25 000 FCFA` */
-export function formatMoney(amount: number, currency = "FCFA"): string {
-  return `${Math.round(amount).toLocaleString("fr-FR")} ${currency}`;
+export function formatMoney(amount: number | null | undefined, currency = "FCFA"): string {
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return `0 ${currency}`;
+  return `${Math.round(n).toLocaleString("fr-FR")} ${currency}`;
 }
 
 /** Today as `YYYY-MM-DD` in local time (matches Supabase date columns). */
