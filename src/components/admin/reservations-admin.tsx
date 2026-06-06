@@ -37,7 +37,17 @@ const CHANNEL_LABELS: Record<string, string> = {
 
 type ResItem = Awaited<ReturnType<typeof opListReservations>>[number];
 
-function statusBadgeClass(s: DisplayResStatus) {
+// Locked = annulée depuis plus de 5h
+function isRowLocked(r: ResItem): boolean {
+  if (r.displayStatus === "annulée") {
+    // Chercher quand la réservation a été annulée (updated_at ou created_at)
+    const cancelledAt = (r as any).cancelled_at ?? (r as any).updated_at ?? (r as any).created_at;
+    if (!cancelledAt) return true;
+    const fiveHoursMs = 5 * 60 * 60 * 1000;
+    return Date.now() - new Date(cancelledAt).getTime() > fiveHoursMs;
+  }
+  return false; // nouvelle, confirmée, logé → toujours éditable
+}
   switch (s) {
     case "nouvelle":  return "bg-amber-100  text-amber-700  border-amber-300";
     case "confirmée": return "bg-emerald-100 text-emerald-700 border-emerald-300";
@@ -62,11 +72,15 @@ function toEditable(r: ResItem): EditableReservation {
 function generateMonthOptions() {
   const options: { value: string; label: string }[] = [];
   const now = new Date();
-  for (let i = -12; i <= 6; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const label = d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
-    options.push({ value, label: label.charAt(0).toUpperCase() + label.slice(1) });
+  const currentYear = now.getFullYear();
+  // De 2020 jusqu'en 2050
+  for (let year = 2020; year <= 2050; year++) {
+    for (let month = 1; month <= 12; month++) {
+      const d = new Date(year, month - 1, 1);
+      const value = `${year}-${String(month).padStart(2, "0")}`;
+      const label = d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+      options.push({ value, label: label.charAt(0).toUpperCase() + label.slice(1) });
+    }
   }
   return options;
 }
@@ -80,9 +94,8 @@ export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) 
   const { data = [], isLoading } = useQuery({
     queryKey: ["admin-reservations"],
     queryFn:  () => runList(),
-    staleTime: 30_000,
+    staleTime: 60_000,
     refetchOnWindowFocus: true,
-    refetchInterval: 60_000,
   });
 
   const [search,     setSearch]     = useState("");
@@ -248,7 +261,6 @@ export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) 
                   <SortHeader label="Arrivée"  column="arrival"   sort={sort} onSort={setSort} />
                   <SortHeader label="Départ"   column="departure" sort={sort} onSort={setSort} />
                   <th className="px-3 py-2 text-center">Unités</th>
-                  <th className="px-3 py-2">Canal</th>
                   <th className="px-3 py-2">Statut</th>
                   <th className="px-3 py-2 text-right">Total</th>
                   <th className="px-3 py-2 text-right">Avance</th>
@@ -258,13 +270,14 @@ export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) 
               </thead>
               <tbody className="divide-y divide-border/50">
                 {pageItems.map((r) => {
-                  const locked = isLocked(r.displayStatus as DisplayResStatus);
+                  const locked = isRowLocked(r);
                   return (
                     <tr key={r.id}
                       className={`hover:bg-secondary/30 ${locked ? "opacity-70" : ""}`}>
                       <td className="px-3 py-2 font-mono text-[11px] text-muted-foreground">{r.ref}</td>
                       <td className="px-3 py-2 font-medium">{r.name}</td>
                       <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{r.phone}</td>
+                      <td className="px-3 py-2 text-muted-foreground text-xs">{r.email ?? "—"}</td>
                       <td className="px-3 py-2">{TYPE_LABELS[r.logement_type ?? ""] ?? "—"}</td>
                       <td className="px-3 py-2 text-center">{r.guests}</td>
                       <td className="px-3 py-2 whitespace-nowrap">
@@ -276,13 +289,10 @@ export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) 
                         <span className="ml-1 text-muted-foreground">{r.departure_time}</span>
                       </td>
                       <td className="px-3 py-2 text-center font-semibold">{r.units}</td>
-                      <td className="px-3 py-2 text-xs text-muted-foreground">
-                        {CHANNEL_LABELS[r.channel] ?? r.channel}
-                      </td>
                       <td className="px-3 py-2">
                         <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${statusBadgeClass(r.displayStatus as DisplayResStatus)}`}>
                           {locked && <Lock className="h-3 w-3" />}
-                          {RES_STATUS_LABELS[r.displayStatus] ?? r.displayStatus}
+                          {RES_STATUS_LABELS[r.displayStatus ?? "nouvelle"] ?? "En attente"}
                         </span>
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">
