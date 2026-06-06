@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { nowCam, dateTimeMsCam } from "@/lib/cameroun-time";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { useAdminStatus } from "@/lib/use-admin-status";
 import {
@@ -57,8 +58,8 @@ const COMPLETED_STATUS = "terminée"; // legacy — on vérifie aussi confirmée
 const isCompleted = (r: { status: string; departure_date: string; departure_time: string }) => {
   if (r.status === COMPLETED_STATUS || r.status === "checkin") return true;
   if (r.status !== "confirmée") return false;
-  const depMs = new Date(`${r.departure_date}T${(r.departure_time ?? "11:00").slice(0,5)}:00`).getTime();
-  return depMs <= Date.now();
+  const depMs = dateTimeMsCam(r.departure_date, r.departure_time, "11:00");
+  return depMs <= nowCam();
 };
 
 export const Route = createFileRoute("/mon-espace")({
@@ -514,9 +515,9 @@ function ReservationsSection({ userId }: { userId: string }) {
                   {fmtDate(r.arrival_date)} → {fmtDate(r.departure_date)}
                 </p>
                 {(() => {
-                  const arrMs = new Date(`${r.arrival_date}T${(r.arrival_time ?? "14:00").slice(0,5)}:00`).getTime();
-                  const depMs = new Date(`${r.departure_date}T${(r.departure_time ?? "11:00").slice(0,5)}:00`).getTime();
-                  const nowMs = Date.now();
+                  const arrMs = dateTimeMsCam(r.arrival_date, r.arrival_time, "14:00");
+                  const depMs = dateTimeMsCam(r.departure_date, r.departure_time, "11:00");
+                  const nowMs = nowCam();
                   let label = "En attente";
                   let cls   = "bg-amber-100 text-amber-700";
                   if (r.status === "annulée") { label = "Annulée"; cls = "bg-red-100 text-red-700"; }
