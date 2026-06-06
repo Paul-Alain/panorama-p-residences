@@ -76,9 +76,11 @@ function AuthPage() {
   };
 
   const validatePassword = (pwd: string): string | null => {
-    if (pwd.length < 5) return "Le mot de passe doit contenir au moins 5 caractères.";
-    if (!/[0-9]/.test(pwd)) return "Le mot de passe doit contenir au moins un chiffre.";
-    if (!/[#@!$%^&*\-_+=?]/.test(pwd)) return "Le mot de passe doit contenir au moins un symbole (#, @, !, $, etc.).";
+    if (pwd.length < 6)                        return "Le mot de passe doit contenir au moins 6 caractères.";
+    if (!/[0-9]/.test(pwd))                    return "Le mot de passe doit contenir au moins un chiffre.";
+    if (!/[#@!$%^&*\-_+=?]/.test(pwd))        return "Le mot de passe doit contenir au moins un symbole (#, @, !, $…).";
+    if (!/[A-Z]/.test(pwd))                    return "Le mot de passe doit contenir au moins une lettre majuscule.";
+    if (!/[a-z]/.test(pwd))                    return "Le mot de passe doit contenir au moins une lettre minuscule.";
     return null;
   };
 
@@ -278,15 +280,17 @@ function AuthPage() {
                       onChange={(e) => setPassword(e.target.value)}
                       autoComplete="new-password"
                       required
-                      minLength={5}
+                      minLength={6}
                     />
                     <div className="rounded-lg border border-border/50 bg-secondary/40 px-3 py-2 space-y-1.5">
                       <p className="text-xs font-medium text-muted-foreground">Le mot de passe doit contenir :</p>
                       <div className="flex flex-col gap-1 text-xs">
                         {[
-                          { ok: password.length >= 5,              label: "Au moins 5 caractères" },
-                          { ok: /[0-9]/.test(password),            label: "Au moins 1 chiffre (0-9)" },
-                          { ok: /[#@!$%^&*\-_+=?]/.test(password), label: "Au moins 1 symbole (#, @, !, $…)" },
+                          { ok: password.length >= 6,                                    label: "Au moins 6 caractères" },
+                          { ok: /[0-9]/.test(password),                                  label: "Au moins 1 chiffre (0-9)" },
+                          { ok: /[#@!$%^&*\-_+=?]/.test(password),                      label: "Au moins 1 symbole (#, @, !, $…)" },
+                          { ok: /[A-Z]/.test(password),                                  label: "Au moins 1 lettre majuscule (A-Z)" },
+                          { ok: /[a-z]/.test(password),                                  label: "Au moins 1 lettre minuscule (a-z)" },
                         ].map(({ ok, label }) => (
                           <span key={label} className={`flex items-center gap-1.5 ${ok && password.length > 0 ? "text-emerald-600" : "text-muted-foreground"}`}>
                             <span className={`inline-flex h-3.5 w-3.5 items-center justify-center rounded-full text-[10px] font-bold ${ok && password.length > 0 ? "bg-emerald-100 text-emerald-600" : "bg-muted text-muted-foreground"}`}>
