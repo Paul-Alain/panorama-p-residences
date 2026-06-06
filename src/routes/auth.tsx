@@ -75,6 +75,13 @@ function AuthPage() {
     navigate({ to: "/mon-espace" });
   };
 
+  const validatePassword = (pwd: string): string | null => {
+    if (pwd.length < 5) return "Le mot de passe doit contenir au moins 5 caractères.";
+    if (!/[0-9]/.test(pwd)) return "Le mot de passe doit contenir au moins un chiffre.";
+    if (!/[#@!$%^&*\-_+=?]/.test(pwd)) return "Le mot de passe doit contenir au moins un symbole (#, @, !, $, etc.).";
+    return null;
+  };
+
   const signUp = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedName = fullName.trim();
@@ -86,6 +93,12 @@ function AuthPage() {
     // International format: leading + then 8 to 15 digits (E.164).
     if (!/^\+[1-9]\d{7,14}$/.test(trimmedPhone)) {
       toast.error(t.auth.phoneError);
+      return;
+    }
+    // Validate password rules
+    const pwdError = validatePassword(password);
+    if (pwdError) {
+      toast.error(pwdError);
       return;
     }
     setLoading(true);
@@ -257,7 +270,34 @@ function AuthPage() {
                   </div>
 
                   <Field label={t.admin.email} type="email" value={email} onChange={setEmail} autoComplete="username" />
-                  <Field label={t.admin.password} type="password" value={password} onChange={setPassword} autoComplete="new-password" />
+                  <div className="space-y-1.5">
+                    <Label>{t.admin.password}</Label>
+                    <Input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="new-password"
+                      required
+                      minLength={5}
+                    />
+                    <div className="rounded-lg border border-border/50 bg-secondary/40 px-3 py-2 space-y-1.5">
+                      <p className="text-xs font-medium text-muted-foreground">Le mot de passe doit contenir :</p>
+                      <div className="flex flex-col gap-1 text-xs">
+                        {[
+                          { ok: password.length >= 5,              label: "Au moins 5 caractères" },
+                          { ok: /[0-9]/.test(password),            label: "Au moins 1 chiffre (0-9)" },
+                          { ok: /[#@!$%^&*\-_+=?]/.test(password), label: "Au moins 1 symbole (#, @, !, $…)" },
+                        ].map(({ ok, label }) => (
+                          <span key={label} className={`flex items-center gap-1.5 ${ok && password.length > 0 ? "text-emerald-600" : "text-muted-foreground"}`}>
+                            <span className={`inline-flex h-3.5 w-3.5 items-center justify-center rounded-full text-[10px] font-bold ${ok && password.length > 0 ? "bg-emerald-100 text-emerald-600" : "bg-muted text-muted-foreground"}`}>
+                              {ok && password.length > 0 ? "✓" : "○"}
+                            </span>
+                            {label}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
 
                   <Button type="submit" variant="gold" className="w-full" disabled={loading}>
                     {loading && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -350,7 +390,6 @@ function Field({
         placeholder={placeholder}
         autoComplete={autoComplete}
         required
-        minLength={type === "password" ? 6 : undefined}
       />
     </div>
   );
