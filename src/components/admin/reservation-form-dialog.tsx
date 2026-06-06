@@ -184,7 +184,7 @@ export function ReservationFormDialog({
         advance:        String(reservation.advance ?? 0),
         addAdvance:     "0",
         notes:          reservation.notes ?? "",
-        customUnitPrice: customUnit !== "" ? customUnit : String(defPrice),
+        customUnitPrice: customUnit,
       });
     } else {
       setForm(empty);
@@ -202,6 +202,8 @@ export function ReservationFormDialog({
   const departureDT = toDateTime(form.departure, form.departureTime);
   const departureBeforeArrival =
     departureDT !== null && arrivalDT !== null && departureDT <= arrivalDT;
+  // Avertissement (non bloquant) si arrivée dans le passé — utile pour saisies rétroactives
+  const arrivalInPast = arrivalDT !== null && arrivalDT.getTime() < Date.now() - 60_000;
 
   // Billing units
   const units = useMemo(() => {
@@ -360,8 +362,7 @@ export function ReservationFormDialog({
                         ...f,
                         type: v,
                         guests: String(Math.min(Number(f.guests) || 1, max)),
-                        // Pre-fill negotiated price with the selected type's default price
-                        customUnitPrice: String(defaultPriceByType[v] ?? 0),
+                        customUnitPrice: "", // reset custom price on type change
                       };
                     })
                   }
@@ -418,6 +419,12 @@ export function ReservationFormDialog({
               <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                 Le départ doit suivre l'arrivée.
+              </p>
+            )}
+            {arrivalInPast && !departureBeforeArrival && (
+              <p className="flex items-center gap-1.5 rounded-lg border border-amber-300/50 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                Date d'arrivée dans le passé — saisie rétroactive enregistrée.
               </p>
             )}
 
