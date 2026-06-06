@@ -28,6 +28,7 @@ import {
   displayReservationStatus, isLocked,
 } from "@/lib/operations";
 import { formatDateFr, formatDateTimeFr, formatMoney } from "@/lib/format";
+import { nowCam, dateTimeMsCam } from "@/lib/cameroun-time";
 import { generateReceiptPdf, generateInvoicePdf } from "@/lib/pdf-documents";
 import { useResidence } from "@/lib/use-residence";
 import { RESERVATION_QUERY_KEYS } from "./reservation-form-dialog";
@@ -120,8 +121,8 @@ export function ReservationDetailDialog({
             {/* Status badges */}
             <div className="flex flex-wrap gap-2">
               {(() => {
-                const arrMs = new Date(`${r.arrival_date}T${(r.arrival_time ?? "14:00").slice(0,5)}:00`).getTime();
-                const depMs = new Date(`${r.departure_date}T${(r.departure_time ?? "11:00").slice(0,5)}:00`).getTime();
+                const arrMs = dateTimeMsCam(r.arrival_date, r.arrival_time, "14:00");
+                const depMs = dateTimeMsCam(r.departure_date, r.departure_time, "11:00");
                 const ds    = displayReservationStatus(r.status, arrMs, depMs);
                 const colorMap: Record<string, string> = {
                   nouvelle:  "bg-amber-100  text-amber-700  border border-amber-300",
@@ -142,7 +143,7 @@ export function ReservationDetailDialog({
             {/* Unit assignment — hidden if logé or annulée */}
             {data.units && data.units.length > 0 &&
              r.status !== "annulée" && r.status !== "terminée" &&
-             !(r.status === "confirmée" && new Date(`${r.departure_date}T${(r.departure_time ?? "11:00").slice(0,5)}:00`).getTime() <= Date.now()) && (
+             !(r.status === "confirmée" && dateTimeMsCam(r.departure_date, r.departure_time, "11:00") <= nowCam()) && (
               <div className="space-y-1.5">
                 <label className="text-xs text-muted-foreground">Unité physique assignée</label>
                 <Select
