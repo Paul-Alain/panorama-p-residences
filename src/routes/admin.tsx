@@ -15,8 +15,6 @@ import {
   UsersRound,
   Building2,
   CreditCard,
-  BarChart3,
-  Settings,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { Logo } from "@/components/brand/logo";
@@ -36,8 +34,6 @@ import { TeamAdmin } from "@/components/admin/team-admin";
 import { OccupancyCalendar } from "@/components/admin/occupancy-calendar";
 import { LogementsAdmin } from "@/components/admin/logements-admin";
 import { PaymentsAdmin } from "@/components/admin/payments-admin";
-import { AnalyticsAdmin } from "@/components/admin/analytics-admin";
-import { SettingsAdmin } from "@/components/admin/settings-admin";
 
 import { claimAdmin } from "@/lib/admin.functions";
 import { staffGetStatus } from "@/lib/operations.functions";
@@ -179,11 +175,11 @@ function AdminDashboard({ roles }: { roles: string[] }) {
     { value: "logements",     label: "Logements",       icon: Building2 },
     { value: "clients",       label: "Clients",         icon: Contact },
     { value: "payments",      label: "Paiements",       icon: CreditCard },
-    { value: "analytics",     label: "Analyses",        icon: BarChart3 },
+    
     { value: "messages",      label: "Messages",        icon: MessageSquare },
     { value: "reviews",       label: "Avis",            icon: Star },
     { value: "team",          label: "Administration",  icon: UsersRound },
-    ...(isOwnerOrManager ? [{ value: "settings", label: "Paramètres", icon: Settings } as const] : []),
+    
   ];
 
   return (
@@ -204,13 +200,10 @@ function AdminDashboard({ roles }: { roles: string[] }) {
       <TabsContent value="logements"    className="mt-6"><LogementsAdmin readOnly={isOwner} /></TabsContent>
       <TabsContent value="clients"      className="mt-6"><ClientsAdmin /></TabsContent>
       <TabsContent value="payments"     className="mt-6"><PaymentsAdmin readOnly={isOwner} /></TabsContent>
-      <TabsContent value="analytics"    className="mt-6"><AnalyticsAdmin /></TabsContent>
+      
       <TabsContent value="messages"     className="mt-6"><MessagesAdmin /></TabsContent>
       <TabsContent value="reviews"      className="mt-6"><ReviewsAdmin /></TabsContent>
       <TabsContent value="team"         className="mt-6"><TeamAdmin /></TabsContent>
-      {isOwnerOrManager && (
-        <TabsContent value="settings"   className="mt-6"><SettingsAdmin /></TabsContent>
-      )}
     </Tabs>
   );
 }
