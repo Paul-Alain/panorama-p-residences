@@ -3,49 +3,29 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  Loader2,
-  Phone,
-  Mail,
-  CheckCircle2,
-  LogIn,
-  LogOut,
-  CreditCard,
-  FileText,
-  Receipt,
-  MessageCircle,
-  CalendarDays,
-  Users,
+  Loader2, Phone, Mail, CheckCircle2,
+  CreditCard, FileText, Receipt, MessageCircle,
+  CalendarDays, Users,
 } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
   opGetReservationDetail,
-  opCheckIn,
-  opCheckOut,
   opSetReservationStatus,
   opAddPayment,
   opSetReservationTotal,
   opAssignUnit,
 } from "@/lib/operations.functions";
 import {
-  RES_STATUS_LABELS,
-  PAY_STATUS_LABELS,
-  PAY_METHOD_LABELS,
-  canTransition,
+  RES_STATUS_LABELS, PAY_STATUS_LABELS, PAY_METHOD_LABELS,
+  displayReservationStatus, isLocked,
 } from "@/lib/operations";
 import { formatDateFr, formatDateTimeFr, formatMoney } from "@/lib/format";
 import { generateReceiptPdf, generateInvoicePdf } from "@/lib/pdf-documents";
@@ -65,11 +45,9 @@ export function ReservationDetailDialog({
   const qc = useQueryClient();
   const residence = useResidence();
   const runDetail = useServerFn(opGetReservationDetail);
-  const runCheckIn = useServerFn(opCheckIn);
-  const runCheckOut = useServerFn(opCheckOut);
   const runStatus = useServerFn(opSetReservationStatus);
-  const runPay = useServerFn(opAddPayment);
-  const runTotal = useServerFn(opSetReservationTotal);
+  const runPay    = useServerFn(opAddPayment);
+  const runTotal  = useServerFn(opSetReservationTotal);
   const runAssign = useServerFn(opAssignUnit);
 
   const [busy, setBusy] = useState(false);
@@ -142,13 +120,30 @@ export function ReservationDetailDialog({
           <div className="space-y-5">
             {/* Status badges */}
             <div className="flex flex-wrap gap-2">
-              <Badge>{RES_STATUS_LABELS[r.status] ?? r.status}</Badge>
+              {(() => {
+                const arrMs = new Date(`${r.arrival_date}T${(r.arrival_time ?? "14:00").slice(0,5)}:00`).getTime();
+                const depMs = new Date(`${r.departure_date}T${(r.departure_time ?? "11:00").slice(0,5)}:00`).getTime();
+                const ds    = displayReservationStatus(r.status, arrMs, depMs);
+                const colorMap: Record<string, string> = {
+                  nouvelle:  "bg-amber-100  text-amber-700  border border-amber-300",
+                  confirmée: "bg-emerald-100 text-emerald-700 border border-emerald-300",
+                  logé:      "bg-blue-100   text-blue-700   border border-blue-300",
+                  annulée:   "bg-red-100    text-red-700    border border-red-300",
+                };
+                return (
+                  <span className={`rounded-full px-3 py-0.5 text-xs font-semibold ${colorMap[ds] ?? "bg-secondary"}`}>
+                    {ds === "logé" ? "Logé ✓" : ds === "nouvelle" ? "En attente" : ds.charAt(0).toUpperCase() + ds.slice(1)}
+                  </span>
+                );
+              })()}
               <Badge variant="outline">{PAY_STATUS_LABELS[r.payment_status] ?? r.payment_status}</Badge>
               {r.unitLabel && <Badge variant="secondary">{r.unitLabel}</Badge>}
             </div>
 
-            {/* Unit assignment (modifications live here, not in the calendar) */}
-            {data.units && data.units.length > 0 && r.status !== "annulée" && r.status !== "terminée" && (
+            {/* Unit assignment — hidden if logé or annulée */}
+            {data.units && data.units.length > 0 &&
+             r.status !== "annulée" && r.status !== "terminée" &&
+             !(r.status === "confirmée" && new Date(`${r.departure_date}T${(r.departure_time ?? "11:00").slice(0,5)}:00`).getTime() <= Date.now()) && (
               <div className="space-y-1.5">
                 <label className="text-xs text-muted-foreground">Unité physique assignée</label>
                 <Select
@@ -219,18 +214,9 @@ export function ReservationDetailDialog({
                   <CheckCircle2 className="h-4 w-4" /> Confirmer
                 </Button>
               )}
-              {r.status === "confirmée" && (
-                <Button size="sm" variant="gold" disabled={busy} onClick={() => act(() => runCheckIn({ data: { id: r.id } }), "Check-in effectué.")}>
-                  <LogIn className="h-4 w-4" /> Check-in
-                </Button>
-              )}
-              {r.status === "checkin" && (
-                <Button size="sm" variant="gold" disabled={busy} onClick={() => act(() => runCheckOut({ data: { id: r.id } }), "Check-out effectué.")}>
-                  <LogOut className="h-4 w-4" /> Check-out
-                </Button>
-              )}
-              {canTransition(r.status, "annulée") && (
-                <Button size="sm" variant="outline" disabled={busy} onClick={() => act(() => runStatus({ data: { id: r.id, status: "annulée" } }), "Réservation annulée.")}>
+              {(r.status === "nouvelle" || r.status === "confirmée") && (
+                <Button size="sm" variant="outline" disabled={busy}
+                  onClick={() => act(() => runStatus({ data: { id: r.id, status: "annulée" } }), "Réservation annulée.")}>
                   Annuler
                 </Button>
               )}
