@@ -11,6 +11,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { opGetCalendar } from "@/lib/operations.functions";
 import { useResidence } from "@/lib/use-residence";
+import { nowCam, dateTimeMsCam, todayCam } from "@/lib/cameroun-time";
 import { displayReservationStatus, isLocked, RES_STATUS_LABELS } from "@/lib/operations";
 import {
   ReservationFormDialog, RESERVATION_QUERY_KEYS,
@@ -40,8 +41,7 @@ interface CalRes {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────
-const toISO = (d: Date) =>
-  new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+const toISO = (d: Date) => todayCam(); // heure Cameroun
 
 const addDays = (iso: string, n: number) => {
   const d = new Date(iso + "T00:00:00");
@@ -65,8 +65,8 @@ function calToEditable(r: CalRes): EditableReservation {
 
 /** Bar color class based on display status */
 function barClass(r: CalRes): string {
-  const arrMs = new Date(`${r.arrival_date}T${r.arrival_time.slice(0, 5)}:00`).getTime();
-  const depMs = new Date(`${r.departure_date}T${r.departure_time.slice(0, 5)}:00`).getTime();
+  const arrMs = dateTimeMsCam(r.arrival_date, r.arrival_time, "14:00");
+  const depMs = dateTimeMsCam(r.departure_date, r.departure_time, "11:00");
   const ds    = displayReservationStatus(r.status, arrMs, depMs);
   switch (ds) {
     case "nouvelle":  return "cal-pending";
@@ -81,7 +81,7 @@ function barClass(r: CalRes): string {
 export function OccupancyCalendar({ readOnly = false }: { readOnly?: boolean }) {
   const qc       = useQueryClient();
   const runCal   = useServerFn(opGetCalendar);
-  const today    = toISO(new Date());
+  const today    = todayCam();
 
   const [start,      setStart]      = useState(today);
   const [unitFilter, setUnitFilter] = useState("all");
@@ -266,8 +266,8 @@ export function OccupancyCalendar({ readOnly = false }: { readOnly?: boolean }) 
                     {bars.map(({ r, startIdx, endIdx }) => {
                       const locked     = isLocked(displayReservationStatus(
                         r.status,
-                        new Date(`${r.arrival_date}T${r.arrival_time.slice(0, 5)}:00`).getTime(),
-                        new Date(`${r.departure_date}T${r.departure_time.slice(0, 5)}:00`).getTime(),
+                        dateTimeMsCam(r.arrival_date, r.arrival_time, "14:00"),
+                        dateTimeMsCam(r.departure_date, r.departure_time, "11:00"),
                       ));
                       return (
                         <button key={r.id} type="button"
