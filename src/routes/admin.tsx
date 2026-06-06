@@ -34,8 +34,6 @@ import { TeamAdmin } from "@/components/admin/team-admin";
 import { OccupancyCalendar } from "@/components/admin/occupancy-calendar";
 import { LogementsAdmin } from "@/components/admin/logements-admin";
 import { PaymentsAdmin } from "@/components/admin/payments-admin";
-import { AnalyticsAdmin } from "@/components/admin/analytics-admin";
-import { SettingsAdmin } from "@/components/admin/settings-admin";
 
 import { claimAdmin } from "@/lib/admin.functions";
 import { staffGetStatus } from "@/lib/operations.functions";
