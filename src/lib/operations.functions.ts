@@ -167,15 +167,23 @@ export const opListReservations = createServerFn({ method: "GET" })
 
     const nowMs = Date.now();
     const todayIso = todayLocalIso();
+
+    // Build a map: type → first available unit id (for unassigned reservations)
+    const firstUnitByType = new Map<string, string>();
+    for (const u of units) {
+      if (!firstUnitByType.has(u.type)) firstUnitByType.set(u.type, u.id);
+    }
+
     return reservations
       .filter((r) => r.status !== BLOCK_STATUS)
       .map((r) => {
         const billableUnits = bookingUnitsOf(r);
         const unitPrice = priceOf(r);
-        // If gestionnaire set a custom total_amount, use it; otherwise auto-calculate.
-        const autoTotal = billableUnits * unitPrice;
-        const total = Number(r.total_amount) > 0 ? Number(r.total_amount) : autoTotal;
-        const advance = Number(r.advance_amount) || 0;
+        const autoTotal  = billableUnits * unitPrice;
+        const rawTotal   = Number(r.total_amount);
+        const rawAdvance = Number(r.advance_amount);
+        const total   = Number.isFinite(rawTotal)   && rawTotal   > 0 ? rawTotal   : autoTotal;
+        const advance = Number.isFinite(rawAdvance) && rawAdvance >= 0 ? rawAdvance : 0;
         const paid = paidMap.get(r.id) ?? 0;
         const arrivalMs = new Date(
           `${r.arrival_date}T${(r.arrival_time ?? DEFAULT_CHECKIN_TIME).slice(0, 5)}:00`,
@@ -183,6 +191,9 @@ export const opListReservations = createServerFn({ method: "GET" })
         const departureMs = new Date(
           `${r.departure_date}T${(r.departure_time ?? DEFAULT_CHECKOUT_TIME).slice(0, 5)}:00`,
         ).getTime();
+        // Auto-assign unit for calendar display if not assigned
+        const effectiveUnitId = r.logement_unit_id ??
+          (r.logement_type ? firstUnitByType.get(r.logement_type) ?? null : null);
         return {
           id: r.id,
           ref: shortRef(r.id),
@@ -198,13 +209,13 @@ export const opListReservations = createServerFn({ method: "GET" })
           status: r.status,
           displayStatus: displayReservationStatus(r.status, arrivalMs, departureMs, nowMs),
           payment_status: r.payment_status,
-          unitId: r.logement_unit_id,
-          unitLabel: r.logement_unit_id ? unitById.get(r.logement_unit_id)?.label ?? "—" : "—",
+          unitId: effectiveUnitId,
+          unitLabel: effectiveUnitId ? unitById.get(effectiveUnitId)?.label ?? "—" : "—",
           logement_type: r.logement_type,
           units: billableUnits,
           unitPrice,
-          total,        // 0 if nothing set — never undefined
-          advance,      // 0 if nothing set — never undefined
+          total,
+          advance,
           paid,
           balance: Math.max(0, total - advance),
           // Active = not cancelled AND departure date not yet passed
@@ -236,6 +247,8 @@ export const opGetCalendar = createServerFn({ method: "GET" })
     const unitById = new Map(units.map((u) => [u.id, u]));
     const priceByType = new Map<string, number>();
     for (const u of units) if (!priceByType.has(u.type)) priceByType.set(u.type, u.price);
+    const firstUnitByType = new Map<string, string>();
+    for (const u of units) if (!firstUnitByType.has(u.type)) firstUnitByType.set(u.type, u.id);
     const priceOf = (r: ResRow) =>
       (r.logement_unit_id ? unitById.get(r.logement_unit_id)?.price : undefined) ??
       (r.logement_type ? priceByType.get(r.logement_type) : undefined) ??
@@ -250,8 +263,15 @@ export const opGetCalendar = createServerFn({ method: "GET" })
     }));
 
     const calReservations = reservations.map((r) => {
-      const total = effectiveTotal(r, priceOf(r));
+      const rawTotal   = Number(r.total_amount);
+      const rawAdvance = Number(r.advance_amount);
+      const autoTotal  = effectiveTotal(r, priceOf(r));
+      const total   = Number.isFinite(rawTotal)   && rawTotal   > 0 ? rawTotal   : autoTotal;
+      const advance = Number.isFinite(rawAdvance) && rawAdvance >= 0 ? rawAdvance : 0;
       const paid = paidMap.get(r.id) ?? 0;
+      // Auto-assign unit for calendar display if not assigned
+      const effectiveUnitId = r.logement_unit_id ??
+        (r.logement_type ? firstUnitByType.get(r.logement_type) ?? null : null);
       return {
         id: r.id,
         ref: shortRef(r.id),
@@ -266,15 +286,15 @@ export const opGetCalendar = createServerFn({ method: "GET" })
         status: r.status,
         payment_status: r.payment_status,
         channel: r.channel ?? "website",
-        logement_unit_id: r.logement_unit_id,
-        unitLabel: r.logement_unit_id ? unitById.get(r.logement_unit_id)?.label ?? null : null,
+        logement_unit_id: effectiveUnitId,
+        unitLabel: effectiveUnitId ? unitById.get(effectiveUnitId)?.label ?? null : null,
         logement_type: r.logement_type,
-        unitType: r.logement_unit_id ? unitById.get(r.logement_unit_id)?.type ?? null : null,
+        unitType: effectiveUnitId ? unitById.get(effectiveUnitId)?.type ?? null : null,
         notes: r.notes,
         total,
         paid,
-        advance: Number(r.advance_amount) || 0,
-        balance: Math.max(0, total - paid),
+        advance,
+        balance: Math.max(0, total - advance),
       };
     });
 
