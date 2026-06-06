@@ -317,6 +317,9 @@ Merci de me confirmer la disponibilité et le tarif SVP / Please confirm availab
           />
         </div>
       </div>
+      <p className="text-xs text-muted-foreground flex items-center gap-1">
+        🕐 Heure de Yaoundé / Bafoussam (UTC+1)
+      </p>
       {arrivalInPast && (
         <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">
           <AlertCircle className="h-3.5 w-3.5 shrink-0" />
@@ -348,6 +351,9 @@ Merci de me confirmer la disponibilité et le tarif SVP / Please confirm availab
           />
         </div>
       </div>
+      <p className="text-xs text-muted-foreground flex items-center gap-1">
+        🕐 Heure de Yaoundé / Bafoussam (UTC+1)
+      </p>
       {departureBeforeArrival && (
         <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">
           <AlertCircle className="h-3.5 w-3.5 shrink-0" />
