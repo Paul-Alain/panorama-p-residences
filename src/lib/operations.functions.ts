@@ -59,11 +59,22 @@ interface ResRow {
   created_at?: string;
 }
 
+// Cameroun = UTC+1 (Africa/Douala) — toutes les comparaisons de dates utilisent cette référence
+const CAMEROUN_OFFSET_MS = 1 * 60 * 60 * 1000; // UTC+1
+
+function nowCameroun(): number {
+  return Date.now() + CAMEROUN_OFFSET_MS - new Date().getTimezoneOffset() * 60_000;
+}
+
 function todayLocalIso(): string {
-  const d = new Date();
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-    .toISOString()
-    .slice(0, 10);
+  const utc = Date.now() + CAMEROUN_OFFSET_MS;
+  return new Date(utc).toISOString().slice(0, 10);
+}
+
+function dateTimeMs(date: string, time: string | null | undefined, fallback: string): number {
+  const t = (time ?? fallback).slice(0, 5);
+  // Parse as Cameroun local time (UTC+1)
+  return new Date(`${date}T${t}:00+01:00`).getTime();
 }
 
 // ── Staff status (UI gate) ───────────────────────────────────────────────
@@ -185,12 +196,10 @@ export const opListReservations = createServerFn({ method: "GET" })
         const total   = Number.isFinite(rawTotal)   && rawTotal   > 0 ? rawTotal   : autoTotal;
         const advance = Number.isFinite(rawAdvance) && rawAdvance >= 0 ? rawAdvance : 0;
         const paid = paidMap.get(r.id) ?? 0;
-        const arrivalMs = new Date(
-          `${r.arrival_date}T${(r.arrival_time ?? DEFAULT_CHECKIN_TIME).slice(0, 5)}:00`,
-        ).getTime();
-        const departureMs = new Date(
-          `${r.departure_date}T${(r.departure_time ?? DEFAULT_CHECKOUT_TIME).slice(0, 5)}:00`,
-        ).getTime();
+        const nowMs       = nowCameroun();
+        const arrivalMs   = dateTimeMs(r.arrival_date,   r.arrival_time,   DEFAULT_CHECKIN_TIME);
+        const departureMs = dateTimeMs(r.departure_date, r.departure_time, DEFAULT_CHECKOUT_TIME);
+        const dbStatus    = r.status ?? "nouvelle";
         // Auto-assign unit for calendar display if not assigned
         const effectiveUnitId = r.logement_unit_id ??
           (r.logement_type ? firstUnitByType.get(r.logement_type) ?? null : null);
@@ -206,8 +215,8 @@ export const opListReservations = createServerFn({ method: "GET" })
           arrival_time: r.arrival_time ?? DEFAULT_CHECKIN_TIME,
           departure_time: r.departure_time ?? DEFAULT_CHECKOUT_TIME,
           channel: r.channel ?? "website",
-          status: r.status,
-          displayStatus: displayReservationStatus(r.status, arrivalMs, departureMs, nowMs),
+          status: dbStatus,
+          displayStatus: displayReservationStatus(dbStatus, arrivalMs, departureMs, nowMs),
           payment_status: r.payment_status,
           unitId: effectiveUnitId,
           unitLabel: effectiveUnitId ? unitById.get(effectiveUnitId)?.label ?? "—" : "—",
@@ -573,10 +582,8 @@ export const opSetReservationStatus = createServerFn({ method: "POST" })
     if (e0) throw new Error(e0.message);
 
     // Check if departure has passed → reservation is "logé" → LOCKED
-    const departureMs = new Date(
-      `${row.departure_date}T${(row.departure_time ?? DEFAULT_CHECKOUT_TIME).slice(0, 5)}:00`,
-    ).getTime();
-    const nowMs = Date.now();
+    const departureMs = dateTimeMs(row.departure_date, row.departure_time, DEFAULT_CHECKOUT_TIME);
+    const nowMs = nowCameroun();
 
     if (row.status === "confirmée" && nowMs >= departureMs) {
       throw new Error("Cette réservation est verrouillée (client logé) — aucune modification possible.");
