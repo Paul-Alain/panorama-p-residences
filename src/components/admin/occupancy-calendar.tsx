@@ -92,6 +92,7 @@ export function OccupancyCalendar({ readOnly = false }: { readOnly?: boolean }) 
     queryFn:  async () => (await runCal()) as { units: CalUnit[]; reservations: CalRes[] },
     staleTime: 30_000,
     refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
   });
 
   // ── Real-time sync with reservations table ────────────────────────────
