@@ -176,7 +176,6 @@ export function ClientsAdmin() {
                   </th>
                   <th className="px-4 py-3 text-center">Séjours</th>
                   <th className="px-4 py-3">Dernier séjour</th>
-                  <th className="px-4 py-3 text-right">Total dépensé</th>
                   <th className="px-4 py-3 text-right">Détail</th>
                 </tr>
               </thead>
@@ -195,9 +194,6 @@ export function ClientsAdmin() {
                     </td>
                     <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                       {c.lastStay ? formatDateFr(c.lastStay) : "—"}
-                    </td>
-                    <td className="px-4 py-3 text-right font-semibold tabular-nums text-gold whitespace-nowrap">
-                      {formatMoney(c.totalSpent, residence.currency)}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Button size="sm" variant="outline"
