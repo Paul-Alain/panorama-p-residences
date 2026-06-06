@@ -15,8 +15,6 @@ import {
   UsersRound,
   Building2,
   CreditCard,
-  BarChart3,
-  Settings,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { Logo } from "@/components/brand/logo";
