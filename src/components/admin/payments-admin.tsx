@@ -25,7 +25,7 @@ export function PaymentsAdmin({ readOnly = false }: { readOnly?: boolean }) {
   if (isLoading) return <Loader2 className="h-5 w-5 animate-spin text-gold" />;
 
   const totalMonth = data
-    .filter((p) => p.createdAt.slice(0, 7) === new Date().toISOString().slice(0, 7))
+    .filter((p) => { const camNow = new Date(Date.now() + 3600000).toISOString(); return p.createdAt.slice(0, 7) === camNow.slice(0, 7); })
     .reduce((s, p) => s + p.amount, 0);
 
   return (
