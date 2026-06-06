@@ -49,7 +49,7 @@ function isRowLocked(r: ResItem): boolean {
   return false; // nouvelle, confirmée, logé → toujours éditable
 }
 
-function statusBadgeClass(s: DisplayResStatus): string {
+function statusBadgeClass(s: DisplayResStatus) {
   switch (s) {
     case "nouvelle":  return "bg-amber-100  text-amber-700  border-amber-300";
     case "confirmée": return "bg-emerald-100 text-emerald-700 border-emerald-300";
@@ -258,6 +258,7 @@ export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) 
                   <th className="px-3 py-2">Réf.</th>
                   <th className="px-3 py-2">Client</th>
                   <th className="px-3 py-2">Téléphone</th>
+                  <th className="px-3 py-2">Email</th>
                   <th className="px-3 py-2">Type</th>
                   <th className="px-3 py-2 text-center">Pers.</th>
                   <SortHeader label="Arrivée"  column="arrival"   sort={sort} onSort={setSort} />
