@@ -50,7 +50,7 @@ const MONTHS = [
   "Janvier","Février","Mars","Avril","Mai","Juin",
   "Juillet","Août","Septembre","Octobre","Novembre","Décembre",
 ];
-const YEARS = Array.from({ length: 26 }, (_, i) => 2025 + i); // 2025 → 2050
+const YEARS = Array.from({ length: 36 }, (_, i) => 2025 + i); // 2025 → 2060
 
 // ── Main component ───────────────────────────────────────────────────────
 export function DashboardOverview() {
