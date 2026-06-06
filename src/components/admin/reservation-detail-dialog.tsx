@@ -30,8 +30,7 @@ import {
 import { formatDateFr, formatDateTimeFr, formatMoney } from "@/lib/format";
 import { generateReceiptPdf, generateInvoicePdf } from "@/lib/pdf-documents";
 import { useResidence } from "@/lib/use-residence";
-
-const OP_KEYS = ["op-dashboard", "admin-reservations", "op-payments", "op-clients", "admin-occupancy", "op-calendar"];
+import { RESERVATION_QUERY_KEYS } from "./reservation-form-dialog";
 
 export function ReservationDetailDialog({
   reservationId,
@@ -64,7 +63,7 @@ export function ReservationDetailDialog({
   });
 
   const invalidateAll = async () => {
-    await Promise.all(OP_KEYS.map((k) => qc.invalidateQueries({ queryKey: [k] })));
+    await Promise.all(RESERVATION_QUERY_KEYS.map((k) => qc.invalidateQueries({ queryKey: [k] })));
     await refetch();
   };
 
