@@ -25,6 +25,7 @@ import {
 } from "@/lib/operations";
 import { formatMoney } from "@/lib/format";
 import { useResidence } from "@/lib/use-residence";
+import { nowCam, dateTimeMsCam } from "@/lib/cameroun-time";
 import { useLanguage } from "@/lib/i18n/language-context";
 
 const TYPE_OPTIONS = ["chambre", "studio", "appartement"] as const;
@@ -95,7 +96,7 @@ export function ReservationFormDialog({
     if ((reservation.status ?? "nouvelle") === "annulée") {
       const cancelledAt = (reservation as any).cancelled_at ?? (reservation as any).updated_at;
       if (!cancelledAt) return true;
-      return Date.now() - new Date(cancelledAt).getTime() > 5 * 60 * 60 * 1000;
+      return nowCam() - new Date(cancelledAt).getTime() > 5 * 60 * 60 * 1000;
     }
     return false; // nouvelle, confirmée, logé → jamais complètement verrouillé
   }, [reservation]);
@@ -103,20 +104,14 @@ export function ReservationFormDialog({
   // Detect if price is locked (logé = prix négocié verrouillé, avance toujours éditable)
   const priceLocked = useMemo(() => {
     if (!reservation) return false;
-    const depMs = new Date(
-      `${reservation.departure_date}T${(reservation.departure_time ?? DEFAULT_DEPARTURE_TIME).slice(0, 5)}:00+01:00`,
-    ).getTime();
-    return (reservation.status ?? "nouvelle") === "confirmée" && depMs <= Date.now();
+    const depMs = dateTimeMsCam(reservation.departure_date, reservation.departure_time, DEFAULT_DEPARTURE_TIME);
+    return (reservation.status ?? "nouvelle") === "confirmée" && depMs <= nowCam();
   }, [reservation]);
 
   const displayStatus = useMemo(() => {
     if (!reservation) return null;
-    const arrMs = new Date(
-      `${reservation.arrival_date}T${(reservation.arrival_time ?? DEFAULT_ARRIVAL_TIME).slice(0, 5)}:00`,
-    ).getTime();
-    const depMs = new Date(
-      `${reservation.departure_date}T${(reservation.departure_time ?? DEFAULT_DEPARTURE_TIME).slice(0, 5)}:00`,
-    ).getTime();
+    const arrMs = dateTimeMsCam(reservation.arrival_date, reservation.arrival_time, DEFAULT_ARRIVAL_TIME);
+    const depMs = dateTimeMsCam(reservation.departure_date, reservation.departure_time, DEFAULT_DEPARTURE_TIME);
     return displayReservationStatus(reservation.status ?? "nouvelle", arrMs, depMs);
   }, [reservation]);
 
@@ -210,7 +205,7 @@ export function ReservationFormDialog({
   const departureBeforeArrival =
     departureDT !== null && arrivalDT !== null && departureDT <= arrivalDT;
   // Avertissement (non bloquant) si arrivée dans le passé — utile pour saisies rétroactives
-  const arrivalInPast = arrivalDT !== null && arrivalDT.getTime() < Date.now() - 60_000;
+  const arrivalInPast = arrivalDT !== null && arrivalDT.getTime() < nowCam() - 60_000;
 
   // Billing units
   const units = useMemo(() => {
@@ -428,6 +423,9 @@ export function ReservationFormDialog({
                 Le départ doit suivre l'arrivée.
               </p>
             )}
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              🕐 Heure de Yaoundé / Bafoussam (UTC+1)
+            </p>
             {arrivalInPast && !departureBeforeArrival && (
               <p className="flex items-center gap-1.5 rounded-lg border border-amber-300/50 bg-amber-50 px-3 py-2 text-xs text-amber-700">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0" />
