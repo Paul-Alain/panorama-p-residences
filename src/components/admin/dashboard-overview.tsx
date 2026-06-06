@@ -68,6 +68,7 @@ export function DashboardOverview() {
     queryKey: ["op-dashboard"],
     queryFn:  () => runDash(),
     staleTime: 30_000,
+    refetchInterval: 60_000,      // rafraîchissement automatique toutes les 60s
     refetchOnWindowFocus: true,
   });
 
