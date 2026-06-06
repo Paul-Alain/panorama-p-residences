@@ -175,7 +175,7 @@ function AdminDashboard({ roles }: { roles: string[] }) {
     { value: "logements",     label: "Logements",       icon: Building2 },
     { value: "clients",       label: "Clients",         icon: Contact },
     { value: "payments",      label: "Paiements",       icon: CreditCard },
-    { value: "analytics",     label: "Analyses",        icon: BarChart3 },
+    
     { value: "messages",      label: "Messages",        icon: MessageSquare },
     { value: "reviews",       label: "Avis",            icon: Star },
     { value: "team",          label: "Administration",  icon: UsersRound },
