@@ -53,7 +53,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const COMPLETED_STATUS = "terminée";
+const COMPLETED_STATUS = "terminée"; // legacy — on vérifie aussi confirmée + départ dépassé
+const isCompleted = (r: { status: string; departure_date: string; departure_time: string }) => {
+  if (r.status === COMPLETED_STATUS || r.status === "checkin") return true;
+  if (r.status !== "confirmée") return false;
+  const depMs = new Date(`${r.departure_date}T${(r.departure_time ?? "11:00").slice(0,5)}:00`).getTime();
+  return depMs <= Date.now();
+};
 
 export const Route = createFileRoute("/mon-espace")({
   head: () => ({
@@ -454,10 +460,14 @@ interface ReservationRow {
   name: string;
   arrival_date: string;
   departure_date: string;
+  arrival_time: string;
+  departure_time: string;
   guests: number;
   logement_type: string | null;
   message: string | null;
   status: string;
+  total_amount: number;
+  advance_amount: number;
   created_at: string;
 }
 
@@ -470,7 +480,7 @@ function ReservationsSection({ userId }: { userId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reservations")
-        .select("id, name, arrival_date, departure_date, guests, logement_type, message, status, created_at")
+        .select("id, name, arrival_date, departure_date, arrival_time, departure_time, guests, logement_type, message, status, total_amount, advance_amount, created_at")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -495,7 +505,7 @@ function ReservationsSection({ userId }: { userId: string }) {
     <>
       <div className="space-y-3">
         {data.map((r) => {
-          const completed = r.status === COMPLETED_STATUS;
+          const completed = isCompleted(r);
           const alreadyReviewed = reviewedReservationIds.has(r.id);
           return (
             <div key={r.id} className="rounded-2xl border border-border/60 bg-card p-5 shadow-soft">
@@ -503,7 +513,17 @@ function ReservationsSection({ userId }: { userId: string }) {
                 <p className="font-medium">
                   {fmtDate(r.arrival_date)} → {fmtDate(r.departure_date)}
                 </p>
-                <Badge variant="secondary" className="capitalize">{r.status}</Badge>
+                {(() => {
+                  const arrMs = new Date(`${r.arrival_date}T${(r.arrival_time ?? "14:00").slice(0,5)}:00`).getTime();
+                  const depMs = new Date(`${r.departure_date}T${(r.departure_time ?? "11:00").slice(0,5)}:00`).getTime();
+                  const nowMs = Date.now();
+                  let label = "En attente";
+                  let cls   = "bg-amber-100 text-amber-700";
+                  if (r.status === "annulée") { label = "Annulée"; cls = "bg-red-100 text-red-700"; }
+                  else if (r.status === "confirmée" && depMs <= nowMs) { label = "Logé ✓"; cls = "bg-blue-100 text-blue-700"; }
+                  else if (r.status === "confirmée") { label = "Confirmée"; cls = "bg-emerald-100 text-emerald-700"; }
+                  return <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${cls}`}>{label}</span>;
+                })()}
               </div>
               <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                 <span className="inline-flex items-center gap-1">
@@ -511,6 +531,21 @@ function ReservationsSection({ userId }: { userId: string }) {
                 </span>
                 {r.logement_type && <span>· {r.logement_type}</span>}
               </p>
+              {/* Prix et solde */}
+              {r.total_amount > 0 && (
+                <div className="mt-2 flex gap-4 text-sm">
+                  <span className="text-muted-foreground">
+                    Total : <span className="font-semibold text-foreground">{r.total_amount.toLocaleString("fr-FR")} FCFA</span>
+                  </span>
+                  {r.advance_amount > 0 && (
+                    <span className="text-muted-foreground">
+                      Solde : <span className="font-semibold text-gold">
+                        {Math.max(0, r.total_amount - r.advance_amount).toLocaleString("fr-FR")} FCFA
+                      </span>
+                    </span>
+                  )}
+                </div>
+              )}
               {r.message && <p className="mt-2 text-sm">{r.message}</p>}
               {completed && (
                 <div className="mt-4 border-t border-border/60 pt-4">
@@ -697,7 +732,7 @@ function MessagesSection({ userId, email }: { userId: string; email: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reservations")
-        .select("id, name, arrival_date, departure_date, guests, logement_type, message, status, created_at")
+        .select("id, name, arrival_date, departure_date, arrival_time, departure_time, guests, logement_type, message, status, total_amount, advance_amount, created_at")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
       if (error) throw error;
