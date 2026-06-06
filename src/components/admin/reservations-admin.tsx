@@ -14,6 +14,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { opListReservations, opSetReservationStatus } from "@/lib/operations.functions";
+import { nowCam, dateTimeMsCam } from "@/lib/cameroun-time";
 import { opGenerateReviewToken, opSendReviewEmail } from "@/lib/review.functions";
 import {
   RES_STATUS_LABELS, DISPLAY_RES_STATUSES,
@@ -44,7 +45,7 @@ function isRowLocked(r: ResItem): boolean {
     const cancelledAt = (r as any).cancelled_at ?? (r as any).updated_at ?? (r as any).created_at;
     if (!cancelledAt) return true;
     const fiveHoursMs = 5 * 60 * 60 * 1000;
-    return Date.now() - new Date(cancelledAt).getTime() > fiveHoursMs;
+    return nowCam() - new Date(cancelledAt).getTime() > fiveHoursMs;
   }
   return false; // nouvelle, confirmée, logé → toujours éditable
 }
@@ -113,10 +114,8 @@ export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) 
   const nowMs = Date.now();
   const activeCount = useMemo(() =>
     data.filter((r) => {
-      const depMs = new Date(
-        `${r.departure_date}T${(r.departure_time ?? "11:00").slice(0, 5)}:00`
-      ).getTime();
-      return r.status !== "annulée" && depMs > nowMs;
+      const depMs = dateTimeMsCam(r.departure_date, r.departure_time, "11:00");
+      return r.status !== "annulée" && depMs > nowCam();
     }).length,
   [data, nowMs]);
 
@@ -130,10 +129,8 @@ export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) 
     const list = data.filter((r) => {
       // Active filter: departure not yet passed
       if (monthFilter === "active") {
-        const depMs = new Date(
-          `${r.departure_date}T${(r.departure_time ?? "11:00").slice(0, 5)}:00`
-        ).getTime();
-        if (r.status === "annulée" || depMs <= nowMs) return false;
+        const depMs = dateTimeMsCam(r.departure_date, r.departure_time, "11:00");
+        if (r.status === "annulée" || depMs <= nowCam()) return false;
       }
       // Month filter: by arrival date
       if (monthFilter !== "all" && monthFilter !== "active") {
