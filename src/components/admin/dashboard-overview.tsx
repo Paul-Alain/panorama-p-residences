@@ -19,7 +19,7 @@ import { displayReservationStatus } from "@/lib/operations";
 // ── Types ────────────────────────────────────────────────────────────────
 type FilterMode  = "month-year" | "custom";
 type StatusKey   = "all" | "confirmée" | "logé" | "annulée";
-type MetricKey   = "revenue" | "count";
+type MetricKey   = "revenue" | "count" | "encaisse" | "solde";
 
 const STATUS_OPTIONS: { value: StatusKey; label: string }[] = [
   { value: "all",       label: "Tous (hors annulés)" },
@@ -50,7 +50,7 @@ const MONTHS = [
   "Janvier","Février","Mars","Avril","Mai","Juin",
   "Juillet","Août","Septembre","Octobre","Novembre","Décembre",
 ];
-const YEARS = Array.from({ length: 36 }, (_, i) => 2025 + i); // 2025 → 2060
+const YEARS = Array.from({ length: 41 }, (_, i) => 2020 + i); // 2020 → 2060
 
 // ── Main component ───────────────────────────────────────────────────────
 export function DashboardOverview() {
@@ -144,16 +144,30 @@ export function DashboardOverview() {
     return base;
   }, [rev, revStatusKey, statusFilter]);
 
+  const metricValue = (r: any) => {
+    if (metric === "revenue")  return r.total ?? 0;
+    if (metric === "count")    return r.count ?? 0;
+    if (metric === "encaisse") return r.collected ?? r.advance ?? 0;
+    if (metric === "solde")    return r.balance ?? 0;
+    return 0;
+  };
+
   const chartData = rows.map((r) => ({
     label: TYPE_LABELS[r.type] ?? r.label,
-    value: metric === "revenue" ? r.total : r.count,
+    value: metricValue(r),
     type:  r.type,
   }));
 
-  const aggregate = useMemo(() => ({
-    value:  rows.reduce((s, r) => s + (metric === "revenue" ? r.total : r.count), 0),
-    label:  metric === "revenue" ? "Chiffre d'affaires total" : "Nombre total de réservations",
-  }), [rows, metric]);
+  const aggregate = useMemo(() => {
+    const total = rows.reduce((s, r) => s + metricValue(r), 0);
+    const labels: Record<MetricKey, string> = {
+      revenue:  "Chiffre d'affaires total",
+      count:    "Nombre total de réservations",
+      encaisse: "Montant encaissé total",
+      solde:    "Solde restant total",
+    };
+    return { value: total, label: labels[metric] };
+  }, [rows, metric]);
 
   // ── Urgent arrivals within 30h ────────────────────────────────────────
   const urgentArrivals = useMemo(() => {
@@ -293,7 +307,7 @@ export function DashboardOverview() {
             {/* Aggregate card 3D */}
             <AggregateCard
               label={aggregate.label}
-              value={metric === "revenue" ? money(aggregate.value) : String(aggregate.value)}
+              value={metric === "count" ? String(aggregate.value) : money(aggregate.value)}
               sub={filterMode === "month-year"
                 ? `${MONTHS[selMonth - 1]} ${selYear}`
                 : `${customStart} → ${customEnd}`}
@@ -302,7 +316,7 @@ export function DashboardOverview() {
             {/* Bar chart */}
             <div className="rounded-2xl border-2 border-black/10 bg-card p-4 shadow-md">
               <p className="mb-1 font-display text-base font-semibold">
-                {metric === "revenue" ? "Chiffre d'affaires" : "Nombre de réservations"} par type
+                {{"revenue": "Chiffre d'affaires", "count": "Nombre de réservations", "encaisse": "Montant encaissé", "solde": "Solde restant"}[metric]} par type
               </p>
               <p className="mb-4 text-xs text-muted-foreground">
                 Période : {filterMode === "month-year"
@@ -316,9 +330,9 @@ export function DashboardOverview() {
                     <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={13} />
                     <Tooltip
                       formatter={(v: number) =>
-                        metric === "revenue"
-                          ? [money(v), "Chiffre d'affaires"]
-                          : [v, "Réservations"]
+                        metric === "count"
+                          ? [v, "Réservations"]
+                          : [money(v), {"revenue": "CA", "encaisse": "Encaissé", "solde": "Solde"}[metric] ?? ""]
                       }
                       cursor={{ fill: "hsl(var(--muted))", opacity: 0.4 }}
                     />
@@ -330,7 +344,7 @@ export function DashboardOverview() {
                         dataKey="value"
                         position="top"
                         formatter={(v: number) =>
-                          metric === "revenue" ? money(v) : String(v)
+                          metric === "count" ? String(v) : money(v)
                         }
                         style={{ fontSize: 12, fontWeight: 700, fill: "#1d4ed8" }}
                       />
@@ -346,7 +360,7 @@ export function DashboardOverview() {
                     className="rounded-xl border-2 border-black/10 bg-secondary/40 p-3 shadow-sm">
                     <p className="text-xs font-semibold">{TYPE_LABELS[r.type] ?? r.label}</p>
                     <p className="mt-1 font-display text-base font-bold tabular-nums text-blue-700">
-                      {metric === "revenue" ? money(r.total) : r.count}
+                      {metric === "count" ? r.count : money(metricValue(r))}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
                       {r.count} réservation{r.count > 1 ? "s" : ""}
