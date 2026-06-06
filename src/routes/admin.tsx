@@ -179,7 +179,7 @@ function AdminDashboard({ roles }: { roles: string[] }) {
     { value: "messages",      label: "Messages",        icon: MessageSquare },
     { value: "reviews",       label: "Avis",            icon: Star },
     { value: "team",          label: "Administration",  icon: UsersRound },
-    ...(isOwnerOrManager ? [{ value: "settings", label: "Paramètres", icon: Settings } as const] : []),
+    
   ];
 
   return (
