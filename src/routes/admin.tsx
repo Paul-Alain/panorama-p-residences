@@ -166,8 +166,8 @@ function AdminDashboard({ roles }: { roles: string[] }) {
         </TabsList>
       </div>
       <TabsContent value="overview"     className="mt-6"><DashboardOverview /></TabsContent>
-      <TabsContent value="reservations" className="mt-6"><ReservationsAdmin readOnly={isOwner} /></TabsContent>
-      <TabsContent value="calendar"     className="mt-6"><OccupancyCalendar readOnly={isOwner} /></TabsContent>
+      <TabsContent value="reservations" className="mt-6"><ReservationsAdmin readOnly={false} /></TabsContent>
+      <TabsContent value="calendar"     className="mt-6"><OccupancyCalendar readOnly={false} /></TabsContent>
       <TabsContent value="logements"    className="mt-6"><LogementsAdmin readOnly={isOwner} /></TabsContent>
       <TabsContent value="clients"      className="mt-6"><ClientsAdmin /></TabsContent>
       <TabsContent value="payments"     className="mt-6"><PaymentsAdmin readOnly={isOwner} /></TabsContent>
