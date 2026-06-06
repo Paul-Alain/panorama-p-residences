@@ -20,7 +20,7 @@ import { LogementEditor } from "@/components/admin/logement-editor";
 import { adminDeleteLogement } from "@/lib/admin.functions";
 import { logementsQuery, formatPrice, type Logement } from "@/lib/data";
 
-export function LogementsAdmin() {
+export function LogementsAdmin({ readOnly = false }: { readOnly?: boolean }) {
   const qc = useQueryClient();
   const { data: logements = [], isLoading } = useQuery(logementsQuery);
   const [editing, setEditing] = useState<Logement | null>(null);
@@ -42,11 +42,18 @@ export function LogementsAdmin() {
 
   return (
     <div>
-      <div className="mb-4 flex justify-end">
-        <Button variant="gold" onClick={() => { setEditing(null); setOpen(true); }}>
-          <Plus className="h-4 w-4" /> Ajouter
-        </Button>
-      </div>
+      {readOnly && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-300/40 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <span>🔒</span> Mode lecture seule — propriétaire
+        </div>
+      )}
+      {!readOnly && (
+        <div className="mb-4 flex justify-end">
+          <Button variant="gold" onClick={() => { setEditing(null); setOpen(true); }}>
+            <Plus className="h-4 w-4" /> Ajouter
+          </Button>
+        </div>
+      )}
       {isLoading ? (
         <Loader2 className="h-5 w-5 animate-spin text-gold" />
       ) : (
@@ -62,13 +69,15 @@ export function LogementsAdmin() {
                 <p className="text-sm text-muted-foreground">{formatPrice(l.price, l.currency)} / {l.price_unit}</p>
               </div>
               <div className="flex shrink-0 gap-2">
-                <Button variant="outline" size="icon" onClick={() => { setEditing(l); setOpen(true); }}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                  </AlertDialogTrigger>
+                {!readOnly && (
+                  <>
+                    <Button variant="outline" size="icon" onClick={() => { setEditing(l); setOpen(true); }}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Supprimer ce logement ?</AlertDialogTitle>
@@ -80,6 +89,8 @@ export function LogementsAdmin() {
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
+                  </>
+                )}
               </div>
             </div>
           ))}
