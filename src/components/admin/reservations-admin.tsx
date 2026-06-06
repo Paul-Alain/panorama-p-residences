@@ -81,7 +81,8 @@ export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) 
     queryKey: ["admin-reservations"],
     queryFn:  () => runList(),
     staleTime: 30_000,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
   });
 
   const [search,     setSearch]     = useState("");
