@@ -21,6 +21,7 @@ import {
 const WINDOW   = 30;   // 30 days visible
 const DAY_W    = 44;
 const LABEL_W  = 128;
+const BLOCK_STATUS = "bloqué";
 
 interface CalUnit {
   id: string; label: string; type: string;
@@ -64,18 +65,20 @@ function calToEditable(r: CalRes): EditableReservation {
 
 /** Bar color class based on display status */
 function barClass(r: CalRes): string {
+  const arrMs = new Date(`${r.arrival_date}T${r.arrival_time.slice(0, 5)}:00`).getTime();
   const depMs = new Date(`${r.departure_date}T${r.departure_time.slice(0, 5)}:00`).getTime();
-  const departed = Date.now() >= depMs;
-  if (r.status === "annulée") return "cal-cancelled";
-  // "Logé" (green) only when the DB status is logé/terminée AND departure has passed
-  if ((r.status === "logé" || r.status === "terminée") && departed) return "cal-completed";
-  if (r.status === "confirmée" || r.status === "logé" || r.status === "terminée") return "cal-confirmed";
-  if (r.status === "nouvelle") return "cal-pending";
-  return "cal-pending";
+  const ds    = displayReservationStatus(r.status, arrMs, depMs);
+  switch (ds) {
+    case "nouvelle":  return "cal-pending";
+    case "confirmée": return "cal-confirmed";
+    case "logé":      return "cal-completed";
+    case "annulée":   return "cal-cancelled";
+    default:          return "cal-pending";
+  }
 }
 
 // ── Main component ───────────────────────────────────────────────────────
-export function OccupancyCalendar() {
+export function OccupancyCalendar({ readOnly = false }: { readOnly?: boolean }) {
   const qc       = useQueryClient();
   const runCal   = useServerFn(opGetCalendar);
   const today    = toISO(new Date());
@@ -177,7 +180,7 @@ export function OccupancyCalendar() {
         <LegendDot cls="cal-dot-pending"   label="En attente" />
         <LegendDot cls="cal-dot-confirmed" label="Confirmée" />
         <LegendDot cls="cal-dot-completed" label="Logé ✓" />
-        <LegendDot cls="cal-dot-cancelled" label="Annulée" />
+        <LegendDot cls="cal-dot-maintenance" label="Annulée" />
       </div>
 
       {/* Calendar grid */}
@@ -216,9 +219,13 @@ export function OccupancyCalendar() {
             {visibleUnits.map((unit) => {
               const maint = unit.op_status === "maintenance" || unit.op_status === "bloquee";
 
-              // Show ALL reservations (every status, including cancelled)
+              // Only show non-cancelled reservations on calendar
               const bars = reservations
-                .filter((r) => r.logement_unit_id === unit.id)
+                .filter((r) =>
+                  r.logement_unit_id === unit.id &&
+                  r.status !== "annulée" &&
+                  r.status !== BLOCK_STATUS
+                )
                 .map((r) => {
                   const startIdx = Math.max(0, dayDiff(start, r.arrival_date));
                   const endIdx   = Math.min(WINDOW, dayDiff(start, r.departure_date));
@@ -227,7 +234,7 @@ export function OccupancyCalendar() {
                 .filter((b) => b.endIdx > b.startIdx && b.startIdx < WINDOW && b.endIdx > 0);
 
               return (
-                <div key={unit.id} className="flex border-b-2 border-foreground last:border-b-0">
+                <div key={unit.id} className="flex border-b border-border/40 last:border-b-0">
                   {/* Unit label */}
                   <div className="sticky left-0 z-20 flex shrink-0 items-center gap-1.5 bg-card px-3 py-2 text-sm font-medium"
                     style={{ width: LABEL_W }}>
@@ -244,7 +251,7 @@ export function OccupancyCalendar() {
                         const isToday = d === today;
                         return (
                           <div key={d}
-                            className={`shrink-0 border-l-2 border-foreground ${
+                            className={`shrink-0 border-l border-border/40 ${
                               maint   ? "cal-maintenance opacity-30"
                               : isSun ? "bg-secondary/30"
                               : "cal-free"
@@ -263,8 +270,8 @@ export function OccupancyCalendar() {
                       ));
                       return (
                         <button key={r.id} type="button"
-                          onClick={() => setEditing(calToEditable(r))}
-                          className={`absolute top-1 bottom-1 flex flex-col justify-center overflow-hidden rounded-md px-1.5 text-left shadow-sm transition hover:brightness-105 ${barClass(r)}`}
+                          onClick={() => !readOnly && setEditing(calToEditable(r))}
+                          className={`absolute top-1 bottom-1 flex flex-col justify-center overflow-hidden rounded-md px-1.5 text-left shadow-sm transition hover:brightness-105 ${barClass(r)} ${readOnly ? "cursor-default" : "cursor-pointer"}`}
                           style={{
                             left:  startIdx * DAY_W + 2,
                             width: (endIdx - startIdx) * DAY_W - 4,
