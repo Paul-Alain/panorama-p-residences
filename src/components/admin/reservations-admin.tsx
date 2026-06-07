@@ -3,37 +3,48 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  Loader2, Search, Plus, ChevronLeft, ChevronRight,
-  CheckCircle2, Pencil, XCircle, ArrowUpDown, ArrowUp, ArrowDown, Lock,
-  Star, Copy, MessageCircle, Mail, Eye,
+  Loader2,
+  Search,
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle2,
+  Pencil,
+  XCircle,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Lock,
+  Star,
+  Copy,
+  MessageCircle,
+  Mail,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { opListReservations, opSetReservationStatus } from "@/lib/operations.functions";
 import { nowCam, dateTimeMsCam } from "@/lib/cameroun-time";
 import { opGenerateReviewToken, opSendReviewEmail } from "@/lib/review.functions";
-import {
-  RES_STATUS_LABELS, DISPLAY_RES_STATUSES,
-  isLocked, type DisplayResStatus,
-} from "@/lib/operations";
+import { RES_STATUS_LABELS, DISPLAY_RES_STATUSES, isLocked, type DisplayResStatus } from "@/lib/operations";
 import { formatDateFr, formatMoney } from "@/lib/format";
 import { useResidence } from "@/lib/use-residence";
-import {
-  ReservationFormDialog, RESERVATION_QUERY_KEYS,
-  type EditableReservation,
-} from "./reservation-form-dialog";
+import { ReservationFormDialog, RESERVATION_QUERY_KEYS, type EditableReservation } from "./reservation-form-dialog";
 
 const PAGE_SIZE = 20;
 
 const TYPE_LABELS: Record<string, string> = {
-  chambre: "Chambre", studio: "Studio", appartement: "Appartement",
+  chambre: "Chambre",
+  studio: "Studio",
+  appartement: "Appartement",
 };
 const CHANNEL_LABELS: Record<string, string> = {
-  website: "Site web", whatsapp: "WhatsApp", phone: "Téléphone", walkin: "Sur place",
+  website: "Site web",
+  whatsapp: "WhatsApp",
+  phone: "Téléphone",
+  walkin: "Sur place",
 };
 
 type ResItem = Awaited<ReturnType<typeof opListReservations>>[number];
@@ -52,22 +63,36 @@ function isRowLocked(r: ResItem): boolean {
 
 function statusBadgeClass(s: DisplayResStatus) {
   switch (s) {
-    case "nouvelle":  return "bg-amber-100  text-amber-700  border-amber-300";
-    case "confirmée": return "bg-emerald-100 text-emerald-700 border-emerald-300";
-    case "logé":      return "bg-blue-100   text-blue-700   border-blue-300";
-    case "annulée":   return "bg-red-100    text-red-700    border-red-300";
-    default:          return "bg-secondary  text-foreground  border-border";
+    case "nouvelle":
+      return "bg-amber-100  text-amber-700  border-amber-300";
+    case "confirmée":
+      return "bg-emerald-100 text-emerald-700 border-emerald-300";
+    case "logé":
+      return "bg-blue-100   text-blue-700   border-blue-300";
+    case "annulée":
+      return "bg-red-100    text-red-700    border-red-300";
+    default:
+      return "bg-secondary  text-foreground  border-border";
   }
 }
 
 function toEditable(r: ResItem): EditableReservation {
   return {
-    id: r.id, name: r.name, phone: r.phone, email: r.email,
-    logement_type: r.logement_type, guests: r.guests,
-    arrival_date: r.arrival_date, departure_date: r.departure_date,
-    arrival_time: r.arrival_time, departure_time: r.departure_time,
-    channel: r.channel, advance: r.advance,
-    total_amount: r.total, notes: r.notes ?? null, status: r.status,
+    id: r.id,
+    name: r.name,
+    phone: r.phone,
+    email: r.email,
+    logement_type: r.logement_type,
+    guests: r.guests,
+    arrival_date: r.arrival_date,
+    departure_date: r.departure_date,
+    arrival_time: r.arrival_time,
+    departure_time: r.departure_time,
+    channel: r.channel,
+    advance: r.advance,
+    total_amount: r.total,
+    notes: r.notes ?? null,
+    status: r.status,
   };
 }
 
@@ -89,40 +114,44 @@ function generateMonthOptions() {
 }
 
 export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) {
-  const qc        = useQueryClient();
+  const qc = useQueryClient();
   const residence = useResidence();
-  const runList   = useServerFn(opListReservations);
+  const runList = useServerFn(opListReservations);
   const runStatus = useServerFn(opSetReservationStatus);
 
   const { data = [], isLoading } = useQuery({
     queryKey: ["admin-reservations"],
-    queryFn:  () => runList(),
+    queryFn: () => runList(),
     staleTime: 60_000,
     refetchOnWindowFocus: true,
   });
 
-  const [search,     setSearch]     = useState("");
-  const [status,     setStatus]     = useState("all");
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
   const [monthFilter, setMonthFilter] = useState("all");
-  const [page,       setPage]       = useState(1);
-  const [busyId,     setBusyId]     = useState<string | null>(null);
-  const [editing,    setEditing]    = useState<EditableReservation | null>(null);
+  const [page, setPage] = useState(1);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<EditableReservation | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [sort,       setSort]       = useState<{ column: "arrival" | "departure" | "total" | "advance" | "balance" | "status"; dir: "asc" | "desc" } | null>(null);
+  const [sort, setSort] = useState<{
+    column: "arrival" | "departure" | "total" | "advance" | "balance" | "status";
+    dir: "asc" | "desc";
+  } | null>(null);
 
   // "Actives" = departure datetime not yet passed
   const nowMs = Date.now();
-  const activeCount = useMemo(() =>
-    data.filter((r) => {
-      const depMs = dateTimeMsCam(r.departure_date, r.departure_time, "11:00");
-      return r.status !== "annulée" && depMs > nowCam();
-    }).length,
-  [data, nowMs]);
+  const activeCount = useMemo(
+    () =>
+      data.filter((r) => {
+        const depMs = dateTimeMsCam(r.departure_date, r.departure_time, "11:00");
+        return r.status !== "annulée" && depMs > nowCam();
+      }).length,
+    [data, nowMs],
+  );
 
   const monthOptions = useMemo(() => generateMonthOptions(), []);
 
-  const invalidate = () =>
-    Promise.all(RESERVATION_QUERY_KEYS.map((k) => qc.invalidateQueries({ queryKey: [k] })));
+  const invalidate = () => Promise.all(RESERVATION_QUERY_KEYS.map((k) => qc.invalidateQueries({ queryKey: [k] })));
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -150,13 +179,26 @@ export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) 
     return [...list].sort((a, b) => {
       let cmp = 0;
       switch (sort.column) {
-        case "arrival":    cmp = a.arrival_date.localeCompare(b.arrival_date); break;
-        case "departure":  cmp = a.departure_date.localeCompare(b.departure_date); break;
-        case "total":      cmp = (a.total ?? 0) - (b.total ?? 0); break;
-        case "advance":    cmp = (a.advance ?? 0) - (b.advance ?? 0); break;
-        case "balance":    cmp = (a.balance ?? 0) - (b.balance ?? 0); break;
-        case "status":     cmp = (a.displayStatus ?? "").localeCompare(b.displayStatus ?? ""); break;
-        default:           cmp = 0;
+        case "arrival":
+          cmp = a.arrival_date.localeCompare(b.arrival_date);
+          break;
+        case "departure":
+          cmp = a.departure_date.localeCompare(b.departure_date);
+          break;
+        case "total":
+          cmp = (a.total ?? 0) - (b.total ?? 0);
+          break;
+        case "advance":
+          cmp = (a.advance ?? 0) - (b.advance ?? 0);
+          break;
+        case "balance":
+          cmp = (a.balance ?? 0) - (b.balance ?? 0);
+          break;
+        case "status":
+          cmp = (a.displayStatus ?? "").localeCompare(b.displayStatus ?? "");
+          break;
+        default:
+          cmp = 0;
       }
       return sort.dir === "asc" ? cmp : -cmp;
     });
@@ -165,7 +207,7 @@ export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) 
   useEffect(() => setPage(1), [search, status, monthFilter, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageItems  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const act = async (id: string, fn: () => Promise<unknown>, ok: string) => {
     setBusyId(id);
@@ -183,7 +225,6 @@ export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) 
 
   return (
     <div className="space-y-5">
-
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         {!readOnly && (
@@ -203,31 +244,41 @@ export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) 
         {/* Search */}
         <div className="relative sm:col-span-2">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher (nom, tél, e-mail, réf.)" className="pl-9" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Rechercher (nom, tél, e-mail, réf.)"
+            className="pl-9"
+          />
         </div>
 
         {/* Month filter */}
         <Select value={monthFilter} onValueChange={setMonthFilter}>
-          <SelectTrigger><SelectValue placeholder="Tous les mois" /></SelectTrigger>
+          <SelectTrigger>
+            <SelectValue placeholder="Tous les mois" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tous les mois</SelectItem>
-            <SelectItem value="active">
-              Réservations actives ({activeCount})
-            </SelectItem>
+            <SelectItem value="active">Réservations actives ({activeCount})</SelectItem>
             {monthOptions.map((m) => (
-              <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+              <SelectItem key={m.value} value={m.value}>
+                {m.label}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
         {/* Status filter */}
         <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tous les statuts</SelectItem>
             {DISPLAY_RES_STATUSES.map((s) => (
-              <SelectItem key={s} value={s}>{RES_STATUS_LABELS[s]}</SelectItem>
+              <SelectItem key={s} value={s}>
+                {RES_STATUS_LABELS[s]}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -239,9 +290,11 @@ export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) 
           const count = data.filter((r) => r.displayStatus === s).length;
           if (count === 0) return null;
           return (
-            <button key={s}
+            <button
+              key={s}
               onClick={() => setStatus(s === status ? "all" : s)}
-              className={`rounded-full border px-3 py-1 font-medium transition ${statusBadgeClass(s)} ${status === s ? "ring-2 ring-offset-1" : ""}`}>
+              className={`rounded-full border px-3 py-1 font-medium transition ${statusBadgeClass(s)} ${status === s ? "ring-2 ring-offset-1" : ""}`}
+            >
               {RES_STATUS_LABELS[s]} · {count}
             </button>
           );
@@ -266,13 +319,13 @@ export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) 
                   <th className="px-3 py-2">Email</th>
                   <th className="px-3 py-2">Type</th>
                   <th className="px-3 py-2 text-center">Pers.</th>
-                  <SortHeader label="Arrivée"  column="arrival"   sort={sort} onSort={setSort} />
-                  <SortHeader label="Départ"   column="departure" sort={sort} onSort={setSort} />
+                  <SortHeader label="Arrivée" column="arrival" sort={sort} onSort={setSort} />
+                  <SortHeader label="Départ" column="departure" sort={sort} onSort={setSort} />
                   <th className="px-3 py-2 text-center">Unités</th>
-                  <SortHeader label="Statut"  column="status"   sort={sort} onSort={setSort} />
-                  <SortHeader label="Total"   column="total"    sort={sort} onSort={setSort} />
-                  <SortHeader label="Avance"  column="advance"  sort={sort} onSort={setSort} />
-                  <SortHeader label="Solde"   column="balance"  sort={sort} onSort={setSort} />
+                  <SortHeader label="Statut" column="status" sort={sort} onSort={setSort} />
+                  <SortHeader label="Total" column="total" sort={sort} onSort={setSort} />
+                  <SortHeader label="Avance" column="advance" sort={sort} onSort={setSort} />
+                  <SortHeader label="Solde" column="balance" sort={sort} onSort={setSort} />
                   <th className="px-3 py-2 text-right">Actions</th>
                 </tr>
               </thead>
@@ -280,8 +333,7 @@ export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) 
                 {pageItems.map((r) => {
                   const locked = isRowLocked(r);
                   return (
-                    <tr key={r.id}
-                      className={`hover:bg-secondary/30 ${locked ? "opacity-70" : ""}`}>
+                    <tr key={r.id} className={`hover:bg-secondary/30 ${locked ? "opacity-70" : ""}`}>
                       <td className="px-3 py-2 font-mono text-[11px] text-muted-foreground">{r.ref}</td>
                       <td className="px-3 py-2 font-medium">{r.name}</td>
                       <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{r.phone}</td>
@@ -298,7 +350,9 @@ export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) 
                       </td>
                       <td className="px-3 py-2 text-center font-semibold">{r.units}</td>
                       <td className="px-3 py-2">
-                        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${statusBadgeClass(r.displayStatus as DisplayResStatus)}`}>
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${statusBadgeClass(r.displayStatus as DisplayResStatus)}`}
+                        >
                           {locked && <Lock className="h-3 w-3" />}
                           {RES_STATUS_LABELS[r.displayStatus ?? "nouvelle"] ?? "En attente"}
                         </span>
@@ -314,10 +368,15 @@ export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) 
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex items-center justify-end gap-1">
-                          <RowActions r={r} busyId={busyId} locked={locked}
+                          <RowActions
+                            r={r}
+                            busyId={busyId}
+                            locked={locked}
                             readOnly={readOnly}
                             onEdit={() => setEditing(toEditable(r))}
-                            act={act} runStatus={runStatus} />
+                            act={act}
+                            runStatus={runStatus}
+                          />
                         </div>
                       </td>
                     </tr>
@@ -332,13 +391,23 @@ export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) 
             <div className="flex items-center justify-between gap-3 text-sm">
               <span className="text-muted-foreground">{filtered.length} réservation(s)</span>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-muted-foreground">{page} / {totalPages}</span>
-                <Button variant="outline" size="sm"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>
+                <span className="text-muted-foreground">
+                  {page} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -348,30 +417,41 @@ export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) 
       )}
 
       {/* Dialogs */}
-      <ReservationFormDialog open={createOpen} onOpenChange={setCreateOpen}
-        onSaved={invalidate} />
+      <ReservationFormDialog open={createOpen} onOpenChange={setCreateOpen} onSaved={invalidate} />
       <ReservationFormDialog
-        open={!!editing} onOpenChange={(v) => !v && setEditing(null)}
-        reservation={editing} onSaved={invalidate} />
+        open={!!editing}
+        onOpenChange={(v) => !v && setEditing(null)}
+        reservation={editing}
+        onSaved={invalidate}
+      />
     </div>
   );
 }
 
-function SortHeader({ label, column, sort, onSort }: {
+function SortHeader({
+  label,
+  column,
+  sort,
+  onSort,
+}: {
   label: string;
   column: "arrival" | "departure" | "total" | "advance" | "balance" | "status";
   sort: { column: "arrival" | "departure" | "total" | "advance" | "balance" | "status"; dir: "asc" | "desc" } | null;
-  onSort: (s: { column: "arrival" | "departure" | "total" | "advance" | "balance" | "status"; dir: "asc" | "desc" } | null) => void;
+  onSort: (
+    s: { column: "arrival" | "departure" | "total" | "advance" | "balance" | "status"; dir: "asc" | "desc" } | null,
+  ) => void;
 }) {
   const active = sort?.column === column;
-  const Icon   = active ? (sort.dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+  const Icon = active ? (sort.dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
   return (
-    <th className="cursor-pointer select-none px-3 py-2"
+    <th
+      className="cursor-pointer select-none px-3 py-2"
       onClick={() => {
-        if (!active)                  onSort({ column, dir: "asc" });
+        if (!active) onSort({ column, dir: "asc" });
         else if (sort!.dir === "asc") onSort({ column, dir: "desc" });
-        else                          onSort(null);
-      }}>
+        else onSort(null);
+      }}
+    >
       <span className="inline-flex items-center gap-1">
         {label} <Icon className="h-3.5 w-3.5 text-muted-foreground" />
       </span>
@@ -379,7 +459,15 @@ function SortHeader({ label, column, sort, onSort }: {
   );
 }
 
-function RowActions({ r, busyId, locked, readOnly, onEdit, act, runStatus }: {
+function RowActions({
+  r,
+  busyId,
+  locked,
+  readOnly,
+  onEdit,
+  act,
+  runStatus,
+}: {
   r: ResItem;
   busyId: string | null;
   locked: boolean;
@@ -390,16 +478,14 @@ function RowActions({ r, busyId, locked, readOnly, onEdit, act, runStatus }: {
 }) {
   const loading = busyId === r.id;
   const runGenerateToken = useServerFn(opGenerateReviewToken);
-  const runSendEmail     = useServerFn(opSendReviewEmail);
+  const runSendEmail = useServerFn(opSendReviewEmail);
   const STORAGE_KEY = `review_link_copied_${r.id}`;
   const firstCopiedAt = localStorage.getItem(STORAGE_KEY);
-  const linkExpired = firstCopiedAt
-    ? Date.now() - Number(firstCopiedAt) > 10 * 60 * 60 * 1000
-    : false;
+  const linkExpired = firstCopiedAt ? Date.now() - Number(firstCopiedAt) > 10 * 60 * 60 * 1000 : false;
 
   const [reviewUrl, setReviewUrl] = useState<string | null>(null);
-  const [genBusy,   setGenBusy]   = useState(false);
-  const [copied,    setCopied]    = useState(false);
+  const [genBusy, setGenBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // ReadOnly mode — just show info icon
   if (readOnly) return <Eye className="h-4 w-4 text-muted-foreground/40" />;
@@ -431,7 +517,7 @@ function RowActions({ r, busyId, locked, readOnly, onEdit, act, runStatus }: {
   const sendWhatsApp = () => {
     if (!reviewUrl) return;
     const msg = encodeURIComponent(
-      `Bonjour ${r.name},\n\nMerci pour votre séjour à la Résidence Panorama P ! Nous serions ravis d'avoir votre avis :\n${reviewUrl}\n\nMerci d'avance !`
+      `Bonjour ${r.name},\n\nMerci pour votre séjour à la Résidence Panorama P ! Nous serions ravis d'avoir votre avis :\n${reviewUrl}\n\nMerci d'avance !`,
     );
     window.open(`https://wa.me/${r.phone.replace(/\D/g, "")}?text=${msg}`, "_blank");
   };
@@ -457,12 +543,14 @@ function RowActions({ r, busyId, locked, readOnly, onEdit, act, runStatus }: {
       <div className="flex items-center justify-end gap-1">
         <Lock className="h-3.5 w-3.5 text-muted-foreground/40" />
         {!reviewUrl ? (
-          <Button size="sm" variant="outline"
+          <Button
+            size="sm"
+            variant="outline"
             className="border-amber-400 text-amber-700 hover:bg-amber-50"
-            disabled={genBusy} onClick={generateLink}>
-            {genBusy
-              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              : <Star className="h-3.5 w-3.5" />}
+            disabled={genBusy}
+            onClick={generateLink}
+          >
+            {genBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Star className="h-3.5 w-3.5" />}
             Lien avis
           </Button>
         ) : (
@@ -471,15 +559,23 @@ function RowActions({ r, busyId, locked, readOnly, onEdit, act, runStatus }: {
               <Copy className="h-3.5 w-3.5" />
               {copied ? "Copié !" : "Copier"}
             </Button>
-            <Button size="sm" variant="outline"
+            <Button
+              size="sm"
+              variant="outline"
               className="text-green-700 border-green-400 hover:bg-green-50"
-              onClick={sendWhatsApp} title="Envoyer via WhatsApp">
+              onClick={sendWhatsApp}
+              title="Envoyer via WhatsApp"
+            >
               <MessageCircle className="h-3.5 w-3.5" />
             </Button>
             {r.email && (
-              <Button size="sm" variant="outline"
+              <Button
+                size="sm"
+                variant="outline"
                 className="text-blue-700 border-blue-400 hover:bg-blue-50"
-                onClick={sendEmail} title="Envoyer par email">
+                onClick={sendEmail}
+                title="Envoyer par email"
+              >
                 <Mail className="h-3.5 w-3.5" />
               </Button>
             )}
@@ -498,23 +594,35 @@ function RowActions({ r, busyId, locked, readOnly, onEdit, act, runStatus }: {
         <Pencil className="h-4 w-4" />
       </Button>
       {r.displayStatus === "nouvelle" && (
-        <Button size="sm" variant="outline" disabled={loading}
-          onClick={() => act(r.id,
-            () => runStatus({ data: { id: r.id, status: "confirmée" } }),
-            "Réservation confirmée.")}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={loading}
+          onClick={() =>
+            act(r.id, () => runStatus({ data: { id: r.id, status: "confirmée" } }), "Réservation confirmée.")
+          }
+        >
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+          )}
           Confirmer
         </Button>
       )}
       {(r.displayStatus === "nouvelle" || r.displayStatus === "confirmée") && (
-        <Button size="sm" variant="ghost"
-          className="text-destructive hover:text-destructive" disabled={loading}
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-destructive hover:text-destructive"
+          disabled={loading}
           onClick={() => {
             const label = r.displayStatus === "nouvelle" ? "Rejeter" : "Annuler";
-            const ok    = r.displayStatus === "nouvelle" ? "Réservation rejetée." : "Réservation annulée.";
+            const ok = r.displayStatus === "nouvelle" ? "Réservation rejetée." : "Réservation annulée.";
             if (confirm(`${label} cette réservation ?`))
               act(r.id, () => runStatus({ data: { id: r.id, status: "annulée" } }), ok);
-          }}>
+          }}
+        >
           <XCircle className="h-4 w-4" />
           {r.displayStatus === "nouvelle" ? "Rejeter" : "Annuler"}
         </Button>

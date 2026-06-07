@@ -185,21 +185,26 @@ export const opListReservations = createServerFn({ method: "GET" })
       if (!firstUnitByType.has(u.type)) firstUnitByType.set(u.type, u.id);
     }
 
-    return reservations
+   return reservations
       .filter((r) => r.status !== BLOCK_STATUS)
       .map((r) => {
         const billableUnits = bookingUnitsOf(r);
         const unitPrice = priceOf(r);
         const autoTotal  = billableUnits * unitPrice;
-        const rawTotal   = Number(r.total_amount);
+        const rawTotal   = r.total_amount !== null && r.total_amount !== undefined ? Number(r.total_amount) : null;
         const rawAdvance = Number(r.advance_amount);
-        const total   = Number.isFinite(rawTotal)   && rawTotal   > 0 ? rawTotal   : autoTotal;
+        
+        // --- CORRECTION CHIRURGICALE : Priorité au montant réel de la base de données ---
+        const total   = rawTotal !== null && Number.isFinite(rawTotal) ? rawTotal : autoTotal;
         const advance = Number.isFinite(rawAdvance) && rawAdvance >= 0 ? rawAdvance : 0;
         const paid = paidMap.get(r.id) ?? 0;
         const nowMs       = nowCameroun();
         const arrivalMs   = dateTimeMs(r.arrival_date,   r.arrival_time,   DEFAULT_CHECKIN_TIME);
         const departureMs = dateTimeMs(r.departure_date, r.departure_time, DEFAULT_CHECKOUT_TIME);
-        const dbStatus    = r.status ?? "nouvelle";
+        
+        // --- CORRECTION CHIRURGICALE : Priorité au vrai statut de la base de données ---
+        const dbStatus    = r.status && r.status.trim() !== "" ? r.status : "nouvelle";
+        
         // Auto-assign unit for calendar display if not assigned
         const effectiveUnitId = r.logement_unit_id ??
           (r.logement_type ? firstUnitByType.get(r.logement_type) ?? null : null);
@@ -235,9 +240,6 @@ export const opListReservations = createServerFn({ method: "GET" })
         };
       })
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
-  });
-
-
 // ── Occupancy calendar (read-only operational view) ──────────────────────
 // Returns every physical unit plus all reservations (any status, incl.
 // historical & cancelled) enriched with payment figures so the calendar can
