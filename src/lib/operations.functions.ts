@@ -1452,8 +1452,8 @@ export const opReplaceManager = createServerFn({ method: "POST" })
     }
     if (!targetId) throw new Error("Aucun compte ne correspond. Le membre doit d'abord créer un compte.");
 
-    // Remove all existing gestionnaire roles
-    await supabaseAdmin.from("user_roles").delete().eq("role", "gestionnaire");
+    // --- CORRECTION CHIRURGICALE : On supprime les anciens rôles gestionnaires UNIQUEMENT s'ils ne correspondent pas au nouveau ciblé ---
+    await supabaseAdmin.from("user_roles").delete().eq("role", "gestionnaire").neq("user_id", targetId);
 
     // Assign new gestionnaire
     const { error } = await supabaseAdmin
@@ -1469,7 +1469,6 @@ export const opReplaceManager = createServerFn({ method: "POST" })
     });
     return { ok: true, targetEmail };
   });
-
 export const opRemoveTeamRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
