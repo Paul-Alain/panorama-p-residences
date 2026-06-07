@@ -3,9 +3,18 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
-  Loader2, LogOut, ShieldCheck, Home,
-  LayoutDashboard, CalendarDays, MessageSquare, Star,
-  Contact, UsersRound, Building2, CreditCard,
+  Loader2,
+  LogOut,
+  ShieldCheck,
+  Home,
+  LayoutDashboard,
+  CalendarDays,
+  MessageSquare,
+  Star,
+  Contact,
+  UsersRound,
+  Building2,
+  CreditCard,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { Logo } from "@/components/brand/logo";
@@ -51,7 +60,10 @@ function AdminPage() {
     });
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
-      if (!data.session) { navigate({ to: "/auth" }); return; }
+      if (!data.session) {
+        navigate({ to: "/auth" });
+        return;
+      }
     });
     return () => sub.subscription.unsubscribe();
   }, [navigate]);
@@ -66,17 +78,27 @@ function AdminPage() {
         setRoles(res.roles ?? []);
         setChecking(false);
       })
-      .catch(() => { if (!active) return; setIsAdmin(false); setChecking(false); });
-    return () => { active = false; };
+      .catch(() => {
+        if (!active) return;
+        setIsAdmin(false);
+        setChecking(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [session, runGetAdminStatus]);
 
   const handleClaim = async () => {
     setClaiming(true);
     try {
       const res = await runClaim();
-      if (res.admin) { setIsAdmin(true); toast.success("Accès administrateur activé."); }
-      else toast.error("Un administrateur existe déjà.");
-    } catch { toast.error("Erreur lors de l'activation."); }
+      if (res.admin) {
+        setIsAdmin(true);
+        toast.success("Accès administrateur activé.");
+      } else toast.error("Un administrateur existe déjà.");
+    } catch {
+      toast.error("Erreur lors de l'activation.");
+    }
     setClaiming(false);
   };
 
@@ -99,17 +121,20 @@ function AdminPage() {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
           <Logo />
           <div className="flex items-center gap-2">
-            {isAdmin && (() => {
-              const tier = roleTier(roles);
-              return tier ? (
-                <Badge variant="outline" className="hidden border-gold/40 text-gold sm:inline-flex">
-                  {ROLE_TIER_LABELS[lang][tier]}
-                </Badge>
-              ) : null;
-            })()}
+            {isAdmin &&
+              (() => {
+                const tier = roleTier(roles);
+                return tier ? (
+                  <Badge variant="outline" className="hidden border-gold/40 text-gold sm:inline-flex">
+                    {ROLE_TIER_LABELS[lang][tier]}
+                  </Badge>
+                ) : null;
+              })()}
             {isAdmin && <AdminNotifications adminId={session.user.id} />}
             <Button asChild variant="ghost" size="sm">
-              <Link to="/"><Home className="h-4 w-4" /> Site</Link>
+              <Link to="/">
+                <Home className="h-4 w-4" /> Site
+              </Link>
             </Button>
             <Button variant="outline" size="sm" onClick={signOut}>
               <LogOut className="h-4 w-4" /> Déconnexion
@@ -138,18 +163,18 @@ function AdminPage() {
 }
 
 function AdminDashboard({ roles }: { roles: string[] }) {
-  const tier    = roleTier(roles);
+  const tier = roleTier(roles);
   const isOwner = tier === "owner";
 
   const tabs: { value: string; label: string; icon: typeof LayoutDashboard }[] = [
-    { value: "overview",     label: "Tableau de bord", icon: LayoutDashboard },
-    { value: "reservations", label: "Réservations",    icon: CalendarDays },
-    { value: "calendar",     label: "Calendrier",      icon: CalendarDays },
-    { value: "logements",    label: "Logements",       icon: Building2 },
-    { value: "clients",      label: "Clients",         icon: Contact },
-    { value: "payments",     label: "Paiements",       icon: CreditCard },
-    { value: "messages",     label: "Messages",        icon: MessageSquare },
-    { value: "reviews",      label: "Avis",            icon: Star },
+    { value: "overview", label: "Tableau de bord", icon: LayoutDashboard },
+    { value: "reservations", label: "Réservations", icon: CalendarDays },
+    { value: "calendar", label: "Calendrier", icon: CalendarDays },
+    { value: "logements", label: "Logements", icon: Building2 },
+    { value: "clients", label: "Clients", icon: Contact },
+    { value: "payments", label: "Paiements", icon: CreditCard },
+    { value: "messages", label: "Messages", icon: MessageSquare },
+    { value: "reviews", label: "Avis", icon: Star },
     ...(isOwner ? [{ value: "team", label: "Administration", icon: UsersRound } as const] : []),
   ];
 
@@ -165,15 +190,36 @@ function AdminDashboard({ roles }: { roles: string[] }) {
           ))}
         </TabsList>
       </div>
-      <TabsContent value="overview"     className="mt-6"><DashboardOverview /></TabsContent>
-      <TabsContent value="reservations" className="mt-6"><ReservationsAdmin readOnly={false} /></TabsContent>
-      <TabsContent value="calendar"     className="mt-6"><OccupancyCalendar readOnly={false} /></TabsContent>
-      <TabsContent value="logements"    className="mt-6"><LogementsAdmin readOnly={isOwner} /></TabsContent>
-      <TabsContent value="clients"      className="mt-6"><ClientsAdmin /></TabsContent>
-      <TabsContent value="payments"     className="mt-6"><PaymentsAdmin readOnly={isOwner} /></TabsContent>
-      <TabsContent value="messages"     className="mt-6"><MessagesAdmin /></TabsContent>
-      <TabsContent value="reviews"      className="mt-6"><ReviewsAdmin /></TabsContent>
-      {isOwner && <TabsContent value="team" className="mt-6"><TeamAdmin /></TabsContent>}
+      <TabsContent value="overview" className="mt-6">
+        <DashboardOverview />
+      </TabsContent>
+      {/* --- CORRECTION : Le propriétaire passe en lecture seule, le gestionnaire en modification --- */}
+      <TabsContent value="reservations" className="mt-6">
+        <ReservationsAdmin readOnly={isOwner} />
+      </TabsContent>
+      <TabsContent value="calendar" className="mt-6">
+        <OccupancyCalendar readOnly={isOwner} />
+      </TabsContent>
+      <TabsContent value="logements" className="mt-6">
+        <LogementsAdmin readOnly={isOwner} />
+      </TabsContent>
+      <TabsContent value="clients" className="mt-6">
+        <ClientsAdmin />
+      </TabsContent>
+      <TabsContent value="payments" className="mt-6">
+        <PaymentsAdmin readOnly={isOwner} />
+      </TabsContent>
+      <TabsContent value="messages" className="mt-6">
+        <MessagesAdmin />
+      </TabsContent>
+      <TabsContent value="reviews" className="mt-6">
+        <ReviewsAdmin />
+      </TabsContent>
+      {isOwner && (
+        <TabsContent value="team" className="mt-6">
+          <TeamAdmin />
+        </TabsContent>
+      )}
     </Tabs>
   );
 }
