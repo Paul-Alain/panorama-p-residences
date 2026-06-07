@@ -602,9 +602,17 @@ export const opSetReservationStatus = createServerFn({ method: "POST" })
       await ensureNoConflict(sb, row.logement_unit_id, row.arrival_date, row.departure_date, data.id);
     }
 
+    const patch: Record<string, unknown> = { status: data.status };
+
+    // Quand annulée → montants à 0
+    if (data.status === "annulée") {
+      patch.total_amount   = 0;
+      patch.advance_amount = 0;
+    }
+
     const { error } = await sb
       .from("reservations")
-      .update({ status: data.status })
+      .update(patch)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
 
