@@ -19,7 +19,8 @@ async function assertAdmin(
   if (data !== true) throw new Error("Forbidden: admin role required");
 }
 
-// Returns whether the current user is an admin (server-verified).
+// Returns whether the current user is an admin (server-verified) plus the full
+// list of roles assigned to them (used by the UI to label the access tier).
 export const getAdminStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -29,7 +30,12 @@ export const getAdminStatus = createServerFn({ method: "GET" })
       _role: "admin",
     });
     if (error) throw new Error(error.message);
-    return { isAdmin: data === true };
+    const { data: roleRows } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    const roles = (roleRows ?? []).map((r) => r.role as string);
+    return { isAdmin: data === true, roles };
   });
 
 // Grants admin to the very first signed-in user. This is an atomic, one-time
