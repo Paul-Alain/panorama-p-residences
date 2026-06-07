@@ -224,7 +224,6 @@ export function OccupancyCalendar({ readOnly = false }: { readOnly?: boolean }) 
               const bars = reservations
                 .filter((r) =>
                   r.logement_unit_id === unit.id &&
-                  r.status !== "annulée" &&
                   r.status !== BLOCK_STATUS
                 )
                 .map((r) => {
