@@ -42,7 +42,7 @@ export function NotificationCenter({
 
   // Cloche rouge si des réservations sont en attente de validation
   const hasPendingReservations = notifications.some(
-    (n) => n.kind === "reservation" && !n.readAt
+    (n) => n.kind === "reservation" && !isRead(n.id)
   );
 
   return (
