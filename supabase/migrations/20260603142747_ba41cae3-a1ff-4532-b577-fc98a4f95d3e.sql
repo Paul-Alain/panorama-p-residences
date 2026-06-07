@@ -1,3 +1,8 @@
+-- Migration 5 — Bootstrap admin (CORRECTE — aucune modification)
+-- Conserver telle quelle
+
+
+
 -- Singleton config row that permanently records whether admin bootstrap was consumed
 CREATE TABLE public.app_config (
   id boolean PRIMARY KEY DEFAULT true,

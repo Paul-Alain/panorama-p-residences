@@ -1,13 +1,20 @@
+-- ══════════════════════════════════════════════════════
+-- MIGRATION 2 — Sécurité fonctions (CORRIGÉE)
+-- ══════════════════════════════════════════════════════
 
-create or replace function public.set_updated_at()
-returns trigger language plpgsql
-set search_path = public
-as $$
-begin
+-- Mettre à jour set_updated_at avec search_path sécurisé
+CREATE OR REPLACE FUNCTION public.set_updated_at()
+RETURNS trigger LANGUAGE plpgsql
+SET search_path = public
+AS $$
+BEGIN
   new.updated_at = now();
-  return new;
-end;
+  RETURN new;
+END;
 $$;
 
-revoke execute on function public.has_role(uuid, public.app_role) from anon, authenticated, public;
-grant execute on function public.has_role(uuid, public.app_role) to service_role;
+-- has_role : révoquer anon et public uniquement
+-- GARDER les droits pour authenticated et service_role
+-- car les policies RLS en ont besoin
+REVOKE EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) TO authenticated, service_role;
