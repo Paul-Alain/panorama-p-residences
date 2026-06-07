@@ -108,7 +108,7 @@ export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) 
   const [busyId,     setBusyId]     = useState<string | null>(null);
   const [editing,    setEditing]    = useState<EditableReservation | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [sort,       setSort]       = useState<{ column: "arrival" | "departure"; dir: "asc" | "desc" } | null>(null);
+  const [sort,       setSort]       = useState<{ column: "arrival" | "departure" | "total" | "advance" | "balance" | "status"; dir: "asc" | "desc" } | null>(null);
 
   // "Actives" = departure datetime not yet passed
   const nowMs = Date.now();
@@ -147,9 +147,17 @@ export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) 
     });
 
     if (!sort) return list;
-    const key = sort.column === "arrival" ? "arrival_date" : "departure_date";
     return [...list].sort((a, b) => {
-      const cmp = (a as any)[key].localeCompare((b as any)[key]);
+      let cmp = 0;
+      switch (sort.column) {
+        case "arrival":    cmp = a.arrival_date.localeCompare(b.arrival_date); break;
+        case "departure":  cmp = a.departure_date.localeCompare(b.departure_date); break;
+        case "total":      cmp = (a.total ?? 0) - (b.total ?? 0); break;
+        case "advance":    cmp = (a.advance ?? 0) - (b.advance ?? 0); break;
+        case "balance":    cmp = (a.balance ?? 0) - (b.balance ?? 0); break;
+        case "status":     cmp = (a.displayStatus ?? "").localeCompare(b.displayStatus ?? ""); break;
+        default:           cmp = 0;
+      }
       return sort.dir === "asc" ? cmp : -cmp;
     });
   }, [data, search, status, monthFilter, sort, nowMs]);
@@ -261,10 +269,10 @@ export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) 
                   <SortHeader label="Arrivée"  column="arrival"   sort={sort} onSort={setSort} />
                   <SortHeader label="Départ"   column="departure" sort={sort} onSort={setSort} />
                   <th className="px-3 py-2 text-center">Unités</th>
-                  <th className="px-3 py-2">Statut</th>
-                  <th className="px-3 py-2 text-right">Total</th>
-                  <th className="px-3 py-2 text-right">Avance</th>
-                  <th className="px-3 py-2 text-right">Solde</th>
+                  <SortHeader label="Statut"  column="status"   sort={sort} onSort={setSort} />
+                  <SortHeader label="Total"   column="total"    sort={sort} onSort={setSort} />
+                  <SortHeader label="Avance"  column="advance"  sort={sort} onSort={setSort} />
+                  <SortHeader label="Solde"   column="balance"  sort={sort} onSort={setSort} />
                   <th className="px-3 py-2 text-right">Actions</th>
                 </tr>
               </thead>
@@ -351,9 +359,9 @@ export function ReservationsAdmin({ readOnly = false }: { readOnly?: boolean }) 
 
 function SortHeader({ label, column, sort, onSort }: {
   label: string;
-  column: "arrival" | "departure";
-  sort: { column: "arrival" | "departure"; dir: "asc" | "desc" } | null;
-  onSort: (s: { column: "arrival" | "departure"; dir: "asc" | "desc" } | null) => void;
+  column: "arrival" | "departure" | "total" | "advance" | "balance" | "status";
+  sort: { column: "arrival" | "departure" | "total" | "advance" | "balance" | "status"; dir: "asc" | "desc" } | null;
+  onSort: (s: { column: "arrival" | "departure" | "total" | "advance" | "balance" | "status"; dir: "asc" | "desc" } | null) => void;
 }) {
   const active = sort?.column === column;
   const Icon   = active ? (sort.dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
@@ -383,6 +391,12 @@ function RowActions({ r, busyId, locked, readOnly, onEdit, act, runStatus }: {
   const loading = busyId === r.id;
   const runGenerateToken = useServerFn(opGenerateReviewToken);
   const runSendEmail     = useServerFn(opSendReviewEmail);
+  const STORAGE_KEY = `review_link_copied_${r.id}`;
+  const firstCopiedAt = localStorage.getItem(STORAGE_KEY);
+  const linkExpired = firstCopiedAt
+    ? Date.now() - Number(firstCopiedAt) > 10 * 60 * 60 * 1000
+    : false;
+
   const [reviewUrl, setReviewUrl] = useState<string | null>(null);
   const [genBusy,   setGenBusy]   = useState(false);
   const [copied,    setCopied]    = useState(false);
@@ -405,6 +419,10 @@ function RowActions({ r, busyId, locked, readOnly, onEdit, act, runStatus }: {
   const copyLink = async () => {
     if (!reviewUrl) return;
     await navigator.clipboard.writeText(reviewUrl);
+    // Sauvegarder la date du premier clic "Copier"
+    if (!localStorage.getItem(STORAGE_KEY)) {
+      localStorage.setItem(STORAGE_KEY, String(Date.now()));
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     toast.success("Lien copié !");
@@ -429,6 +447,11 @@ function RowActions({ r, busyId, locked, readOnly, onEdit, act, runStatus }: {
   };
 
   // Logé → bouton notation + verrou
+  // Cacher le bouton 10h après la première copie
+  if (r.displayStatus === "logé" && linkExpired) {
+    return <Lock className="h-4 w-4 text-muted-foreground/40" />;
+  }
+
   if (r.displayStatus === "logé") {
     return (
       <div className="flex items-center justify-end gap-1">
