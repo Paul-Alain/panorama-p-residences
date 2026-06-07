@@ -40,13 +40,14 @@ export function useAdminStatus() {
       const res = await runGetAdminStatus();
       // Temporary debug: confirm the authenticated user id and resolved role.
       console.log("[admin-status] userId:", userId, "isAdmin:", res.isAdmin);
-      return res.isAdmin;
+      return res;
     },
   });
 
   return {
     userId,
-    isAdmin: query.data === true,
+    isAdmin: query.data?.isAdmin === true,
+    roles: query.data?.roles ?? [],
     // "Loading" until we know the session AND (if signed in) the role result.
     loading: !sessionReady || (!!userId && query.isLoading),
   };
