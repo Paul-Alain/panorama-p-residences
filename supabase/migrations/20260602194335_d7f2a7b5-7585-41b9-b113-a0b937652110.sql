@@ -1,160 +1,234 @@
+-- ══════════════════════════════════════════════════════
+-- MIGRATION 1 — Structure de base (CORRIGÉE)
+-- ══════════════════════════════════════════════════════
 
--- Roles
-create type public.app_role as enum ('admin', 'user');
-
-create table public.user_roles (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) on delete cascade not null,
-  role app_role not null,
-  created_at timestamptz not null default now(),
-  unique (user_id, role)
+-- Roles (tous les rôles du système)
+CREATE TYPE public.app_role AS ENUM (
+  'admin', 'user', 'proprietaire', 'gestionnaire',
+  'technicien', 'reception', 'menage', 'comptable'
 );
 
-grant select on public.user_roles to authenticated;
-grant all on public.user_roles to service_role;
+CREATE TABLE public.user_roles (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  role app_role NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, role)
+);
 
-alter table public.user_roles enable row level security;
+GRANT SELECT ON public.user_roles TO authenticated;
+GRANT ALL ON public.user_roles TO service_role;
 
-create or replace function public.has_role(_user_id uuid, _role app_role)
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select exists (
-    select 1 from public.user_roles
-    where user_id = _user_id and role = _role
+ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+
+CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles
+    WHERE user_id = _user_id AND role = _role
   )
 $$;
 
-create policy "Users can read own roles" on public.user_roles
-  for select to authenticated using (auth.uid() = user_id);
+CREATE POLICY "Users can read own roles" ON public.user_roles
+  FOR SELECT TO authenticated USING (auth.uid() = user_id);
 
 -- updated_at helper
-create or replace function public.set_updated_at()
-returns trigger language plpgsql as $$
-begin
+CREATE OR REPLACE FUNCTION public.set_updated_at()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
   new.updated_at = now();
-  return new;
-end;
+  RETURN new;
+END;
 $$;
 
 -- Logements
-create table public.logements (
-  id uuid primary key default gen_random_uuid(),
-  type text not null default 'studio',
-  title_fr text not null,
+CREATE TABLE public.logements (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  type text NOT NULL DEFAULT 'studio',
+  title_fr text NOT NULL,
   title_de text,
   title_en text,
   description_fr text,
   description_de text,
   description_en text,
-  price numeric not null default 0,
-  currency text not null default 'FCFA',
-  price_unit text not null default 'nuit',
-  equipments text[] not null default '{}',
-  images text[] not null default '{}',
-  available boolean not null default true,
-  sort_order int not null default 0,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  price numeric NOT NULL DEFAULT 0,
+  currency text NOT NULL DEFAULT 'FCFA',
+  price_unit text NOT NULL DEFAULT 'nuit',
+  equipments text[] NOT NULL DEFAULT '{}',
+  images text[] NOT NULL DEFAULT '{}',
+  available boolean NOT NULL DEFAULT true,
+  sort_order int NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-grant select on public.logements to anon, authenticated;
-grant all on public.logements to authenticated;
-grant all on public.logements to service_role;
+GRANT SELECT ON public.logements TO anon, authenticated;
+GRANT ALL ON public.logements TO service_role;
 
-alter table public.logements enable row level security;
+ALTER TABLE public.logements ENABLE ROW LEVEL SECURITY;
 
-create policy "Anyone can view logements" on public.logements
-  for select to anon, authenticated using (true);
-create policy "Admins manage logements" on public.logements
-  for all to authenticated
-  using (public.has_role(auth.uid(), 'admin'))
-  with check (public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "Anyone can view logements" ON public.logements
+  FOR SELECT TO anon, authenticated USING (true);
 
-create trigger logements_updated_at before update on public.logements
-  for each row execute function public.set_updated_at();
+CREATE POLICY "Staff manage logements" ON public.logements
+  FOR ALL TO authenticated
+  USING (
+    public.has_role(auth.uid(), 'admin') OR
+    public.has_role(auth.uid(), 'proprietaire') OR
+    public.has_role(auth.uid(), 'gestionnaire')
+  )
+  WITH CHECK (
+    public.has_role(auth.uid(), 'admin') OR
+    public.has_role(auth.uid(), 'proprietaire') OR
+    public.has_role(auth.uid(), 'gestionnaire')
+  );
+
+CREATE TRIGGER logements_updated_at BEFORE UPDATE ON public.logements
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- Testimonials
-create table public.testimonials (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
+CREATE TABLE public.testimonials (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
   location text,
-  rating int not null default 5,
-  message_fr text not null,
+  rating int NOT NULL DEFAULT 5,
+  message_fr text NOT NULL,
   message_de text,
   message_en text,
-  sort_order int not null default 0,
-  created_at timestamptz not null default now()
+  sort_order int NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now()
 );
 
-grant select on public.testimonials to anon, authenticated;
-grant all on public.testimonials to authenticated;
-grant all on public.testimonials to service_role;
+GRANT SELECT ON public.testimonials TO anon, authenticated;
+GRANT ALL ON public.testimonials TO service_role;
 
-alter table public.testimonials enable row level security;
+ALTER TABLE public.testimonials ENABLE ROW LEVEL SECURITY;
 
-create policy "Anyone can view testimonials" on public.testimonials
-  for select to anon, authenticated using (true);
-create policy "Admins manage testimonials" on public.testimonials
-  for all to authenticated
-  using (public.has_role(auth.uid(), 'admin'))
-  with check (public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "Anyone can view testimonials" ON public.testimonials
+  FOR SELECT TO anon, authenticated USING (true);
 
--- Reservations
-create table public.reservations (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  phone text not null,
+CREATE POLICY "Staff manage testimonials" ON public.testimonials
+  FOR ALL TO authenticated
+  USING (
+    public.has_role(auth.uid(), 'admin') OR
+    public.has_role(auth.uid(), 'proprietaire') OR
+    public.has_role(auth.uid(), 'gestionnaire')
+  )
+  WITH CHECK (
+    public.has_role(auth.uid(), 'admin') OR
+    public.has_role(auth.uid(), 'proprietaire') OR
+    public.has_role(auth.uid(), 'gestionnaire')
+  );
+
+-- Reservations (avec toutes les colonnes nécessaires)
+CREATE TABLE public.reservations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  phone text NOT NULL,
   email text,
-  arrival_date date not null,
-  departure_date date not null,
-  guests int not null default 1,
+  user_id uuid REFERENCES auth.users(id),
   logement_type text,
+  logement_unit_id uuid,
+  arrival_date date NOT NULL,
+  departure_date date NOT NULL,
+  arrival_time text NOT NULL DEFAULT '14:00',
+  departure_time text NOT NULL DEFAULT '11:00',
+  guests int NOT NULL DEFAULT 1,
+  channel text NOT NULL DEFAULT 'website',
+  status text NOT NULL DEFAULT 'nouvelle',
+  payment_status text NOT NULL DEFAULT 'non_paye',
+  total_amount numeric NOT NULL DEFAULT 0,
+  advance_amount numeric NOT NULL DEFAULT 0,
   message text,
-  status text not null default 'nouvelle',
-  created_at timestamptz not null default now()
+  notes text,
+  checkin_at timestamptz,
+  checkout_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-grant insert on public.reservations to anon, authenticated;
-grant select, update, delete on public.reservations to authenticated;
-grant all on public.reservations to service_role;
+GRANT INSERT ON public.reservations TO anon, authenticated;
+GRANT SELECT, UPDATE, DELETE ON public.reservations TO authenticated;
+GRANT ALL ON public.reservations TO service_role;
 
-alter table public.reservations enable row level security;
+ALTER TABLE public.reservations ENABLE ROW LEVEL SECURITY;
 
-create policy "Anyone can create reservation" on public.reservations
-  for insert to anon, authenticated with check (true);
-create policy "Admins read reservations" on public.reservations
-  for select to authenticated using (public.has_role(auth.uid(), 'admin'));
-create policy "Admins update reservations" on public.reservations
-  for update to authenticated using (public.has_role(auth.uid(), 'admin'));
-create policy "Admins delete reservations" on public.reservations
-  for delete to authenticated using (public.has_role(auth.uid(), 'admin'));
+-- Tout le monde peut créer une réservation
+CREATE POLICY "Anyone can create reservation" ON public.reservations
+  FOR INSERT TO anon, authenticated WITH CHECK (true);
 
--- Contact messages
-create table public.messages (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
+-- Staff peut tout lire
+CREATE POLICY "Staff read reservations" ON public.reservations
+  FOR SELECT TO authenticated USING (
+    public.has_role(auth.uid(), 'admin') OR
+    public.has_role(auth.uid(), 'proprietaire') OR
+    public.has_role(auth.uid(), 'gestionnaire') OR
+    auth.uid() = user_id
+  );
+
+-- Staff peut modifier
+CREATE POLICY "Staff update reservations" ON public.reservations
+  FOR UPDATE TO authenticated USING (
+    public.has_role(auth.uid(), 'admin') OR
+    public.has_role(auth.uid(), 'proprietaire') OR
+    public.has_role(auth.uid(), 'gestionnaire')
+  );
+
+-- Seul propriétaire/admin peut supprimer
+CREATE POLICY "Owner delete reservations" ON public.reservations
+  FOR DELETE TO authenticated USING (
+    public.has_role(auth.uid(), 'admin') OR
+    public.has_role(auth.uid(), 'proprietaire')
+  );
+
+CREATE TRIGGER reservations_updated_at BEFORE UPDATE ON public.reservations
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+-- Messages contact
+CREATE TABLE public.messages (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id),
+  name text NOT NULL,
   phone text,
   email text,
-  message text not null,
-  status text not null default 'nouveau',
-  created_at timestamptz not null default now()
+  message text NOT NULL,
+  status text NOT NULL DEFAULT 'nouveau',
+  created_at timestamptz NOT NULL DEFAULT now()
 );
 
-grant insert on public.messages to anon, authenticated;
-grant select, update, delete on public.messages to authenticated;
-grant all on public.messages to service_role;
+GRANT INSERT ON public.messages TO anon, authenticated;
+GRANT SELECT, UPDATE, DELETE ON public.messages TO authenticated;
+GRANT ALL ON public.messages TO service_role;
 
-alter table public.messages enable row level security;
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 
-create policy "Anyone can create message" on public.messages
-  for insert to anon, authenticated with check (true);
-create policy "Admins read messages" on public.messages
-  for select to authenticated using (public.has_role(auth.uid(), 'admin'));
-create policy "Admins update messages" on public.messages
-  for update to authenticated using (public.has_role(auth.uid(), 'admin'));
-create policy "Admins delete messages" on public.messages
-  for delete to authenticated using (public.has_role(auth.uid(), 'admin'));
+-- Tout le monde peut envoyer un message
+CREATE POLICY "Anyone can create message" ON public.messages
+  FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+-- Staff peut lire tous les messages
+CREATE POLICY "Staff read messages" ON public.messages
+  FOR SELECT TO authenticated USING (
+    public.has_role(auth.uid(), 'admin') OR
+    public.has_role(auth.uid(), 'proprietaire') OR
+    public.has_role(auth.uid(), 'gestionnaire') OR
+    auth.uid() = user_id
+  );
+
+-- Staff peut modifier les messages
+CREATE POLICY "Staff update messages" ON public.messages
+  FOR UPDATE TO authenticated USING (
+    public.has_role(auth.uid(), 'admin') OR
+    public.has_role(auth.uid(), 'proprietaire') OR
+    public.has_role(auth.uid(), 'gestionnaire')
+  );
+
+-- Seul admin/propriétaire peut supprimer
+CREATE POLICY "Owner delete messages" ON public.messages
+  FOR DELETE TO authenticated USING (
+    public.has_role(auth.uid(), 'admin') OR
+    public.has_role(auth.uid(), 'proprietaire')
+  );
