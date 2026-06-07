@@ -129,7 +129,9 @@ export function TeamAdmin() {
                   </p>
                   {m.email && <p className="text-sm text-muted-foreground">{m.email}</p>}
                   <div className="mt-2 flex flex-wrap gap-1.5">
-                    {m.roles.map((r) => (
+                    {m.roles
+                      .filter((r) => ['admin','proprietaire','gestionnaire'].includes(r))
+                      .map((r) => (
                       <Badge key={r} variant="secondary">
                         {TEAM_ROLE_LABELS[r] ?? r}
                       </Badge>
@@ -248,7 +250,9 @@ export function TeamAdmin() {
                 </p>
                 {m.email && <p className="text-sm text-muted-foreground">{m.email}</p>}
                 <div className="mt-3 flex flex-wrap gap-1.5">
-                  {m.roles.map((r) => (
+                  {m.roles
+                    .filter((r) => ['admin','proprietaire','gestionnaire'].includes(r))
+                    .map((r) => (
                     <Badge key={r} variant="secondary" className="gap-1">
                       {TEAM_ROLE_LABELS[r] ?? r}
                       {r !== "admin" && (
