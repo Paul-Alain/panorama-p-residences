@@ -110,33 +110,20 @@ function AccountPage() {
   return (
     <>
       <PageHeader title={t.account.title} subtitle={t.account.subtitle}>
-        <div className="mt-6 flex items-center justify-center gap-2">
-          <ClientNotifications userId={userId} />
-          <Button variant="outline" size="sm" onClick={signOut}>
-            <LogOut className="h-4 w-4" /> {t.account.signOut}
-          </Button>
+        <div className="mt-4 flex flex-col items-center gap-2">
+          <ClientNameBadge userId={userId} email={session.user.email ?? ""} />
+          <div className="flex items-center gap-2">
+            <ClientNotifications userId={userId} />
+            <Button variant="outline" size="sm" onClick={signOut}>
+              <LogOut className="h-4 w-4" /> {t.account.signOut}
+            </Button>
+          </div>
         </div>
       </PageHeader>
 
       {isAdmin && (
         <div className="mx-auto mt-6 max-w-4xl px-4 sm:px-6">
-          <Link
-            to="/admin"
-            className="flex items-center justify-between gap-4 rounded-2xl border border-gold/40 bg-gold/5 p-5 transition-colors hover:bg-gold/10"
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gold/15">
-                <ShieldCheck className="h-5 w-5 text-gold" />
-              </div>
-              <div>
-                <p className="font-display text-base font-semibold">{t.nav.admin}</p>
-                <p className="text-sm text-muted-foreground">{t.account.adminAccess}</p>
-              </div>
-            </div>
-            <Button variant="gold" size="sm" asChild>
-              <span>{t.account.adminCta}</span>
-            </Button>
-          </Link>
+          <AdminAccessButton />
         </div>
       )}
 
@@ -210,6 +197,7 @@ interface ProfileRow {
 }
 
 function ProfileSection({ userId, email }: { userId: string; email: string }) {
+  const [editing, setEditing] = useState(false);
   const { t } = useLanguage();
   const qc = useQueryClient();
   const [fullName, setFullName] = useState("");
@@ -958,6 +946,72 @@ function ReviewsSection({ userId }: { userId: string }) {
         );
       })}
     </div>
+  );
+}
+
+
+
+/* ── Client Name Badge (nom visible en permanence) ── */
+function ClientNameBadge({ userId, email }: { userId: string; email: string }) {
+  const { data: profile } = useQuery({
+    queryKey: ["profile-name", userId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, avatar_url")
+        .eq("id", userId)
+        .single();
+      return data;
+    },
+    staleTime: 60_000,
+  });
+  const name = profile?.full_name || email;
+  return (
+    <div className="flex items-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-4 py-1.5">
+      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gold/20">
+        {profile?.avatar_url ? (
+          <img src={profile.avatar_url} alt={name} className="h-7 w-7 rounded-full object-cover" />
+        ) : (
+          <UserIcon className="h-4 w-4 text-gold" />
+        )}
+      </div>
+      <span className="font-medium text-sm text-gold">{name}</span>
+    </div>
+  );
+}
+
+/* ── Admin Access Button 3D ── */
+function AdminAccessButton() {
+  const { isAdmin, roles } = useAdminStatus();
+  const tier = roles?.includes("proprietaire") || roles?.includes("admin")
+    ? "Propriétaire"
+    : roles?.includes("gestionnaire")
+    ? "Gestionnaire"
+    : "Administrateur";
+
+  return (
+    <Link to="/admin" className="block w-full">
+      <div
+        className="w-full rounded-2xl bg-amber-800 px-6 py-5 text-white text-center cursor-pointer
+                   transition-transform hover:translate-y-[-2px] active:translate-y-[1px]"
+        style={{
+          boxShadow: "4px 4px 0 0 #000, 6px 6px 0 0 rgba(0,0,0,0.3)",
+          border: "3px solid #000",
+        }}
+      >
+        <div className="flex items-center justify-center gap-3">
+          <ShieldCheck className="h-7 w-7" />
+          <div className="text-left">
+            <p className="font-display text-lg font-bold leading-tight">
+              Tableau de bord
+            </p>
+            <p className="text-sm opacity-80">
+              Vous êtes connecté en tant que <strong>{tier}</strong>
+            </p>
+          </div>
+        </div>
+      </div>
+    </Link>
   );
 }
 
