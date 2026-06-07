@@ -1,43 +1,49 @@
 -- ══════════════════════════════════════════════════════
--- PANORAMA P — Table review_tokens
--- Liens de notation envoyés aux clients après séjour
+-- MIGRATION 22 — Correction policies review_tokens (CORRIGÉE)
 -- ══════════════════════════════════════════════════════
 
-CREATE TABLE IF NOT EXISTS public.review_tokens (
-  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  reservation_id  uuid NOT NULL REFERENCES public.reservations(id) ON DELETE CASCADE,
-  token           text NOT NULL UNIQUE,
-  guest_name      text NOT NULL,
-  guest_email     text,
-  guest_phone     text,
-  used            boolean NOT NULL DEFAULT false,
-  used_at         timestamptz,
-  expires_at      timestamptz NOT NULL DEFAULT (now() + interval '30 days'),
-  created_at      timestamptz NOT NULL DEFAULT now()
-);
+-- Table déjà créée en Migration 20 — juste les index et corrections
 
--- Index pour lookup rapide par token
-CREATE INDEX IF NOT EXISTS review_tokens_token_idx ON public.review_tokens(token);
-CREATE INDEX IF NOT EXISTS review_tokens_reservation_idx ON public.review_tokens(reservation_id);
+CREATE INDEX IF NOT EXISTS review_tokens_token_idx 
+  ON public.review_tokens(token);
+CREATE INDEX IF NOT EXISTS review_tokens_reservation_idx 
+  ON public.review_tokens(reservation_id);
 
--- RLS : lecture publique par token uniquement
-ALTER TABLE public.review_tokens ENABLE ROW LEVEL SECURITY;
+-- Corriger les policies trop permissives de Migration 20
+DROP POLICY IF EXISTS "public_read_token" ON public.review_tokens;
+DROP POLICY IF EXISTS "staff_insert_token" ON public.review_tokens;
+DROP POLICY IF EXISTS "staff_update_token" ON public.review_tokens;
+DROP POLICY IF EXISTS "Anyone can read review tokens" ON public.review_tokens;
+DROP POLICY IF EXISTS "Service role updates tokens" ON public.review_tokens;
+DROP POLICY IF EXISTS "Staff manage review tokens" ON public.review_tokens;
 
--- Politique : n'importe qui peut lire un token (pour la page publique)
+-- Recréer des policies correctes
+-- Lecture publique (page de notation client)
 CREATE POLICY "public_read_token" ON public.review_tokens
-  FOR SELECT USING (true);
+  FOR SELECT TO anon, authenticated USING (true);
 
--- Politique : seul le staff peut créer/modifier
+-- Seul le staff peut créer des tokens
 CREATE POLICY "staff_insert_token" ON public.review_tokens
-  FOR INSERT WITH CHECK (true);
+  FOR INSERT TO authenticated
+  WITH CHECK (is_staff(auth.uid()));
 
+-- Seul le staff ou service_role peut modifier les tokens
 CREATE POLICY "staff_update_token" ON public.review_tokens
-  FOR UPDATE USING (true);
+  FOR UPDATE TO authenticated
+  USING (is_staff(auth.uid()))
+  WITH CHECK (is_staff(auth.uid()));
 
--- Ajouter colonne review_token_id sur reviews pour lier avis ↔ token
-ALTER TABLE public.reviews 
+-- Seul le staff peut supprimer les tokens
+CREATE POLICY "staff_delete_token" ON public.review_tokens
+  FOR DELETE TO authenticated
+  USING (is_staff(auth.uid()));
+
+-- Colonnes reviews (idempotent)
+ALTER TABLE public.reviews
   ADD COLUMN IF NOT EXISTS review_token_id uuid REFERENCES public.review_tokens(id);
 ALTER TABLE public.reviews
   ADD COLUMN IF NOT EXISTS reservation_id uuid REFERENCES public.reservations(id);
 ALTER TABLE public.reviews
   ADD COLUMN IF NOT EXISTS published boolean NOT NULL DEFAULT false;
+ALTER TABLE public.reviews
+  ADD COLUMN IF NOT EXISTS rejected boolean NOT NULL DEFAULT false;

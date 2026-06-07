@@ -1,21 +1,29 @@
--- 1. Add the technicien role to the enum
+-- ══════════════════════════════════════════════════════
+-- MIGRATION 18 — Rôles staff (CORRIGÉE)
+-- ══════════════════════════════════════════════════════
+
+-- Ajouter technicien à l'enum (existe en base mais jamais assigné)
 ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'technicien';
 
--- 2. Include technicien in the staff check (text comparison keeps this safe in-tx)
+-- is_staff : uniquement les rôles actifs (proprietaire et gestionnaire)
+-- technicien, reception, menage, comptable exclus de l'accès staff
 CREATE OR REPLACE FUNCTION public.is_staff(_user_id uuid)
- RETURNS boolean
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.user_roles
     WHERE user_id = _user_id
-      AND role::text = ANY (ARRAY['admin','proprietaire','gestionnaire','technicien','reception','menage','comptable'])
+      AND role::text = ANY (ARRAY[
+        'admin',
+        'proprietaire',
+        'gestionnaire'
+      ])
   )
-$function$;
+$$;
 
--- 3. Configure current admins as owners (proprietaire already exists in the enum)
+-- Promouvoir les admins existants en propriétaires
 INSERT INTO public.user_roles (user_id, role)
 SELECT user_id, 'proprietaire'::public.app_role
 FROM public.user_roles

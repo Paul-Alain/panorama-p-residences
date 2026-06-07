@@ -1,17 +1,34 @@
+-- ══════════════════════════════════════════════════════
+-- MIGRATION 15 — Temps réel (CORRIGÉE)
+-- ══════════════════════════════════════════════════════
+
 ALTER TABLE public.reservations REPLICA IDENTITY FULL;
 ALTER TABLE public.payments REPLICA IDENTITY FULL;
+ALTER TABLE public.logement_units REPLICA IDENTITY FULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_publication_tables
-    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'reservations'
+    WHERE pubname = 'supabase_realtime'
+    AND schemaname = 'public' AND tablename = 'reservations'
   ) THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.reservations;
   END IF;
+
   IF NOT EXISTS (
     SELECT 1 FROM pg_publication_tables
-    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'payments'
+    WHERE pubname = 'supabase_realtime'
+    AND schemaname = 'public' AND tablename = 'payments'
   ) THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.payments;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+    AND schemaname = 'public' AND tablename = 'logement_units'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.logement_units;
   END IF;
 END $$;
