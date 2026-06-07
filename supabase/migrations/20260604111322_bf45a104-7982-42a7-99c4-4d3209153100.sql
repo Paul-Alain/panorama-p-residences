@@ -41,3 +41,7 @@ $$;
 -- Sécuriser la fonction
 REVOKE EXECUTE ON FUNCTION public.is_staff(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.is_staff(uuid) TO authenticated, service_role;
+
+
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'proprietaire';
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'gestionnaire';
