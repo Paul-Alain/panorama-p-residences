@@ -40,6 +40,11 @@ export function NotificationCenter({
 
   const allIds = useMemo(() => notifications.map((n) => n.id), [notifications]);
 
+  // Cloche rouge si des réservations sont en attente de validation
+  const hasPendingReservations = notifications.some(
+    (n) => n.kind === "reservation" && !n.readAt
+  );
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -49,9 +54,9 @@ export function NotificationCenter({
           className="relative"
           aria-label={tn.title}
         >
-          <Bell className="h-4 w-4" />
+          <Bell className={`h-4 w-4 ${hasPendingReservations ? "text-red-500" : ""}`} />
           {unreadCount > 0 && (
-            <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-gold px-1 text-[10px] font-semibold text-gold-foreground">
+            <span className={`absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white ${hasPendingReservations ? "bg-red-500" : "bg-gold"}`}>
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
