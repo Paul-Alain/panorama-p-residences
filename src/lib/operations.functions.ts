@@ -185,26 +185,21 @@ export const opListReservations = createServerFn({ method: "GET" })
       if (!firstUnitByType.has(u.type)) firstUnitByType.set(u.type, u.id);
     }
 
-   return reservations
+    return reservations
       .filter((r) => r.status !== BLOCK_STATUS)
       .map((r) => {
         const billableUnits = bookingUnitsOf(r);
         const unitPrice = priceOf(r);
         const autoTotal  = billableUnits * unitPrice;
-        const rawTotal   = r.total_amount !== null && r.total_amount !== undefined ? Number(r.total_amount) : null;
+        const rawTotal   = Number(r.total_amount);
         const rawAdvance = Number(r.advance_amount);
-        
-        // --- CORRECTION CHIRURGICALE : Priorité au montant réel de la base de données ---
-        const total   = rawTotal !== null && Number.isFinite(rawTotal) ? rawTotal : autoTotal;
+        const total   = Number.isFinite(rawTotal)   && rawTotal   > 0 ? rawTotal   : autoTotal;
         const advance = Number.isFinite(rawAdvance) && rawAdvance >= 0 ? rawAdvance : 0;
         const paid = paidMap.get(r.id) ?? 0;
         const nowMs       = nowCameroun();
         const arrivalMs   = dateTimeMs(r.arrival_date,   r.arrival_time,   DEFAULT_CHECKIN_TIME);
         const departureMs = dateTimeMs(r.departure_date, r.departure_time, DEFAULT_CHECKOUT_TIME);
-        
-        // --- CORRECTION CHIRURGICALE : Priorité au vrai statut de la base de données ---
-        const dbStatus    = r.status && r.status.trim() !== "" ? r.status : "nouvelle";
-        
+        const dbStatus    = r.status ?? "nouvelle";
         // Auto-assign unit for calendar display if not assigned
         const effectiveUnitId = r.logement_unit_id ??
           (r.logement_type ? firstUnitByType.get(r.logement_type) ?? null : null);
@@ -240,6 +235,9 @@ export const opListReservations = createServerFn({ method: "GET" })
         };
       })
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  });
+
+
 // ── Occupancy calendar (read-only operational view) ──────────────────────
 // Returns every physical unit plus all reservations (any status, incl.
 // historical & cancelled) enriched with payment figures so the calendar can
@@ -1391,7 +1389,7 @@ export const opSetTeamRole = createServerFn({ method: "POST" })
     await assertCanManageTeam(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Resolve user by email, phone or display name
+    // Resolve user by email, phone or name (flexible match)
     let targetId: string | null = null;
     let targetEmail: string | null = null;
     const id = data.identifier.toLowerCase().trim();
@@ -1399,16 +1397,23 @@ export const opSetTeamRole = createServerFn({ method: "POST" })
     for (let page = 1; ; page++) {
       const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
       if (error) throw new Error(error.message);
-      const found = list.users.find((u) =>
-        (u.email ?? "").toLowerCase() === id ||
-        (u.phone ?? "").replace(/\D/g, "") === id.replace(/\D/g, "") ||
-        (u.user_metadata?.full_name ?? "").toLowerCase() === id ||
-        (u.user_metadata?.name ?? "").toLowerCase() === id,
-      );
+      const found = list.users.find((u) => {
+        if ((u.email ?? "").toLowerCase() === id) return true;
+        if (id.replace(/\D/g, "").length >= 6 &&
+            (u.phone ?? "").replace(/\D/g, "") === id.replace(/\D/g, "")) return true;
+        const meta = u.user_metadata ?? u.raw_user_meta_data ?? {};
+        const fullName = (meta.full_name ?? meta.name ?? meta.display_name ?? "").toLowerCase().trim();
+        if (fullName && fullName === id) return true;
+        if (fullName && fullName.includes(id)) return true;
+        return false;
+      });
       if (found) { targetId = found.id; targetEmail = found.email ?? null; break; }
       if (list.users.length < 1000) break;
     }
-    if (!targetId) throw new Error("Aucun compte ne correspond. Le membre doit d'abord créer un compte sur le site.");
+    if (!targetId) throw new Error(
+      `Aucun compte ne correspond à "${data.identifier}". ` +
+      `Vérifiez que le membre a bien créé un compte sur le site.`
+    );
 
     const { error } = await supabaseAdmin
       .from("user_roles")
@@ -1434,26 +1439,38 @@ export const opReplaceManager = createServerFn({ method: "POST" })
     await assertCanManageTeam(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Resolve new manager
+    // Resolve new manager — search by email, phone or name (flexible match)
     let targetId: string | null = null;
     let targetEmail: string | null = null;
     const id = data.identifier.toLowerCase().trim();
+    
     for (let page = 1; ; page++) {
       const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
       if (error) throw new Error(error.message);
-      const found = list.users.find((u) =>
-        (u.email ?? "").toLowerCase() === id ||
-        (u.phone ?? "").replace(/\D/g, "") === id.replace(/\D/g, "") ||
-        (u.user_metadata?.full_name ?? "").toLowerCase() === id ||
-        (u.user_metadata?.name ?? "").toLowerCase() === id,
-      );
+      const found = list.users.find((u) => {
+        // Match by email (exact)
+        if ((u.email ?? "").toLowerCase() === id) return true;
+        // Match by phone (digits only)
+        if (id.replace(/\D/g, "").length >= 6 &&
+            (u.phone ?? "").replace(/\D/g, "") === id.replace(/\D/g, "")) return true;
+        // Match by full_name in any metadata field
+        const meta = u.user_metadata ?? u.raw_user_meta_data ?? {};
+        const fullName = (meta.full_name ?? meta.name ?? meta.display_name ?? "").toLowerCase().trim();
+        if (fullName && fullName === id) return true;
+        // Partial name match (contains)
+        if (fullName && fullName.includes(id)) return true;
+        return false;
+      });
       if (found) { targetId = found.id; targetEmail = found.email ?? null; break; }
       if (list.users.length < 1000) break;
     }
-    if (!targetId) throw new Error("Aucun compte ne correspond. Le membre doit d'abord créer un compte.");
+    if (!targetId) throw new Error(
+      `Aucun compte ne correspond à "${data.identifier}". ` +
+      `Vérifiez que le membre a bien créé un compte sur le site avec cet email, téléphone ou nom.`
+    );
 
-    // --- CORRECTION CHIRURGICALE : On supprime les anciens rôles gestionnaires UNIQUEMENT s'ils ne correspondent pas au nouveau ciblé ---
-    await supabaseAdmin.from("user_roles").delete().eq("role", "gestionnaire").neq("user_id", targetId);
+    // Remove all existing gestionnaire roles
+    await supabaseAdmin.from("user_roles").delete().eq("role", "gestionnaire");
 
     // Assign new gestionnaire
     const { error } = await supabaseAdmin
@@ -1469,6 +1486,7 @@ export const opReplaceManager = createServerFn({ method: "POST" })
     });
     return { ok: true, targetEmail };
   });
+
 export const opRemoveTeamRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
